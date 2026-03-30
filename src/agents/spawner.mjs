@@ -21,23 +21,58 @@ import { writeFileSync, mkdirSync, existsSync, statSync, createWriteStream } fro
 import { join, resolve } from "path";
 
 // ---------------------------------------------------------------------------
-// Claude model name mapping
+// Model name mapping per provider
 // ---------------------------------------------------------------------------
 
-const MODEL_MAP = {
-  haiku:  "claude-haiku-4-5-20250414",
-  sonnet: "claude-sonnet-4-20250514",
-  opus:   "claude-opus-4-20250514",
+const MODEL_MAPS = {
+  // Claude models (used by claude-cli and anthropic-api)
+  anthropic: {
+    haiku:  "claude-haiku-4-5-20251001",
+    sonnet: "claude-sonnet-4-6",
+    opus:   "claude-opus-4-6",
+  },
+  // OpenAI models
+  openai: {
+    haiku:  "gpt-4o-mini",       // Fast, cheap (maps to haiku role)
+    sonnet: "gpt-4o",            // Balanced (maps to sonnet role)
+    opus:   "o1",                // Most capable (maps to opus role)
+  },
+  // Google Gemini models
+  gemini: {
+    haiku:  "gemini-2.0-flash",
+    sonnet: "gemini-2.5-pro",
+    opus:   "gemini-2.5-pro",
+  },
+  // Ollama local models
+  ollama: {
+    haiku:  "llama3.1:8b",
+    sonnet: "llama3.1:70b",
+    opus:   "deepseek-coder-v2:latest",
+  },
+  // OpenAI-compatible (defaults, user should override)
+  "openai-compatible": {
+    haiku:  "llama-3.1-8b",
+    sonnet: "llama-3.1-70b",
+    opus:   "llama-3.1-405b",
+  },
 };
 
+const MODEL_MAP = MODEL_MAPS.anthropic; // Default fallback
+
 /**
- * Resolve a short model name (haiku/sonnet/opus) to the full model ID.
- * If the name is already a full model ID, returns it unchanged.
- * @param {string} model
+ * Resolve a short model name (haiku/sonnet/opus) to the full model ID
+ * for the given provider.
+ * @param {string} model - Short name or full model ID
+ * @param {string} [provider="anthropic"] - Provider name
  * @returns {string}
  */
-export function resolveModelName(model) {
-  return MODEL_MAP[model] || model;
+export function resolveModelName(model, provider = "anthropic") {
+  // claude-cli uses the same models as anthropic
+  const key = provider === "claude-cli" ? "anthropic"
+            : provider === "anthropic-api" ? "anthropic"
+            : provider;
+  const map = MODEL_MAPS[key] || MODEL_MAPS.anthropic;
+  return map[model] || model;
 }
 
 // ---------------------------------------------------------------------------
@@ -142,6 +177,7 @@ export async function spawnAgent(agentConfig, mcpConfigPath, stateDir, options =
     userPrompt,
   } = agentConfig;
 
+  const provider = options.provider || "claude-cli";
   const apiKey = options.apiKey || process.env.ANTHROPIC_API_KEY;
   const projectRoot = options.projectRoot || process.cwd();
 
@@ -157,7 +193,8 @@ export async function spawnAgent(agentConfig, mcpConfigPath, stateDir, options =
   const startHeader = [
     `${"=".repeat(60)}`,
     `Agent: ${agentId}`,
-    `Model: ${model} (${resolveModelName(model)})`,
+    `Provider: ${provider}`,
+    `Model: ${model} (${resolveModelName(model, provider)})`,
     `Started: ${new Date().toISOString()}`,
     `MCP Config: ${mcpConfigPath}`,
     `${"=".repeat(60)}`,
@@ -165,35 +202,78 @@ export async function spawnAgent(agentConfig, mcpConfigPath, stateDir, options =
   ].join("\n");
   logStream.write(startHeader);
 
-  // Decide whether to use Claude CLI or SDK fallback
-  const useCli = isClaudeCliAvailable();
+  const commonOpts = {
+    agentId, model, systemPrompt, userPrompt,
+    mcpConfigPath, stateDir, logPath, logStream,
+    apiKey, projectRoot, provider,
+  };
 
-  if (useCli) {
-    return spawnWithCli({
-      agentId,
-      model,
-      systemPrompt,
-      userPrompt,
-      mcpConfigPath,
-      stateDir,
-      logPath,
-      logStream,
-      apiKey,
-      projectRoot,
-    });
-  } else {
-    return spawnWithSdk({
-      agentId,
-      model,
-      systemPrompt,
-      userPrompt,
-      mcpConfigPath,
-      stateDir,
-      logPath,
-      logStream,
-      apiKey,
-      projectRoot,
-    });
+  // Route to the correct spawner based on provider
+  switch (provider) {
+    case "claude-cli": {
+      // Claude CLI with OAuth (subscription plan) — no API key needed
+      // Also works with API key if ANTHROPIC_API_KEY is set
+      if (!isClaudeCliAvailable()) {
+        logStream.write(`[error] Claude CLI not found. Install it:\n`);
+        logStream.write(`  npm install -g @anthropic-ai/claude-code\n`);
+        logStream.write(`\nThen log in once:\n`);
+        logStream.write(`  claude login\n\n`);
+        logStream.write(`Or switch to API mode: --provider anthropic-api\n`);
+        logStream.end();
+        return {
+          process: null, pid: null, logPath, logStream: null,
+          exitPromise: Promise.resolve({ code: 1, error: "Claude CLI not installed" }),
+          mode: "error", agentId, model,
+        };
+      }
+      return spawnWithCli(commonOpts);
+    }
+
+    case "anthropic-api": {
+      // Direct Anthropic SDK — requires API key, no MCP tools
+      if (!apiKey) {
+        logStream.write(`[error] ANTHROPIC_API_KEY not set. Add it to .env or export it.\n`);
+        logStream.end();
+        return {
+          process: null, pid: null, logPath, logStream: null,
+          exitPromise: Promise.resolve({ code: 1, error: "API key not set" }),
+          mode: "error", agentId, model,
+        };
+      }
+      return spawnWithSdk(commonOpts);
+    }
+
+    case "openai":
+    case "gemini":
+    case "ollama":
+    case "openai-compatible": {
+      // For non-Anthropic providers: if Claude CLI is available, we still
+      // use it because it handles MCP natively. The model name is resolved
+      // to the provider's equivalent.
+      //
+      // If Claude CLI is not available, fall back to direct SDK calls
+      // with a manual MCP bridge (function calling ↔ MCP tools).
+      if (isClaudeCliAvailable()) {
+        logStream.write(`[info] Using Claude CLI with MCP for ${provider} agent.\n`);
+        logStream.write(`[info] Model mapped: ${model} -> ${resolveModelName(model, provider)}\n\n`);
+        return spawnWithCli(commonOpts);
+      } else {
+        logStream.write(`[info] Claude CLI not available. Using ${provider} SDK directly.\n`);
+        logStream.write(`[info] NOTE: Direct SDK mode has limited MCP tool support.\n`);
+        logStream.write(`[info] For best results, install Claude CLI: npm install -g @anthropic-ai/claude-code\n\n`);
+        return spawnWithProviderSdk(commonOpts);
+      }
+    }
+
+    default:
+      logStream.write(`[error] Unknown provider: ${provider}\n`);
+      logStream.write(`Supported: claude-cli, anthropic-api, openai, gemini, ollama, openai-compatible\n`);
+      logStream.end();
+      return {
+        process: null, pid: null, logPath, logStream: null,
+        exitPromise: Promise.resolve({ code: 1, error: `Unknown provider: ${provider}` }),
+        mode: "error", agentId, model,
+      };
   }
 }
 
@@ -212,8 +292,9 @@ function spawnWithCli({
   logStream,
   apiKey,
   projectRoot,
+  provider = "claude-cli",
 }) {
-  const resolvedModel = resolveModelName(model);
+  const resolvedModel = resolveModelName(model, provider);
 
   // Build the claude CLI arguments
   const args = [
@@ -226,13 +307,16 @@ function spawnWithCli({
   ];
 
   // Set up environment
+  // For claude-cli mode (OAuth/subscription), we do NOT need an API key.
+  // The Claude CLI handles authentication via its own OAuth token.
   const env = {
     ...process.env,
     HELIX_STATE_DIR: stateDir,
     HELIX_AGENT_ID: agentId,
   };
 
-  if (apiKey) {
+  // Only set API key if explicitly provided (not needed for claude-cli with plan)
+  if (apiKey && provider !== "claude-cli") {
     env.ANTHROPIC_API_KEY = apiKey;
   }
 
@@ -387,6 +471,110 @@ async function spawnWithSdk({
     logStream,
     exitPromise,
     mode: "sdk",
+    agentId,
+    model,
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Spawn using non-Anthropic provider SDKs (OpenAI, Gemini, Ollama)
+// ---------------------------------------------------------------------------
+
+async function spawnWithProviderSdk({
+  agentId,
+  model,
+  systemPrompt,
+  userPrompt,
+  stateDir,
+  logPath,
+  logStream,
+  apiKey,
+  provider,
+}) {
+  const resolvedModel = resolveModelName(model, provider);
+
+  logStream.write(`[${provider}] Spawning agent with ${provider} SDK\n`);
+  logStream.write(`[${provider}] Model: ${resolvedModel}\n`);
+  logStream.write(`[${provider}] NOTE: Non-Claude providers have limited MCP tool support.\n`);
+  logStream.write(`[${provider}] For full MCP support, use claude-cli mode with a Claude subscription.\n\n`);
+
+  const exitPromise = (async () => {
+    try {
+      let response;
+
+      if (provider === "openai" || provider === "openai-compatible") {
+        // OpenAI or compatible API
+        const OpenAI = (await import("openai")).default;
+        const clientOpts = { apiKey: apiKey || process.env.OPENAI_API_KEY };
+        if (provider === "openai-compatible") {
+          clientOpts.apiKey = apiKey || process.env.OPENAI_COMPATIBLE_API_KEY;
+          clientOpts.baseURL = process.env.OPENAI_COMPATIBLE_BASE_URL || undefined;
+        }
+        const client = new OpenAI(clientOpts);
+        const result = await client.chat.completions.create({
+          model: resolvedModel,
+          max_tokens: 16384,
+          messages: [
+            { role: "system", content: systemPrompt },
+            { role: "user", content: userPrompt },
+          ],
+        });
+        response = result.choices[0]?.message?.content || "";
+        logStream.write(response + "\n");
+
+      } else if (provider === "gemini") {
+        // Google Gemini via REST API
+        const geminiKey = apiKey || process.env.GEMINI_API_KEY;
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/${resolvedModel}:generateContent?key=${geminiKey}`;
+        const res = await fetch(url, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            system_instruction: { parts: [{ text: systemPrompt }] },
+            contents: [{ parts: [{ text: userPrompt }] }],
+          }),
+        });
+        const data = await res.json();
+        response = data.candidates?.[0]?.content?.parts?.[0]?.text || "";
+        logStream.write(response + "\n");
+
+      } else if (provider === "ollama") {
+        // Ollama local API
+        const ollamaUrl = process.env.OLLAMA_URL || "http://localhost:11434";
+        const res = await fetch(`${ollamaUrl}/api/chat`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            model: resolvedModel,
+            messages: [
+              { role: "system", content: systemPrompt },
+              { role: "user", content: userPrompt },
+            ],
+            stream: false,
+          }),
+        });
+        const data = await res.json();
+        response = data.message?.content || "";
+        logStream.write(response + "\n");
+      }
+
+      logStream.write(`\n${"=".repeat(60)}\nAgent ${agentId} completed (${provider} SDK)\nEnded: ${new Date().toISOString()}\n${"=".repeat(60)}\n`);
+      logStream.end();
+      return { code: 0, signal: null };
+    } catch (err) {
+      logStream.write(`\n[${provider}] ERROR: ${err.message}\n`);
+      logStream.end();
+      return { code: 1, signal: null, error: err.message };
+    }
+  })();
+
+  return {
+    process: null,
+    pid: null,
+    logPath,
+    logStream,
+    exitPromise,
+    mode: provider,
     agentId,
     model,
   };

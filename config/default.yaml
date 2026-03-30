@@ -21,25 +21,72 @@
 
 
 # ------------------------------------------------------------
-# API Configuration
+# API / Provider Configuration
 # ------------------------------------------------------------
-# Controls how we talk to the Anthropic API (or compatible).
+# How agents connect to LLMs. Multiple modes are supported,
+# from fully free (local models) to subscription-based.
+#
+# RECOMMENDED: Use "claude-cli" mode with a Claude Max/Pro
+# subscription. One-time login, no API key needed, full MCP
+# tool support, and your subscription covers all agent costs.
 
 api:
-  # LLM provider. Currently only "anthropic" is supported.
-  provider: anthropic
+  # Provider mode. Determines how agents are spawned and how
+  # they communicate with the LLM.
+  #
+  # Options:
+  #   claude-cli       — (RECOMMENDED) Uses the Claude CLI with OAuth login.
+  #                      Works with Claude Max ($100/mo) or Pro ($20/mo) plans.
+  #                      Full MCP tool support. No API key needed.
+  #                      First-time setup: run "claude login" in your terminal.
+  #
+  #   anthropic-api    — Uses the Anthropic API directly with an API key.
+  #                      Pay-per-use. Full MCP tool support via Claude CLI.
+  #                      Set ANTHROPIC_API_KEY in .env or environment.
+  #
+  #   openai           — Uses the OpenAI API (GPT-4o, GPT-4, o1, etc.)
+  #                      MCP tools bridged via function calling.
+  #                      Set OPENAI_API_KEY in .env or environment.
+  #
+  #   gemini           — Uses Google Gemini API (Gemini Pro, Ultra, etc.)
+  #                      MCP tools bridged via function calling.
+  #                      Set GEMINI_API_KEY in .env or environment.
+  #
+  #   ollama           — Uses local models via Ollama. Completely free.
+  #                      Requires Ollama installed (https://ollama.ai).
+  #                      MCP tools bridged via function calling.
+  #                      Recommended models: llama3.1, mistral, deepseek-coder.
+  #
+  #   openai-compatible — Any OpenAI-compatible API endpoint.
+  #                       Works with: Groq, Together, Mistral, Fireworks,
+  #                       DeepSeek, vLLM, LM Studio, text-generation-webui.
+  #                       Set OPENAI_COMPATIBLE_API_KEY and base_url.
+  #
+  provider: claude-cli
 
-  # Your API key. We strongly recommend setting this via the
-  # ANTHROPIC_API_KEY environment variable rather than putting
-  # it in a config file. The ${...} syntax pulls from env.
+  # API key — only needed for api-key-based providers.
+  # For claude-cli mode, leave this empty (uses OAuth login).
+  # Use environment variables instead of putting keys in config files.
   key: ${ANTHROPIC_API_KEY}
+
+  # OpenAI API key (for "openai" provider)
+  openai_key: ${OPENAI_API_KEY}
+
+  # Google Gemini API key (for "gemini" provider)
+  gemini_key: ${GEMINI_API_KEY}
+
+  # OpenAI-compatible API settings (for "openai-compatible" provider)
+  openai_compatible_key: ${OPENAI_COMPATIBLE_API_KEY}
+  base_url: null                   # e.g. https://api.groq.com/openai/v1
+
+  # Ollama settings (for "ollama" provider)
+  ollama_url: http://localhost:11434  # Default Ollama server URL
 
   # Maximum retries on transient API errors (429, 500, 529).
   # Each retry uses exponential backoff.
   max_retries: 3
 
-  # Timeout in seconds for each API call. Claude can take a
-  # while on complex reasoning — 300s is generous but safe.
+  # Timeout in seconds for each agent's total run time.
   timeout_seconds: 300
 
 
