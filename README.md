@@ -37,14 +37,15 @@ Upload your raw DNA file from 23andMe, AncestryDNA, MyHeritage, FamilyTreeDNA, o
 ## Quick Start
 
 ```bash
-git clone https://github.com/HelixGenomics/helix-genomics-agents.git
-cd helix-genomics-agents
+git clone https://github.com/HelixGenomics/Genomic-Agent-Discovery.git
+cd Genomic-Agent-Discovery
 npm install && npm run build-db
-export ANTHROPIC_API_KEY=sk-ant-...
-npm start -- analyze ~/Downloads/my-dna-raw.txt
+npm start -- --dna ~/Downloads/my-dna-raw.txt
 ```
 
 That's it. A dashboard opens in your browser and you can watch the agents work.
+
+> **No API key?** If you have a Claude Max ($100/mo) or Pro ($20/mo) subscription, you don't need one. The Claude CLI authenticates via your subscription — just run `claude login` once and you're set. Your subscription covers unlimited agent runs with full MCP tool support. This is the recommended way to use Genomic Agent Discovery.
 
 ## What You Get
 
@@ -84,51 +85,115 @@ Format is auto-detected from the file header. You can override with `--format`.
 ### Prerequisites
 
 - **Node.js 18+** ([download](https://nodejs.org/))
-- **Anthropic API key** ([get one](https://console.anthropic.com/))
 - ~2GB disk space for the annotation database
+- **One of the following** for LLM access (see below)
 
-### One-Command Setup
+### Step 1: Clone and build
 
 ```bash
-git clone https://github.com/HelixGenomics/helix-genomics-agents.git
-cd helix-genomics-agents
+git clone https://github.com/HelixGenomics/Genomic-Agent-Discovery.git
+cd Genomic-Agent-Discovery
 npm install && npm run build-db
 ```
 
 The `build-db` step downloads 12 public databases and compiles them into a single optimized SQLite file. This takes 5-15 minutes on a decent connection and only needs to happen once.
 
-### Manual Setup
+### Step 2: Connect an LLM
+
+You need a way for agents to think. Pick **one** of these options:
+
+#### Option A: Claude CLI with subscription (RECOMMENDED)
+
+**Best experience. No API key. Unlimited runs. Full MCP tool support.**
+
+If you have a [Claude Max](https://claude.ai) ($100/mo) or [Claude Pro](https://claude.ai) ($20/mo) subscription, this is the way to go. Your subscription covers all agent costs — no per-token charges, no surprise bills.
 
 ```bash
-# 1. Clone
-git clone https://github.com/HelixGenomics/helix-genomics-agents.git
-cd helix-genomics-agents
+# Install the Claude CLI (one time)
+npm install -g @anthropic-ai/claude-code
 
-# 2. Install dependencies
-npm install
+# Log in with your Claude account (one time — opens browser for OAuth)
+claude login
 
-# 3. Build the annotation database
-npm run build-db
-
-# 4. Verify the database built correctly
-npm run verify-db
-
-# 5. Set your API key (or create a .env file)
-export ANTHROPIC_API_KEY=sk-ant-api03-your-key-here
-
-# 6. Run
-npm start -- analyze /path/to/your/dna-file.txt
+# That's it. Run your analysis:
+npm start -- --dna ~/Downloads/my-dna-raw.txt
 ```
 
-### Environment Variables
+The Claude CLI authenticates via OAuth and handles everything automatically. Agents get full MCP tool access to query all 12+ genomics databases. This is the default mode — no config changes needed.
+
+#### Option B: Anthropic API key (pay-per-use)
 
 ```bash
-# Required
-ANTHROPIC_API_KEY=sk-ant-...
+# Set your key
+export ANTHROPIC_API_KEY=sk-ant-api03-your-key-here
 
-# Optional
+# Run with API mode
+npm start -- --dna my-dna.txt --provider anthropic-api
+```
+
+Get a key at [console.anthropic.com](https://console.anthropic.com/settings/keys). Typical analysis costs $1-5 depending on preset.
+
+#### Option C: OpenAI (GPT-4o, o1)
+
+```bash
+export OPENAI_API_KEY=sk-your-key-here
+npm start -- --dna my-dna.txt --provider openai
+```
+
+Model mapping: `haiku` → gpt-4o-mini, `sonnet` → gpt-4o, `opus` → o1.
+
+#### Option D: Google Gemini
+
+```bash
+export GEMINI_API_KEY=your-key-here
+npm start -- --dna my-dna.txt --provider gemini
+```
+
+#### Option E: Ollama (FREE — runs locally)
+
+```bash
+# Install Ollama: https://ollama.ai
+ollama pull llama3.1
+npm start -- --dna my-dna.txt --provider ollama
+```
+
+Completely free. Runs on your hardware. Model mapping: `haiku` → llama3.1:8b, `sonnet` → llama3.1:70b.
+
+#### Option F: Any OpenAI-compatible API (Groq, Together, Mistral, etc.)
+
+```bash
+export OPENAI_COMPATIBLE_API_KEY=your-key-here
+export OPENAI_COMPATIBLE_BASE_URL=https://api.groq.com/openai/v1
+npm start -- --dna my-dna.txt --provider openai-compatible
+```
+
+### Provider comparison
+
+| Provider | API Key? | MCP Tools? | Cost | Best For |
+|----------|----------|------------|------|----------|
+| **Claude CLI** | No (OAuth) | Full | Subscription ($20-100/mo) | Best experience, unlimited use |
+| Anthropic API | Yes | Full via CLI | ~$1-5/run | Pay-per-use, full features |
+| OpenAI | Yes | Function calling | ~$1-5/run | Already have OpenAI key |
+| Gemini | Yes | Function calling | ~$1-3/run | Google ecosystem |
+| Ollama | No | Function calling | Free | Privacy, no internet needed |
+| OpenAI-compatible | Yes | Function calling | Varies | Groq (fast), Together (cheap) |
+
+> **Note:** Claude CLI mode provides the richest experience because MCP tools are natively supported — agents can directly query your genomics databases in real-time. Other providers use function calling as a bridge, which works but may be less reliable for complex multi-step research.
+
+### Environment variables
+
+```bash
+# Provider keys (only set the one you're using)
+ANTHROPIC_API_KEY=sk-ant-...
+OPENAI_API_KEY=sk-...
+GEMINI_API_KEY=...
+OPENAI_COMPATIBLE_API_KEY=...
+OPENAI_COMPATIBLE_BASE_URL=https://api.groq.com/openai/v1
+OLLAMA_URL=http://localhost:11434
+
+# General settings
 HELIX_DEFAULT_MODEL=sonnet          # Override default model for all agents
-HELIX_COST_LIMIT=50.00              # Hard cost limit in USD
+HELIX_COST_LIMIT=50.00              # Hard cost limit in USD (API providers only)
 HELIX_DASHBOARD_PORT=3000           # Dashboard port
 HELIX_DB_PATH=/path/to/unified.db   # Custom database path
 ```
