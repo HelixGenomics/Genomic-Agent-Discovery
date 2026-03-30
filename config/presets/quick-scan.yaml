@@ -1,0 +1,111 @@
+# ============================================================
+# Helix Genomics Agents — Quick Scan Preset
+# ============================================================
+#
+# Fast, affordable overview of your genome across all domains.
+# Uses a single sonnet agent to do a broad surface-level scan.
+# Good for a first look or when you want results quickly.
+#
+# Agents: 1 sonnet general-purpose agent
+# Estimated cost: ~$0.50
+# Estimated time: 2-3 minutes
+#
+# Usage:
+#   helix-agents --dna <file> --preset quick-scan
+#
+# ============================================================
+
+pipeline:
+  phases:
+
+    - id: collectors
+      label: "Quick Scan"
+      parallel: false
+      agents:
+
+        - id: general-scanner
+          role: collector
+          model: sonnet
+          label: "General Health Scanner"
+          prompt: |
+            You are performing a rapid whole-genome health overview. You have
+            limited time, so work efficiently. Cover ALL major domains at a
+            surface level rather than going deep on any one area.
+
+            WORKFLOW:
+            1. Start with get_all_pharmacogenomics for the full PGx panel
+            2. Query the top 5-10 most clinically important genes per domain:
+               - Cancer: BRCA1, BRCA2, TP53, APC, MLH1
+               - Cardio: LDLR, APOB, PCSK9, SCN5A, MYH7
+               - Neuro: APOE, LRRK2, GBA
+               - Metabolic: HFE, TCF7L2, FTO
+               - Coagulation: F5, F2, MTHFR
+            3. Check GWAS for any high-significance associations
+            4. Note anything flagged as pathogenic or likely pathogenic
+
+            Focus on ACTIONABLE findings. Skip common benign variants.
+            If a gene comes back clean, move on quickly.
+
+            Publish your 5 most important findings across all domains.
+            Each finding should note which domain it belongs to.
+          focus_genes:
+            - BRCA1
+            - BRCA2
+            - TP53
+            - APC
+            - MLH1
+            - LDLR
+            - APOB
+            - SCN5A
+            - APOE
+            - HFE
+            - F5
+            - MTHFR
+            - CYP2D6
+            - CYP2C19
+            - DPYD
+          focus_conditions: []
+          max_findings: 5
+          web_search: false
+
+    - id: narrators
+      label: "Quick Report"
+      parallel: false
+      wait_for: collectors
+      agents:
+        - id: narrator
+          role: narrator
+          model: sonnet
+          label: "Quick Report Writer"
+          prompt: |
+            Write a concise genomic health overview based on the scan findings.
+            Keep it short and practical — this is a quick-look report.
+
+            Structure:
+            1. Key Findings (bullet points, most important first)
+            2. Pharmacogenomics Summary (brief metabolizer table)
+            3. Areas Flagged for Deeper Analysis
+            4. Disclaimer
+
+            If nothing significant was found, say so clearly. That's a
+            perfectly valid (and good) result.
+
+            Keep the entire report under 2 pages. No fluff.
+          max_findings: 0
+          web_search: false
+
+# No specific research focus — scan everything at surface level
+research:
+  focus_conditions: []
+  focus_genes: []
+  skip_domains: []
+
+# Low cost limits — this should be cheap
+cost:
+  warn_threshold_usd: 1.00
+  hard_limit_usd: 3.00
+
+# Disable web search for speed
+agent_defaults:
+  web_search: false
+  temperature: 0.2

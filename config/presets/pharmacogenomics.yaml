@@ -1,0 +1,161 @@
+# ============================================================
+# Helix Genomics Agents — Pharmacogenomics Preset
+# ============================================================
+#
+# Focused analysis of drug metabolism genes following CPIC
+# (Clinical Pharmacogenetics Implementation Consortium) guidelines.
+# Covers all 34 CPIC pharmacogenes with actionable recommendations.
+#
+# Agents: 1 collector + 1 narrator
+# Estimated cost: ~$0.50
+# Estimated time: 2-4 minutes
+#
+# Usage:
+#   helix-agents --dna <file> --preset pharmacogenomics
+#
+# ============================================================
+
+pipeline:
+  phases:
+
+    - id: collectors
+      label: "Pharmacogenomics Collection"
+      parallel: false
+      agents:
+
+        - id: pharma-collector
+          role: collector
+          model: haiku
+          label: "CPIC Pharmacogenomics Panel"
+          prompt: |
+            You are a pharmacogenomics specialist performing a comprehensive
+            drug metabolism analysis. This is a focused PGx panel following
+            CPIC (Clinical Pharmacogenetics Implementation Consortium) guidelines.
+
+            START by calling get_all_pharmacogenomics to get the full panel results.
+            Then investigate EVERY gene with an abnormal metabolizer status using
+            get_pharmacogenomics for detailed star allele information.
+
+            For each abnormal result, provide:
+            1. Gene name and metabolizer status (e.g. CYP2D6 - Intermediate Metabolizer)
+            2. Star allele diplotype if available
+            3. List of ALL affected drugs with CPIC level of evidence
+            4. Specific clinical recommendations (dose adjustments, alternatives)
+            5. Drug-drug interaction considerations
+
+            Cover ALL 34 CPIC genes:
+            - Phase I enzymes: CYP2D6, CYP2C19, CYP2C9, CYP3A5, CYP2B6,
+              CYP1A2, CYP2A6, CYP4F2
+            - Phase II enzymes: DPYD, TPMT, NUDT15, UGT1A1, NAT2, GSTP1
+            - Drug targets: VKORC1, OPRM1, IFNL3, HLA-A, HLA-B
+            - Transporters: SLCO1B1, ABCG2, ABCB1
+            - Other: G6PD, RYR1, CACNA1S, CYP2C cluster, COMT
+
+            Publish 3-5 findings covering the most clinically significant results.
+            Prioritize by how commonly prescribed the affected drugs are.
+          focus_genes:
+            - CYP2D6
+            - CYP2C19
+            - CYP2C9
+            - CYP3A5
+            - CYP2B6
+            - CYP1A2
+            - CYP2A6
+            - CYP4F2
+            - DPYD
+            - TPMT
+            - NUDT15
+            - UGT1A1
+            - NAT2
+            - GSTP1
+            - VKORC1
+            - OPRM1
+            - IFNL3
+            - HLA-A
+            - HLA-B
+            - SLCO1B1
+            - ABCG2
+            - ABCB1
+            - G6PD
+            - RYR1
+            - CACNA1S
+            - COMT
+            - F2
+            - F5
+            - CFTR
+            - MT-RNR1
+            - MTHFR
+            - ANKK1
+            - DRD2
+            - GRIK4
+          focus_conditions:
+            - drug metabolism
+            - adverse drug reactions
+            - dose adjustment
+            - pharmacogenomics
+          max_findings: 5
+          web_search: true
+
+    - id: narrators
+      label: "PGx Report"
+      parallel: false
+      wait_for: collectors
+      agents:
+        - id: narrator
+          role: narrator
+          model: sonnet
+          label: "Pharmacogenomics Report Writer"
+          prompt: |
+            You are writing a pharmacogenomics report — the kind a patient
+            would take to their doctor or pharmacist.
+
+            Read ALL findings and produce a clear, practical report with:
+
+            1. Executive Summary (most important drug interactions)
+            2. Metabolizer Status Table (gene | status | key drugs affected)
+            3. High-Priority Alerts (drugs to avoid or dose-adjust)
+            4. Common Drug Categories:
+               - Pain medications (codeine, tramadol, opioids)
+               - Antidepressants (SSRIs, TCAs)
+               - Cardiovascular (statins, clopidogrel, warfarin)
+               - Proton pump inhibitors
+               - Anticoagulants
+               - Anesthesia considerations
+            5. Drug-Drug Interaction Risks
+            6. Recommended Actions (print for pharmacy, genetic counseling)
+            7. Methodology & Limitations
+
+            Format the metabolizer table clearly. Use plain language.
+            This report should be useful for a patient talking to their doctor.
+
+            IMPORTANT: This is NOT medical advice. Recommend discussing
+            with a healthcare provider before making any medication changes.
+          max_findings: 0
+          web_search: false
+
+research:
+  focus_conditions:
+    - drug metabolism
+    - adverse drug reactions
+    - dose adjustment
+    - pharmacogenomics
+  focus_genes:
+    - CYP2D6
+    - CYP2C19
+    - CYP2C9
+    - CYP3A5
+    - CYP2B6
+    - DPYD
+    - TPMT
+    - NUDT15
+    - UGT1A1
+    - VKORC1
+    - SLCO1B1
+    - ABCG2
+    - G6PD
+    - NAT2
+    - OPRM1
+
+cost:
+  warn_threshold_usd: 1.00
+  hard_limit_usd: 5.00

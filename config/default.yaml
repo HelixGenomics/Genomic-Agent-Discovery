@@ -1,0 +1,613 @@
+# ============================================================
+# Helix Genomics Agents — Default Configuration
+# ============================================================
+#
+# This is the full default configuration. You can override any
+# value by creating your own YAML file and passing it with:
+#
+#   helix-agents --config my-config.yaml analyze my-dna.txt
+#
+# Or use a preset:
+#
+#   helix-agents --preset cancer analyze my-dna.txt
+#
+# Presets live in config/presets/ and are deep-merged on top of
+# these defaults. Your config file is merged on top of that.
+#
+# Environment variable interpolation is supported anywhere:
+#   key: ${ENV_VAR_NAME}
+#
+# ============================================================
+
+
+# ------------------------------------------------------------
+# API Configuration
+# ------------------------------------------------------------
+# Controls how we talk to the Anthropic API (or compatible).
+
+api:
+  # LLM provider. Currently only "anthropic" is supported.
+  provider: anthropic
+
+  # Your API key. We strongly recommend setting this via the
+  # ANTHROPIC_API_KEY environment variable rather than putting
+  # it in a config file. The ${...} syntax pulls from env.
+  key: ${ANTHROPIC_API_KEY}
+
+  # Maximum retries on transient API errors (429, 500, 529).
+  # Each retry uses exponential backoff.
+  max_retries: 3
+
+  # Timeout in seconds for each API call. Claude can take a
+  # while on complex reasoning — 300s is generous but safe.
+  timeout_seconds: 300
+
+
+# ------------------------------------------------------------
+# Input Configuration
+# ------------------------------------------------------------
+# Where your DNA data comes from and what we know about you.
+
+input:
+  # Path to your raw DNA file. Supports:
+  #   - 23andMe raw data (txt)
+  #   - AncestryDNA raw data (txt)
+  #   - MyHeritage raw data (csv)
+  #   - VCF files (vcf, vcf.gz)
+  #   - 23andMe-format TSV
+  #
+  # This is the only REQUIRED field. Everything else has defaults.
+  dna_file: null
+
+  # File format. "auto" detects from file header/extension.
+  # Override if auto-detection gets it wrong.
+  # Options: auto, 23andme, ancestrydna, myheritage, vcf
+  format: auto
+
+  # Biological sex. "auto" infers from X chromosome heterozygosity.
+  # Used for sex-specific risk calculations (e.g. breast cancer).
+  # Options: auto, male, female
+  sex: auto
+
+  # Genetic ancestry. "auto" infers from ancestry-informative markers.
+  # Used to select appropriate allele frequencies for risk scores.
+  # Options: auto, EUR, AFR, EAS, SAS, AMR, MID
+  ancestry: auto
+
+  # Optional: medical history and context for the patient.
+  # Free-text string included in every agent's system prompt.
+  # Example: "45-year-old male, family history of colon cancer,
+  #           currently on statins, non-smoker"
+  medical_history: ""
+
+
+# ------------------------------------------------------------
+# Database Configuration
+# ------------------------------------------------------------
+# The unified annotation database contains public genomic data.
+# Build it with: helix-agents build-db
+
+database:
+  # Path to the unified SQLite database.
+  # Default location is ./data/helix-unified.db relative to
+  # the project root.
+  path: ./data/helix-unified.db
+
+  # Toggle individual data sources on/off during database build.
+  # Disabling sources you don't need speeds up the build and
+  # reduces disk usage. All are enabled by default.
+  sources:
+    # ClinVar: Clinical variant interpretations from NCBI
+    # ~2.5M variants with pathogenicity classifications
+    clinvar: true
+
+    # GWAS Catalog: Genome-wide association study results
+    # ~400K trait-variant associations from published studies
+    gwas: true
+
+    # CPIC: Clinical Pharmacogenetics Implementation Consortium
+    # Drug dosing guidelines based on pharmacogene star alleles
+    cpic: true
+
+    # AlphaMissense: DeepMind's AI pathogenicity predictions
+    # Scores for ~70M possible missense variants
+    alphamissense: true
+
+    # CADD: Combined Annotation Dependent Depletion scores
+    # Variant deleteriousness scores (PHRED-scaled)
+    cadd: true
+
+    # gnomAD: Genome Aggregation Database
+    # Population allele frequencies across ancestries
+    gnomad: true
+
+    # HPO: Human Phenotype Ontology gene associations
+    # Maps genes to clinical phenotypes/symptoms
+    hpo: true
+
+    # DisGeNET: Disease-gene associations
+    # Curated and text-mined disease-gene relationships
+    disgenet: true
+
+    # CIViC: Clinical Interpretation of Variants in Cancer
+    # Expert-curated cancer variant clinical evidence
+    civic: true
+
+    # PharmGKB: Pharmacogenomics Knowledge Base
+    # Drug-gene interaction annotations and guidelines
+    pharmgkb: true
+
+    # Orphanet: Rare disease gene associations
+    # Links genes to rare/orphan diseases
+    orphanet: true
+
+    # SNPedia: Community-curated SNP wiki
+    # Plain-language variant summaries and genotype meanings
+    snpedia: true
+
+
+# ------------------------------------------------------------
+# Pipeline Configuration
+# ------------------------------------------------------------
+# The analysis pipeline runs in phases. Each phase contains one
+# or more agents that run in parallel. Later phases can depend
+# on earlier ones using wait_for.
+#
+# This default pipeline is a 3-phase design:
+#   Phase 1 "collectors"  — 5 parallel domain specialists
+#   Phase 2 "synthesis"   — 1 agent synthesizes all findings
+#   Phase 3 "narrators"   — 1 agent writes the final report
+
+pipeline:
+  phases:
+
+    # --------------------------------------------------------
+    # Phase 1: Collectors
+    # --------------------------------------------------------
+    # Five parallel agents, each focused on a medical domain.
+    # They query the patient's genotypes, cross-reference
+    # annotation databases, perform web searches for latest
+    # research, and publish findings to the shared board.
+    #
+    # Each collector should publish 3-5 significant findings.
+    # The MCP server deduplicates automatically.
+
+    - id: collectors
+      label: "Domain Collectors"
+      parallel: true
+      agents:
+
+        - id: cancer-collector
+          role: collector
+          model: haiku
+          label: "Cancer & Tumor Genetics"
+          # System prompt for this agent. Tells it what to focus on.
+          # Use prompt_file to load from an external file instead.
+          prompt: |
+            You are a cancer genomics specialist analyzing a patient's DNA.
+            Focus on: tumor suppressor genes (TP53, BRCA1/2, APC, etc.),
+            oncogenes, DNA repair pathways, mismatch repair genes, and
+            cancer predisposition syndromes.
+
+            Use query_gene to investigate key cancer genes. Use query_civic
+            for clinical cancer variant evidence. Cross-reference with ClinVar
+            and GWAS. Check pharmacogenomics for chemotherapy metabolism.
+
+            Publish your 3-5 most significant findings. Check messages from
+            other agents every few tool calls.
+          # Optional: load prompt from file instead of inline
+          # prompt_file: prompts/cancer-collector.md
+          # Optional: append additional text to the prompt
+          # prompt_append: "Also check for Lynch syndrome markers."
+          focus_genes:
+            - TP53
+            - BRCA1
+            - BRCA2
+            - APC
+            - MLH1
+            - MSH2
+            - MSH6
+            - PMS2
+            - CHEK2
+            - ATM
+            - PALB2
+            - RAD51D
+            - MUTYH
+            - CDH1
+            - PTEN
+            - STK11
+            - CDKN2A
+            - RB1
+            - VHL
+            - RET
+          focus_conditions:
+            - hereditary breast and ovarian cancer
+            - Lynch syndrome
+            - Li-Fraumeni syndrome
+            - familial adenomatous polyposis
+          max_findings: 5
+          web_search: true
+
+        - id: cardio-collector
+          role: collector
+          model: haiku
+          label: "Cardiovascular Genetics"
+          prompt: |
+            You are a cardiovascular genetics specialist analyzing a patient's DNA.
+            Focus on: lipid metabolism (LDLR, APOB, PCSK9), cardiomyopathy genes
+            (MYBPC3, MYH7, TNNT2), arrhythmia genes (SCN5A, KCNQ1, KCNH2),
+            coagulation factors (F5, F2), and hypertension pathways.
+
+            Use query_gene for key cardiovascular genes. Check GWAS for
+            heart disease, stroke, and blood pressure associations.
+            Cross-reference with ClinVar for pathogenic variants.
+
+            Publish your 3-5 most significant findings.
+          focus_genes:
+            - LDLR
+            - APOB
+            - PCSK9
+            - HMGCR
+            - LPA
+            - MYBPC3
+            - MYH7
+            - SCN5A
+            - KCNQ1
+            - KCNH2
+            - ACE
+            - AGT
+            - NOS3
+            - F5
+            - F2
+            - MTHFR
+          focus_conditions:
+            - familial hypercholesterolemia
+            - hypertrophic cardiomyopathy
+            - long QT syndrome
+            - factor V Leiden
+          max_findings: 5
+          web_search: true
+
+        - id: pharma-collector
+          role: collector
+          model: haiku
+          label: "Pharmacogenomics"
+          prompt: |
+            You are a pharmacogenomics specialist analyzing a patient's DNA.
+            Focus on: drug metabolism enzymes (CYP2D6, CYP2C19, CYP2C9,
+            CYP3A5), drug transporters (SLCO1B1, ABCG2), drug targets
+            (VKORC1, DPYD, TPMT, NUDT15, UGT1A1), and HLA alleles.
+
+            Start with get_all_pharmacogenomics for the full panel.
+            Then use get_pharmacogenomics for detailed analysis of
+            abnormal results. Cross-reference with PharmGKB.
+
+            For each abnormal metabolizer status, list specific drugs
+            affected and clinical recommendations.
+
+            Publish your 3-5 most significant findings.
+          focus_genes:
+            - CYP2D6
+            - CYP2C19
+            - CYP2C9
+            - CYP3A5
+            - CYP2B6
+            - CYP1A2
+            - DPYD
+            - TPMT
+            - NUDT15
+            - UGT1A1
+            - VKORC1
+            - SLCO1B1
+            - ABCG2
+            - NAT2
+            - G6PD
+            - IFNL3
+          focus_conditions:
+            - drug metabolism
+            - adverse drug reactions
+            - dose adjustment
+          max_findings: 5
+          web_search: true
+
+        - id: neuro-collector
+          role: collector
+          model: haiku
+          label: "Neurological & Psychiatric Genetics"
+          prompt: |
+            You are a neurogenetics specialist analyzing a patient's DNA.
+            Focus on: neurodegenerative risk (APOE, APP, PSEN1, LRRK2,
+            GBA, MAPT), psychiatric genetics (COMT, SLC6A4, BDNF, HTR2A),
+            and neurological conditions (SCN1A, CACNA1A).
+
+            Use query_gene for key neurological genes. Check GWAS for
+            Alzheimer's, Parkinson's, epilepsy, and psychiatric trait
+            associations. Examine APOE status carefully — it affects
+            both Alzheimer's risk and lipid metabolism.
+
+            Publish your 3-5 most significant findings.
+          focus_genes:
+            - APOE
+            - APP
+            - PSEN1
+            - PSEN2
+            - MAPT
+            - GRN
+            - LRRK2
+            - SNCA
+            - GBA
+            - COMT
+            - SLC6A4
+            - BDNF
+            - HTR2A
+            - CACNA1C
+            - SCN1A
+            - OPRM1
+          focus_conditions:
+            - Alzheimer disease
+            - Parkinson disease
+            - epilepsy
+            - psychiatric disorders
+          max_findings: 5
+          web_search: true
+
+        - id: metabolic-collector
+          role: collector
+          model: haiku
+          label: "Metabolic & Endocrine Genetics"
+          prompt: |
+            You are a metabolic genetics specialist analyzing a patient's DNA.
+            Focus on: diabetes risk (TCF7L2, KCNJ11, HNF1A, GCK), obesity
+            (FTO, MC4R, LEPR), thyroid function, iron metabolism (HFE),
+            and metabolic syndromes.
+
+            Use query_gene for key metabolic genes. Check GWAS for diabetes,
+            BMI, glucose, HbA1c, and metabolic trait associations.
+            Examine HFE for hereditary hemochromatosis.
+
+            Publish your 3-5 most significant findings.
+          focus_genes:
+            - TCF7L2
+            - PPARG
+            - KCNJ11
+            - ABCC8
+            - HNF1A
+            - HNF4A
+            - GCK
+            - FTO
+            - MC4R
+            - LEPR
+            - HFE
+            - SLC30A8
+            - INS
+            - INSR
+            - IRS1
+          focus_conditions:
+            - type 2 diabetes
+            - hereditary hemochromatosis
+            - MODY
+            - metabolic syndrome
+          max_findings: 5
+          web_search: true
+
+    # --------------------------------------------------------
+    # Phase 2: Synthesis
+    # --------------------------------------------------------
+    # One agent reads all Phase 1 findings and synthesizes
+    # cross-domain patterns, gene interactions, and a
+    # prioritized summary of the most important results.
+
+    - id: synthesis
+      label: "Cross-Domain Synthesis"
+      parallel: false
+      wait_for: collectors
+      agents:
+
+        - id: synthesizer
+          role: synthesizer
+          model: sonnet
+          label: "Finding Synthesizer"
+          prompt: |
+            You are a clinical genomics synthesizer. Read ALL findings from
+            the collector agents using get_phase1_findings. Your job is to:
+
+            1. Identify cross-domain patterns (e.g. a variant affecting both
+               cancer risk AND drug metabolism)
+            2. Resolve any contradictions between agents
+            3. Prioritize findings by clinical actionability
+            4. Note pharmacogenomic interactions with treatment options
+            5. Flag any findings that need additional investigation
+
+            Query specific variants or genes to verify claims from collectors.
+            Publish a structured synthesis as findings.
+
+            Do NOT simply repeat what collectors found — add value through
+            cross-referencing and pattern recognition.
+          max_findings: 10
+          web_search: true
+
+    # --------------------------------------------------------
+    # Phase 3: Narrators
+    # --------------------------------------------------------
+    # One agent writes the final human-readable report from
+    # the synthesized findings.
+
+    - id: narrators
+      label: "Report Generation"
+      parallel: false
+      wait_for: synthesis
+      agents:
+
+        - id: narrator
+          role: narrator
+          model: opus
+          label: "Report Writer"
+          prompt: |
+            You are a genomics report writer. Read ALL findings using
+            get_phase1_findings and write a comprehensive, clear,
+            human-readable genomic health report.
+
+            Structure the report with:
+            1. Executive Summary (most important findings)
+            2. High-Priority Findings (actionable, discuss with doctor)
+            3. Pharmacogenomics (drug metabolism summary table)
+            4. Cancer Genetics
+            5. Cardiovascular Genetics
+            6. Neurological Genetics
+            7. Metabolic Health
+            8. Methodology & Limitations
+
+            Write for an educated non-specialist. Explain what each finding
+            means in practical terms. Always recommend discussing significant
+            findings with a healthcare provider.
+
+            IMPORTANT: This is NOT medical advice. Include appropriate
+            disclaimers. You are summarizing genetic data, not diagnosing.
+          max_findings: 0
+          web_search: false
+
+
+# ------------------------------------------------------------
+# Agent Defaults
+# ------------------------------------------------------------
+# Default settings applied to all agents unless overridden
+# in the agent's own configuration above.
+
+agent_defaults:
+  # Default model. Options: haiku, sonnet, opus
+  # Maps to latest available version of each model tier.
+  # Can be overridden per-agent or via HELIX_DEFAULT_MODEL env var.
+  model: haiku
+
+  # Maximum output tokens per API call.
+  max_tokens: 16384
+
+  # Temperature (0-1). Lower = more deterministic.
+  # 0.3 is good for factual analysis, 0.7 for creative writing.
+  temperature: 0.3
+
+  # Whether agents can perform web searches for latest research.
+  # Requires the model to support tool use with web search.
+  web_search: true
+
+  # How often (in tool calls) agents should check messages from
+  # other agents. Lower = more coordination overhead but better
+  # collaboration. 0 = never check.
+  check_messages_every: 7
+
+
+# ------------------------------------------------------------
+# Research Focus
+# ------------------------------------------------------------
+# Optional: narrow the analysis to specific areas of interest.
+# Leave empty for a comprehensive whole-genome analysis.
+
+research:
+  # Specific conditions to prioritize in the analysis.
+  # Agents will investigate these conditions more thoroughly.
+  # Example: ["breast cancer", "type 2 diabetes", "Alzheimer disease"]
+  focus_conditions: []
+
+  # Specific genes to prioritize. Agents will always check these
+  # even if they're outside their normal domain focus.
+  # Example: ["BRCA1", "APOE", "MTHFR"]
+  focus_genes: []
+
+  # Specific variants to investigate regardless of annotations.
+  # Useful when you know a specific rsID is of interest.
+  # Example: ["rs1234567", "rs7654321"]
+  focus_variants: []
+
+  # Domains to skip entirely. Saves API costs if you only care
+  # about certain areas.
+  # Options: cancer, cardio, pharma, neuro, metabolic
+  skip_domains: []
+
+
+# ------------------------------------------------------------
+# Output Configuration
+# ------------------------------------------------------------
+
+output:
+  # Directory for output files. Created automatically.
+  directory: ./output
+
+  # Output formats to generate. Multiple can be enabled.
+  # Options: markdown, html, json, pdf
+  formats:
+    - markdown
+    - json
+
+  # Include raw agent findings in the output directory.
+  # Useful for debugging or further analysis.
+  include_raw_findings: true
+
+  # Include the full agent chat log.
+  include_chat_log: true
+
+
+# ------------------------------------------------------------
+# Dashboard Configuration
+# ------------------------------------------------------------
+# A real-time web dashboard showing agent progress, findings,
+# and the chatroom. Opens in your browser during analysis.
+
+dashboard:
+  # Enable the dashboard web server.
+  enabled: true
+
+  # Port for the dashboard HTTP server.
+  port: 3000
+
+  # Automatically open the dashboard in your default browser
+  # when analysis starts.
+  open_browser: true
+
+  # How often the dashboard polls for updates (milliseconds).
+  # Lower = smoother updates but more CPU.
+  poll_interval_ms: 2000
+
+
+# ------------------------------------------------------------
+# Cost Management
+# ------------------------------------------------------------
+# API calls cost money. These settings help you stay in budget.
+
+cost:
+  # Warn in the dashboard when estimated cost exceeds this (USD).
+  # Does not stop the analysis, just shows a warning.
+  warn_threshold_usd: 5.00
+
+  # Hard kill: abort ALL agents if total cost exceeds this (USD).
+  # Set to 0 to disable the hard limit.
+  hard_limit_usd: 50.00
+
+  # Track and display token usage per agent in the dashboard.
+  track_tokens: true
+
+
+# ------------------------------------------------------------
+# Advanced Settings
+# ------------------------------------------------------------
+# You probably don't need to change these unless you're
+# debugging or running on constrained hardware.
+
+advanced:
+  # Maximum number of agents running simultaneously.
+  # Limited by your API rate limits and machine resources.
+  # Default 5 matches the Phase 1 collector count.
+  concurrency_limit: 5
+
+  # Enable smart deduplication of findings.
+  # Uses keyword overlap to prevent agents from publishing
+  # essentially the same finding with different wording.
+  dedup_findings: true
+
+  # Keyword overlap threshold for dedup (0-1).
+  # 0.6 means 60% of significant keywords must match.
+  # Lower = more aggressive dedup, higher = more permissive.
+  dedup_threshold: 0.6
+
+  # Directory for shared state files (findings, chat, searches).
+  # Each analysis run creates a timestamped subdirectory.
+  state_directory: ./state

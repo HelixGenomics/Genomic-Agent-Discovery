@@ -1,0 +1,952 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Helix Genomics Agents</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=IBM+Plex+Mono:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#050a18;--bg2:#0a1228;--bg3:#0f1a35;
+  --cyan:#00f0ff;--coral:#ff3366;--green:#00ff88;--amber:#ffaa00;
+  --blue:#4488ff;--violet:#8855ff;
+  --text:#e8f0ff;--dim:#6688aa;
+  --glass:rgba(10,18,40,0.65);--glass-border:rgba(0,240,255,0.12);
+  --radius:10px;
+}
+html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);font-family:'IBM Plex Mono',monospace;font-size:13px;line-height:1.45}
+
+/* Aurora gradient mesh background */
+body::before{
+  content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
+  background:
+    radial-gradient(ellipse 80% 60% at 20% 30%, rgba(0,240,255,0.06) 0%, transparent 60%),
+    radial-gradient(ellipse 60% 50% at 80% 70%, rgba(136,85,255,0.05) 0%, transparent 55%),
+    radial-gradient(ellipse 70% 50% at 50% 90%, rgba(255,51,102,0.04) 0%, transparent 50%),
+    radial-gradient(ellipse 90% 80% at 60% 20%, rgba(0,255,136,0.03) 0%, transparent 50%);
+  animation:auroraDrift 25s ease-in-out infinite alternate;
+}
+@keyframes auroraDrift{
+  0%{filter:hue-rotate(0deg) brightness(1)}
+  33%{filter:hue-rotate(15deg) brightness(1.15)}
+  66%{filter:hue-rotate(-10deg) brightness(0.95)}
+  100%{filter:hue-rotate(5deg) brightness(1.1)}
+}
+
+/* Noise texture overlay */
+body::after{
+  content:'';position:fixed;inset:0;z-index:1;pointer-events:none;opacity:0.035;
+  background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  background-repeat:repeat;background-size:150px;
+}
+
+/* Layout */
+#app{position:relative;z-index:2;display:grid;height:100vh;
+  grid-template-columns:280px 1fr 360px;
+  grid-template-rows:1fr 260px 32px;
+  gap:0;
+}
+#agents-panel{grid-row:1/3;grid-column:1;border-right:1px solid var(--glass-border);overflow:hidden;display:flex;flex-direction:column;background:var(--glass);backdrop-filter:blur(20px)}
+#canvas-wrap{grid-row:1;grid-column:2;position:relative;overflow:hidden}
+#findings-panel{grid-row:1;grid-column:3;border-left:1px solid var(--glass-border);overflow:auto;resize:vertical;min-height:100px;display:flex;flex-direction:column;background:var(--glass);backdrop-filter:blur(20px)}
+#chatroom{grid-row:2;grid-column:2/4;border-top:1px solid var(--glass-border);overflow:auto;resize:vertical;min-height:80px;display:flex;flex-direction:column;background:var(--glass);backdrop-filter:blur(20px)}
+#status-bar{grid-row:3;grid-column:1/4;display:flex;align-items:center;gap:16px;padding:0 16px;font-size:11px;flex-wrap:wrap;
+  background:linear-gradient(90deg,rgba(0,240,255,0.08),rgba(136,85,255,0.06),rgba(255,51,102,0.05));
+  border-top:1px solid var(--glass-border)}
+
+/* Panel headers */
+.panel-hdr{padding:14px 16px 10px;display:flex;align-items:center;gap:10px;border-bottom:1px solid var(--glass-border);flex-shrink:0}
+.panel-hdr h2{font-family:'Syne',sans-serif;font-size:14px;font-weight:700;letter-spacing:0.5px;text-transform:uppercase}
+.panel-hdr .badge{background:var(--cyan);color:var(--bg);font-size:10px;font-weight:700;padding:1px 7px;border-radius:10px}
+.panel-hdr .btn-add{margin-left:auto;background:rgba(0,240,255,0.1);border:1px solid rgba(0,240,255,0.3);color:var(--cyan);font-size:11px;padding:4px 10px;border-radius:6px;cursor:pointer;font-family:'IBM Plex Mono',monospace;transition:all .2s}
+.panel-hdr .btn-add:hover{background:rgba(0,240,255,0.2);border-color:var(--cyan)}
+
+.panel-body{flex:1;overflow-y:auto;padding:8px}
+.panel-body::-webkit-scrollbar{width:5px}
+.panel-body::-webkit-scrollbar-track{background:transparent}
+.panel-body::-webkit-scrollbar-thumb{background:rgba(0,240,255,0.15);border-radius:3px}
+
+/* Agent cards */
+.agent-card{
+  padding:10px 12px;margin-bottom:6px;border-radius:var(--radius);cursor:pointer;
+  border:1px solid transparent;position:relative;overflow:hidden;
+  transition:all .25s;background:rgba(255,255,255,0.02);
+}
+.agent-card:hover{background:rgba(0,240,255,0.04)}
+.agent-card.selected{background:rgba(0,240,255,0.06);border-color:rgba(0,240,255,0.25)}
+.agent-card.status-running{border-color:rgba(0,240,255,0.2);box-shadow:0 0 15px rgba(0,240,255,0.06)}
+.agent-card.status-done{border-color:rgba(0,255,136,0.15);box-shadow:0 0 10px rgba(0,255,136,0.04)}
+.agent-card.status-error{border-color:rgba(255,51,102,0.2)}
+
+/* Scan-line effect for running agents */
+.agent-card.status-running::after{
+  content:'';position:absolute;top:0;left:0;right:0;height:2px;
+  background:linear-gradient(90deg,transparent,var(--cyan),transparent);
+  animation:scanLine 2.5s ease-in-out infinite;
+}
+@keyframes scanLine{0%{top:0;opacity:0.8}50%{opacity:0.3}100%{top:100%;opacity:0.8}}
+
+.agent-row{display:flex;align-items:center;gap:8px}
+.status-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.status-dot.running{background:var(--cyan);box-shadow:0 0 8px var(--cyan);animation:pulse 1.5s ease-in-out infinite}
+.status-dot.done{background:var(--green);box-shadow:0 0 6px var(--green)}
+.status-dot.waiting{background:var(--dim);opacity:0.5}
+.status-dot.error{background:var(--coral);box-shadow:0 0 6px var(--coral);animation:pulse 1s ease-in-out infinite}
+.status-dot.spawning{background:var(--amber);box-shadow:0 0 6px var(--amber);animation:pulse 1s ease-in-out infinite}
+@keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:0.5;transform:scale(0.8)}}
+
+.agent-icon{font-size:16px;flex-shrink:0}
+.agent-name{font-weight:600;font-size:12px;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.agent-report{color:var(--green);font-size:13px;margin-left:2px}
+.agent-restart{
+  background:none;border:1px solid rgba(0,240,255,0.2);color:var(--cyan);
+  width:22px;height:22px;border-radius:5px;cursor:pointer;font-size:12px;
+  display:flex;align-items:center;justify-content:center;transition:all .2s;flex-shrink:0;
+}
+.agent-restart:hover{background:rgba(0,240,255,0.1);border-color:var(--cyan)}
+.agent-meta{display:flex;align-items:center;gap:8px;margin-top:5px;font-size:10px;color:var(--dim)}
+.agent-meta .status-text{text-transform:capitalize}
+.agent-meta .status-text.running{color:var(--cyan)}
+.agent-meta .status-text.done{color:var(--green)}
+.agent-meta .status-text.error{color:var(--coral)}
+.agent-progress{height:2px;background:rgba(0,240,255,0.1);border-radius:1px;margin-top:6px;overflow:hidden}
+.agent-progress-bar{height:100%;border-radius:1px;background:linear-gradient(90deg,var(--cyan),var(--blue));animation:progressPulse 2s ease-in-out infinite;transition:width .5s}
+@keyframes progressPulse{0%,100%{opacity:1}50%{opacity:0.6}}
+.agent-activity{font-size:10px;color:var(--dim);margin-top:4px;font-family:'IBM Plex Mono',monospace}
+
+/* Findings cards */
+.finding-card{
+  padding:10px 12px;margin-bottom:6px;border-radius:var(--radius);
+  background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.04);
+  border-left:3px solid var(--blue);cursor:pointer;transition:all .2s;
+}
+.finding-card:hover{background:rgba(255,255,255,0.04)}
+.finding-card.cat-risk{border-left-color:var(--coral);box-shadow:0 0 12px rgba(255,51,102,0.06)}
+.finding-card.cat-pharmacogenomic{border-left-color:var(--blue);box-shadow:0 0 12px rgba(68,136,255,0.06)}
+.finding-card.cat-notable{border-left-color:var(--amber);box-shadow:0 0 12px rgba(255,170,0,0.06)}
+.finding-card.cat-convergence{border-left-color:var(--violet);box-shadow:0 0 12px rgba(136,85,255,0.06)}
+.finding-gene{font-family:'Syne',sans-serif;font-weight:700;font-size:12px;margin-bottom:3px}
+.finding-text{font-size:11px;color:var(--dim);line-height:1.4;overflow:hidden;max-height:2.8em;transition:max-height .3s}
+.finding-card.expanded .finding-text{max-height:500px}
+.finding-footer{display:flex;align-items:center;gap:6px;margin-top:6px;flex-wrap:wrap}
+.finding-confidence{font-size:10px;padding:1px 6px;border-radius:4px;background:rgba(0,240,255,0.1);color:var(--cyan)}
+.finding-variant{font-size:9px;padding:1px 5px;border-radius:3px;background:rgba(136,85,255,0.1);color:var(--violet)}
+.finding-agent{font-size:9px;color:var(--dim);margin-left:auto}
+
+/* Chat messages */
+.chat-hdr{padding:10px 16px 8px;border-bottom:1px solid var(--glass-border);flex-shrink:0}
+.chat-hdr h2{font-family:'Syne',sans-serif;font-size:13px;font-weight:700;letter-spacing:0.5px;text-transform:uppercase}
+.chat-body{flex:1;overflow-y:auto;padding:8px 12px}
+.chat-body::-webkit-scrollbar{width:5px}
+.chat-body::-webkit-scrollbar-track{background:transparent}
+.chat-body::-webkit-scrollbar-thumb{background:rgba(0,240,255,0.15);border-radius:3px}
+.chat-msg{padding:5px 8px;margin-bottom:3px;font-size:11px;border-radius:6px;border-left:2px solid transparent;line-height:1.4;transition:background .2s}
+.chat-msg:hover{background:rgba(255,255,255,0.02)}
+.chat-msg.priority-critical{border-left-color:var(--coral);background:rgba(255,51,102,0.04)}
+.chat-msg.priority-urgent{border-left-color:var(--amber);background:rgba(255,170,0,0.03)}
+.chat-msg .msg-icon{margin-right:4px}
+.chat-msg .msg-sender{font-weight:600;color:var(--cyan)}
+.chat-msg .msg-arrow{color:var(--dim);margin:0 4px}
+.chat-msg .msg-target{font-weight:500;color:var(--violet)}
+.chat-msg .msg-text{color:var(--text)}
+.chat-msg .msg-time{font-size:9px;color:var(--dim);margin-left:8px;float:right}
+
+/* Status bar */
+#status-bar .brand{font-family:'Syne',sans-serif;font-weight:800;font-size:11px;letter-spacing:1.5px;
+  background:linear-gradient(90deg,var(--cyan),var(--blue));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+#status-bar .sep{color:rgba(0,240,255,0.2)}
+#status-bar .label{color:var(--dim)}
+#status-bar .val{color:var(--text)}
+#status-bar .cost{color:var(--amber)}
+.status-btns{margin-left:auto;display:flex;gap:8px}
+.btn-status{
+  font-family:'IBM Plex Mono',monospace;font-size:10px;padding:3px 10px;border-radius:5px;
+  cursor:pointer;border:1px solid;transition:all .2s;
+}
+.btn-save{background:rgba(0,240,255,0.08);border-color:rgba(0,240,255,0.3);color:var(--cyan)}
+.btn-save:hover{background:rgba(0,240,255,0.15)}
+.btn-synth{background:rgba(0,255,136,0.1);border-color:rgba(0,255,136,0.3);color:var(--green)}
+.btn-synth:hover{background:rgba(0,255,136,0.2)}
+
+/* Canvas */
+#netCanvas{position:absolute;inset:0;width:100%;height:100%}
+
+/* Modal */
+.modal-overlay{position:fixed;inset:0;z-index:100;background:rgba(5,10,24,0.85);backdrop-filter:blur(8px);display:none;align-items:center;justify-content:center}
+.modal-overlay.active{display:flex}
+.modal{
+  background:var(--bg2);border:1px solid var(--glass-border);border-radius:14px;
+  padding:24px;width:420px;max-width:90vw;box-shadow:0 0 60px rgba(0,240,255,0.08);
+}
+.modal h3{font-family:'Syne',sans-serif;font-size:16px;font-weight:700;margin-bottom:16px;color:var(--cyan)}
+.modal label{display:block;font-size:11px;color:var(--dim);margin-bottom:4px;margin-top:12px}
+.modal input,.modal select,.modal textarea{
+  width:100%;padding:8px 10px;background:var(--bg);border:1px solid var(--glass-border);
+  border-radius:6px;color:var(--text);font-family:'IBM Plex Mono',monospace;font-size:12px;
+  outline:none;transition:border-color .2s;
+}
+.modal input:focus,.modal select:focus,.modal textarea:focus{border-color:rgba(0,240,255,0.4)}
+.modal textarea{height:80px;resize:vertical}
+.modal-btns{display:flex;gap:10px;margin-top:18px;justify-content:flex-end}
+.modal-btns button{
+  font-family:'IBM Plex Mono',monospace;font-size:12px;padding:7px 18px;border-radius:7px;
+  cursor:pointer;transition:all .2s;border:1px solid;
+}
+.btn-launch{background:rgba(0,240,255,0.12);border-color:var(--cyan);color:var(--cyan)}
+.btn-launch:hover{background:rgba(0,240,255,0.25)}
+.btn-cancel{background:transparent;border-color:var(--dim);color:var(--dim)}
+.btn-cancel:hover{background:rgba(255,255,255,0.05)}
+
+/* Restart popup */
+.restart-popup{
+  position:fixed;z-index:90;background:var(--bg2);border:1px solid var(--glass-border);
+  border-radius:10px;padding:14px;width:200px;box-shadow:0 0 30px rgba(0,240,255,0.1);display:none;
+}
+.restart-popup.active{display:block}
+.restart-popup h4{font-family:'Syne',sans-serif;font-size:12px;margin-bottom:10px;color:var(--cyan)}
+.restart-popup .model-opt{
+  display:block;padding:6px 10px;margin-bottom:4px;border-radius:6px;cursor:pointer;
+  font-size:11px;color:var(--dim);transition:all .15s;border:1px solid transparent;
+}
+.restart-popup .model-opt:hover{background:rgba(0,240,255,0.06);color:var(--text);border-color:rgba(0,240,255,0.15)}
+
+/* Zoom & resize friendly */
+@media (max-height: 500px) {
+  #status-bar { display: none; }
+  #app { grid-template-rows: 1fr 200px; }
+}
+@media (max-height: 700px) {
+  #status-bar { height: 24px; font-size: 9px; padding: 0 8px; gap: 8px; }
+  #app { grid-template-rows: 1fr 180px 24px; }
+}
+@media (max-width: 1024px) {
+  #app { grid-template-columns: 1fr; grid-template-rows: auto; height: auto; }
+  html, body { overflow: auto; height: auto; }
+  #agents-panel { max-height: 50vh; grid-row: auto; grid-column: auto; }
+  #canvas-wrap { height: 280px; min-height: 280px; grid-row: auto; grid-column: auto; }
+  #findings-panel { max-height: 40vh; grid-row: auto; grid-column: auto; }
+  #chatroom { height: 300px; grid-row: auto; grid-column: auto; }
+  #status-bar { position: sticky; bottom: 0; grid-row: auto; grid-column: auto; flex-wrap: wrap; height: auto; padding: 6px 12px; }
+}
+@media (max-width: 600px) {
+  #canvas-wrap { height: 200px; min-height: 200px; }
+  .modal { width: 95vw; }
+}
+</style>
+</head>
+<body>
+<div id="app">
+  <!-- Agents Panel -->
+  <div id="agents-panel">
+    <div class="panel-hdr">
+      <h2>AI Research Agents</h2>
+      <span class="badge" id="agentCount">0</span>
+      <button class="btn-add" onclick="openModal()">+ Add Agent</button>
+    </div>
+    <div class="panel-body" id="agentList"></div>
+  </div>
+
+  <!-- Network Canvas -->
+  <div id="canvas-wrap">
+    <canvas id="netCanvas"></canvas>
+  </div>
+
+  <!-- Findings Panel -->
+  <div id="findings-panel">
+    <div class="panel-hdr">
+      <h2>Findings Feed</h2>
+      <span class="badge" id="findingsCount">0</span>
+    </div>
+    <div class="panel-body" id="findingsList"></div>
+  </div>
+
+  <!-- Chatroom -->
+  <div id="chatroom">
+    <div class="chat-hdr"><h2>Agent Chatroom</h2></div>
+    <div class="chat-body" id="chatBody"></div>
+  </div>
+
+  <!-- Status Bar -->
+  <div id="status-bar">
+    <span class="brand">HELIX GENOMICS AGENTS</span>
+    <span class="sep">|</span>
+    <span class="label">Job:</span><span class="val" id="sJobId">&mdash;</span>
+    <span class="sep">|</span>
+    <span class="label">Status:</span><span class="val" id="sStatus">&mdash;</span>
+    <span class="sep">|</span>
+    <span class="label">Poll:</span><span class="val" id="sPoll">0</span>
+    <span class="sep">|</span>
+    <span class="label">Est. Cost:</span><span class="cost" id="sCost">$0.00</span>
+    <div class="status-btns">
+      <button class="btn-status btn-save" onclick="saveAllData()">Save All Data</button>
+      <button class="btn-status btn-synth" onclick="runSynthesis()">Run Synthesis</button>
+    </div>
+  </div>
+</div>
+
+<!-- Add Agent Modal -->
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal">
+    <h3>Launch New Agent</h3>
+    <label>Agent ID</label>
+    <input type="text" id="mAgentId" placeholder="e.g. tumor-profiler">
+    <label>Label</label>
+    <input type="text" id="mLabel" placeholder="e.g. Tumor Genomic Profiler">
+    <label>Model</label>
+    <select id="mModel">
+      <option value="haiku">Haiku</option>
+      <option value="sonnet" selected>Sonnet</option>
+      <option value="opus">Opus</option>
+    </select>
+    <label>Prompt</label>
+    <textarea id="mPrompt" placeholder="Research instructions for this agent..."></textarea>
+    <div class="modal-btns">
+      <button class="btn-cancel" onclick="closeModal()">Cancel</button>
+      <button class="btn-launch" onclick="launchAgent()">Launch</button>
+    </div>
+  </div>
+</div>
+
+<!-- Restart Popup -->
+<div class="restart-popup" id="restartPopup">
+  <h4>Restart Agent</h4>
+  <div class="model-opt" onclick="restartWith('haiku')">Haiku</div>
+  <div class="model-opt" onclick="restartWith('sonnet')">Sonnet</div>
+  <div class="model-opt" onclick="restartWith('opus')">Opus</div>
+</div>
+
+<script>
+// -- State --
+const urlParams = new URLSearchParams(window.location.search);
+const JOB = urlParams.get('job') || 'default';
+let agents = {};
+let findings = [];
+const expandedFindings = new Set();
+function toggleFinding(idx) { if(expandedFindings.has(idx)) expandedFindings.delete(idx); else expandedFindings.add(idx); const cards = document.querySelectorAll(".finding-card"); cards.forEach(c => { if(+c.dataset.idx === idx) c.classList.toggle("expanded"); }); }
+let chatMessages = [];
+let selectedAgent = null;
+let pollCount = 0;
+let restartTargetId = null;
+let prevFindingsLen = 0;
+let prevChatLen = 0;
+
+// Canvas state
+const canvas = document.getElementById('netCanvas');
+const ctx = canvas.getContext('2d');
+let cW = 0, cH = 0, dpr = 1;
+let particles = [];
+let commLines = [];
+let animFrame = 0;
+
+// -- Utilities --
+function escHtml(s) {
+  if (!s) return '';
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function agentIcon(id) {
+  const s = (id || '').toLowerCase();
+  if (/tumor|genetic/i.test(s)) return '\u{1F9EC}';
+  if (/dpyd|safety/i.test(s)) return '\u{1F48A}';
+  if (/platinum|chemo/i.test(s)) return '\u2697\uFE0F';
+  if (/immunotherap/i.test(s)) return '\u{1F52C}';
+  if (/target/i.test(s)) return '\u{1F3AF}';
+  if (/drug|metaboli/i.test(s)) return '\u{1F489}';
+  if (/supplement/i.test(s)) return '\u{1F33F}';
+  if (/inflammat/i.test(s)) return '\u{1F525}';
+  if (/immune/i.test(s)) return '\u{1F6E1}\uFE0F';
+  if (/dna|repair/i.test(s)) return '\u{1F517}';
+  if (/neuropath/i.test(s)) return '\u26A1';
+  if (/trial|clinical/i.test(s)) return '\u{1F3E5}';
+  if (/synth/i.test(s)) return '\u{1F4CB}';
+  if (/novel/i.test(s)) return '\u{1F50D}';
+  return '\u{1F9EC}';
+}
+
+function shortLabel(id) {
+  if (!id) return '??';
+  const parts = id.split('-');
+  if (parts.length >= 2) return parts.slice(0, 2).map(p => p.charAt(0).toUpperCase() + p.slice(1, 4)).join(' ');
+  return id.slice(0, 8);
+}
+
+function formatTime(ts) {
+  if (!ts) return '\u2014';
+  try {
+    const d = new Date(ts); if (isNaN(d)) return "\u2014";
+    return d.toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' });
+  } catch(e) { return '\u2014'; }
+}
+
+function findingCategory(f) {
+  const t = ((f.finding || '') + ' ' + (f.gene || '') + ' ' + (f.category || '')).toLowerCase();
+  if (/risk|pathogenic|deleterious|loss|danger|critical/i.test(t)) return 'risk';
+  if (/pharmaco|drug|metaboli|dpyd|cyp|pgx/i.test(t)) return 'pharmacogenomic';
+  if (/convergen|overlap|multiple|cross/i.test(t)) return 'convergence';
+  return 'notable';
+}
+
+function findingColor(cat) {
+  switch(cat) {
+    case 'risk': return '#ff3366';
+    case 'pharmacogenomic': return '#4488ff';
+    case 'convergence': return '#8855ff';
+    default: return '#ffaa00';
+  }
+}
+
+// -- Cost Estimation --
+function estimateCost() {
+  const rates = {
+    'haiku':  { i: 0.80, o: 4 },
+    'sonnet': { i: 3,    o: 15 },
+    'opus':   { i: 15,   o: 75 }
+  };
+  let current = 0;
+  for (const [id, a] of Object.entries(agents)) {
+    const tokens = (a.logSize || 0) / 4;
+    const inp = tokens * 0.6;
+    const out = tokens * 0.4;
+    const model = (a.model || 'opus').toLowerCase();
+    const r = rates[model] || rates['opus'];
+    current += (inp / 1e6) * r.i + (out / 1e6) * r.o;
+  }
+  // Track peak cost in localStorage so it persists across refreshes
+  const key = 'helix-agents-cost-' + JOB;
+  const prev = parseFloat(localStorage.getItem(key) || '0');
+  const total = Math.max(prev, current);
+  if (current > prev) localStorage.setItem(key, current.toFixed(4));
+  return total;
+}
+
+// -- Render Agents --
+function renderAgents() {
+  const list = document.getElementById('agentList');
+  const ids = Object.keys(agents).sort();
+  document.getElementById('agentCount').textContent = ids.length;
+
+  let html = '';
+  for (const id of ids) {
+    const a = agents[id];
+    const st = a.status || 'waiting';
+    const sel = selectedAgent === id ? ' selected' : '';
+    const icon = agentIcon(id);
+    const pct = st === 'running' ? Math.min(100, Math.max(5, ((a.logSize || 0) / 500000) * 100)) : 0;
+    html += `<div class="agent-card status-${escHtml(st)}${sel}" onclick="selectAgent('${escHtml(id)}')">
+      <div class="agent-row">
+        <span class="status-dot ${escHtml(st)}"></span>
+        <span class="agent-icon">${icon}</span>
+        <span class="agent-name">${escHtml(a.label || id)}</span>
+        ${a.hasMd ? '<span class="agent-report" title="Report ready">\u2713</span>' : ''}
+        ${st === 'done' || st === 'error' ? `<button class="agent-restart" onclick="event.stopPropagation();openRestart('${escHtml(id)}',this)" title="Restart">\u21BB</button>` : ''}
+      </div>
+      <div class="agent-meta">
+        <span class="status-text ${escHtml(st)}">${escHtml(st)}</span>
+        <span>${a.logSize ? (a.logSize / 1024).toFixed(0) + ' KB' : '\u2014'}</span>
+        ${a.mdSize ? '<span>' + (a.mdSize / 1024).toFixed(0) + ' KB md</span>' : ''}
+      </div>
+      ${st === 'running' ? `<div class="agent-progress"><div class="agent-progress-bar" style="width:${pct}%"></div></div>` : ''}
+      ${a.lastActivity ? `<div class="agent-activity">${escHtml(formatTime(a.lastActivity))}</div>` : ''}
+    </div>`;
+  }
+  list.innerHTML = html;
+}
+
+// -- Render Findings --
+function renderFindings() {
+  const list = document.getElementById('findingsList');
+  document.getElementById('findingsCount').textContent = findings.length;
+  const reversed = [...findings].reverse();
+  // Only rebuild if count changed
+  if (reversed.length !== list.children.length) {
+    let html = '';
+    for (let i = 0; i < reversed.length; i++) {
+      const f = reversed[i];
+      const cat = findingCategory(f);
+      const isExp = expandedFindings.has(i);
+      html += `<div class="finding-card cat-${cat}${isExp ? ' expanded' : ''}" data-idx="${i}" onclick="toggleFinding(${i})">
+        <div class="finding-gene" style="color:${findingColor(cat)}">${escHtml(f.gene || 'Unknown')}</div>
+        <div class="finding-text">${escHtml(f.finding || f.text || '')}</div>
+        <div class="finding-footer">
+          ${f.confidence ? `<span class="finding-confidence">${escHtml(f.confidence)}</span>` : ''}
+          ${(f.variants || []).map(v => `<span class="finding-variant">${escHtml(v)}</span>`).join('')}
+          ${f.agent ? `<span class="finding-agent">${agentIcon(f.agent)} ${escHtml(f.agent)}</span>` : ''}
+        </div>
+      </div>`;
+    }
+    list.innerHTML = html;
+  }
+}
+// -- Render Chat --
+function renderChat() {
+  const body = document.getElementById('chatBody');
+  const wasAtBottom = body.scrollHeight - body.scrollTop - body.clientHeight < 60;
+  let html = '';
+  for (const m of chatMessages) {
+    const pri = m.priority ? ` priority-${escHtml(m.priority)}` : '';
+    const icon = agentIcon(m.from || '');
+    html += `<div class="chat-msg${pri}">
+      <span class="msg-time">${escHtml(formatTime(m.timestamp || m.time))}</span>
+      <span class="msg-icon">${icon}</span>
+      <span class="msg-sender">${escHtml(m.from || '?')}</span>
+      <span class="msg-arrow">\u2192</span>
+      <span class="msg-target">${escHtml(m.to || 'all')}</span>:
+      <span class="msg-text">${escHtml(m.message || m.text || '')}</span>
+    </div>`;
+  }
+  body.innerHTML = html;
+  if (wasAtBottom) body.scrollTop = body.scrollHeight;
+}
+
+// -- Selection & Modals --
+function selectAgent(id) {
+  selectedAgent = selectedAgent === id ? null : id;
+  renderAgents();
+}
+
+function openModal() {
+  document.getElementById('modalOverlay').classList.add('active');
+}
+function closeModal() {
+  document.getElementById('modalOverlay').classList.remove('active');
+}
+
+function launchAgent() {
+  const data = {
+    jobId: JOB,
+    id: document.getElementById('mAgentId').value.trim(),
+    label: document.getElementById('mLabel').value.trim(),
+    model: document.getElementById('mModel').value,
+    prompt: document.getElementById('mPrompt').value
+  };
+  if (!data.id) return alert('Agent ID is required');
+  fetch('/api/spawn-agent', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data)
+  }).then(r => r.json()).then(() => {
+    closeModal();
+    document.getElementById('mAgentId').value = '';
+    document.getElementById('mLabel').value = '';
+    document.getElementById('mPrompt').value = '';
+    poll();
+  }).catch(e => alert('Error: ' + e.message));
+}
+
+let restartPopupEl = document.getElementById('restartPopup');
+function openRestart(id, btn) {
+  restartTargetId = id;
+  const rect = btn.getBoundingClientRect();
+  restartPopupEl.style.top = rect.bottom + 4 + 'px';
+  restartPopupEl.style.left = Math.min(rect.left, window.innerWidth - 210) + 'px';
+  restartPopupEl.classList.add('active');
+}
+function restartWith(model) {
+  if (!restartTargetId) return;
+  fetch('/api/restart-agent', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ jobId: JOB, agentId: restartTargetId, model })
+  }).then(r => r.json()).then(() => {
+    restartPopupEl.classList.remove('active');
+    restartTargetId = null;
+    poll();
+  }).catch(e => alert('Error: ' + e.message));
+}
+
+document.addEventListener('click', (e) => {
+  if (!restartPopupEl.contains(e.target) && !e.target.classList.contains('agent-restart')) {
+    restartPopupEl.classList.remove('active');
+  }
+});
+
+// -- Save & Synthesis --
+function saveAllData() {
+  const blob = new Blob([JSON.stringify({ job: JOB, agents, findings, chat: chatMessages }, null, 2)], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `helix-agents-${JOB.slice(0,8)}-${Date.now()}.json`;
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+
+function runSynthesis() {
+  fetch('/api/spawn-agent', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      jobId: JOB,
+      id: 'synthesis-' + Date.now().toString(36),
+      label: 'Final Synthesis',
+      model: 'opus',
+      prompt: 'Synthesize all findings from the research agents into a comprehensive genomics report.'
+    })
+  }).then(r => r.json()).then(() => poll()).catch(e => alert('Error: ' + e.message));
+}
+
+// -- Polling --
+function poll() {
+  fetch(`/api/status/${JOB}`)
+    .then(r => r.json())
+    .then(data => {
+      pollCount++;
+      if (data.agents) agents = data.agents;
+      if (data.findings) {
+        if (data.findings.length > prevFindingsLen) {
+          for (let i = prevFindingsLen; i < data.findings.length; i++) {
+            spawnFindingParticles(data.findings[i]);
+          }
+          prevFindingsLen = data.findings.length;
+        }
+        findings = data.findings;
+      }
+      if (data.chat) {
+        if (data.chat.length > prevChatLen) {
+          for (let i = prevChatLen; i < data.chat.length; i++) {
+            spawnCommLine(data.chat[i]);
+          }
+          prevChatLen = data.chat.length;
+        }
+        chatMessages = data.chat;
+      }
+
+      renderAgents();
+      renderFindings();
+      renderChat();
+
+      document.getElementById('sJobId').textContent = JOB.slice(0, 12) + '...';
+      document.getElementById('sStatus').textContent = data.status || '\u2014';
+      document.getElementById('sPoll').textContent = pollCount;
+      document.getElementById('sCost').textContent = '$' + estimateCost().toFixed(3);
+    })
+    .catch(() => {});
+}
+
+setInterval(poll, 3000);
+poll();
+
+// -- Particle / CommLine Spawning --
+function getAgentNodePos(id) {
+  const ids = Object.keys(agents).sort();
+  const idx = ids.indexOf(id);
+  if (idx < 0) return null;
+  const cx = cW / 2, cy = cH / 2;
+  const r = Math.min(cW, cH) * 0.32;
+  const angle = (idx / ids.length) * Math.PI * 2 - Math.PI / 2;
+  return { x: cx + Math.cos(angle) * r, y: cy + Math.sin(angle) * r };
+}
+
+function spawnFindingParticles(f) {
+  const pos = getAgentNodePos(f.agent);
+  if (!pos) return;
+  const cat = findingCategory(f);
+  const col = findingColor(cat);
+  for (let i = 0; i < 6; i++) {
+    particles.push({
+      x: pos.x, y: pos.y,
+      vx: (Math.random() - 0.5) * 3,
+      vy: (Math.random() - 0.5) * 3,
+      life: 1, decay: 0.008 + Math.random() * 0.008,
+      color: col, radius: 2 + Math.random() * 2,
+      trail: []
+    });
+  }
+}
+
+function spawnCommLine(m) {
+  const from = getAgentNodePos(m.from);
+  const to = getAgentNodePos(m.to);
+  if (!from || !to) return;
+  const col = m.priority === 'critical' ? '#ff3366' : m.priority === 'urgent' ? '#ffaa00' : '#00f0ff';
+  commLines.push({ from, to, life: 1, decay: 0.012, color: col });
+  for (let i = 0; i < 3; i++) {
+    const t = Math.random();
+    particles.push({
+      x: from.x + (to.x - from.x) * t,
+      y: from.y + (to.y - from.y) * t,
+      vx: (to.x - from.x) * 0.02 + (Math.random() - 0.5),
+      vy: (to.y - from.y) * 0.02 + (Math.random() - 0.5),
+      life: 1, decay: 0.01 + Math.random() * 0.01,
+      color: col, radius: 1.5 + Math.random() * 1.5,
+      trail: []
+    });
+  }
+}
+
+// -- Canvas: Resize --
+function resizeCanvas() {
+  const wrap = document.getElementById('canvas-wrap');
+  dpr = window.devicePixelRatio || 1;
+  cW = wrap.clientWidth;
+  cH = wrap.clientHeight;
+  canvas.width = cW * dpr;
+  canvas.height = cH * dpr;
+  canvas.style.width = cW + 'px';
+  canvas.style.height = cH + 'px';
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+}
+window.addEventListener('resize', resizeCanvas);
+resizeCanvas();
+
+// -- Canvas: Draw --
+function drawNetwork() {
+  ctx.clearRect(0, 0, cW, cH);
+  animFrame++;
+
+  // Hexagonal grid background
+  drawHexGrid();
+
+  const ids = Object.keys(agents).sort();
+  const n = ids.length;
+  if (n === 0) {
+    drawEmptyState();
+    return;
+  }
+
+  const cx = cW / 2, cy = cH / 2;
+  const r = Math.min(cW, cH) * 0.32;
+  const nodePositions = [];
+
+  for (let i = 0; i < n; i++) {
+    const angle = (i / n) * Math.PI * 2 - Math.PI / 2;
+    nodePositions.push({
+      x: cx + Math.cos(angle) * r,
+      y: cy + Math.sin(angle) * r,
+      id: ids[i],
+      angle
+    });
+  }
+
+  // Faint connections between all nodes
+  ctx.lineWidth = 0.5;
+  for (let i = 0; i < n; i++) {
+    for (let j = i + 1; j < n; j++) {
+      const a = nodePositions[i], b = nodePositions[j];
+      const grad = ctx.createLinearGradient(a.x, a.y, b.x, b.y);
+      grad.addColorStop(0, 'rgba(0,240,255,0.04)');
+      grad.addColorStop(0.5, 'rgba(0,240,255,0.08)');
+      grad.addColorStop(1, 'rgba(0,240,255,0.04)');
+      ctx.strokeStyle = grad;
+      ctx.beginPath();
+      ctx.moveTo(a.x, a.y);
+      ctx.lineTo(b.x, b.y);
+      ctx.stroke();
+    }
+  }
+
+  // Active comm lines
+  for (let i = commLines.length - 1; i >= 0; i--) {
+    const cl = commLines[i];
+    cl.life -= cl.decay;
+    if (cl.life <= 0) { commLines.splice(i, 1); continue; }
+    ctx.save();
+    ctx.globalAlpha = cl.life * 0.7;
+    ctx.strokeStyle = cl.color;
+    ctx.lineWidth = 2 * cl.life;
+    ctx.shadowColor = cl.color;
+    ctx.shadowBlur = 12 * cl.life;
+    ctx.beginPath();
+    ctx.moveTo(cl.from.x, cl.from.y);
+    ctx.lineTo(cl.to.x, cl.to.y);
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  // Particles with trails
+  for (let i = particles.length - 1; i >= 0; i--) {
+    const p = particles[i];
+    p.trail.push({ x: p.x, y: p.y });
+    if (p.trail.length > 18) p.trail.shift();
+    p.x += p.vx;
+    p.y += p.vy;
+    p.vx *= 0.98;
+    p.vy *= 0.98;
+    p.life -= p.decay;
+    if (p.life <= 0) { particles.splice(i, 1); continue; }
+
+    // Draw trail
+    if (p.trail.length > 1) {
+      ctx.save();
+      ctx.lineCap = 'round';
+      for (let t = 1; t < p.trail.length; t++) {
+        const a = t / p.trail.length;
+        ctx.globalAlpha = a * p.life * 0.4;
+        ctx.strokeStyle = p.color;
+        ctx.lineWidth = p.radius * a;
+        ctx.beginPath();
+        ctx.moveTo(p.trail[t-1].x, p.trail[t-1].y);
+        ctx.lineTo(p.trail[t].x, p.trail[t].y);
+        ctx.stroke();
+      }
+      ctx.restore();
+    }
+
+    // Draw particle
+    ctx.save();
+    ctx.globalAlpha = p.life;
+    ctx.fillStyle = p.color;
+    ctx.shadowColor = p.color;
+    ctx.shadowBlur = 10;
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, p.radius * p.life, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+  }
+
+  // Draw nodes
+  for (let i = 0; i < n; i++) {
+    const np = nodePositions[i];
+    const a = agents[np.id];
+    const st = a.status || 'waiting';
+
+    let glowColor, nodeColor;
+    if (st === 'running') {
+      glowColor = 'rgba(0,240,255,0.3)';
+      nodeColor = '#00f0ff';
+    } else if (st === 'done') {
+      glowColor = 'rgba(0,255,136,0.2)';
+      nodeColor = '#00ff88';
+    } else if (st === 'error') {
+      glowColor = 'rgba(255,51,102,0.3)';
+      nodeColor = '#ff3366';
+    } else {
+      glowColor = 'rgba(102,136,170,0.1)';
+      nodeColor = '#6688aa';
+    }
+
+    // Pulsing ring for running agents
+    if (st === 'running') {
+      const pulseT = Math.sin(animFrame * 0.04) * 0.5 + 0.5;
+      const pulseR = 24 + pulseT * 10;
+      ctx.save();
+      ctx.globalAlpha = 0.15 + pulseT * 0.15;
+      ctx.strokeStyle = nodeColor;
+      ctx.lineWidth = 2;
+      ctx.shadowColor = nodeColor;
+      ctx.shadowBlur = 20;
+      ctx.beginPath();
+      ctx.arc(np.x, np.y, pulseR, 0, Math.PI * 2);
+      ctx.stroke();
+      // Second ring
+      ctx.globalAlpha = 0.08 + pulseT * 0.08;
+      ctx.beginPath();
+      ctx.arc(np.x, np.y, pulseR + 8, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.restore();
+    }
+
+    // Selection ring
+    if (selectedAgent === np.id) {
+      ctx.save();
+      ctx.strokeStyle = '#ffffff';
+      ctx.lineWidth = 2;
+      ctx.globalAlpha = 0.5 + Math.sin(animFrame * 0.06) * 0.2;
+      ctx.setLineDash([4, 4]);
+      ctx.lineDashOffset = -animFrame * 0.5;
+      ctx.beginPath();
+      ctx.arc(np.x, np.y, 30, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.restore();
+    }
+
+    // Node glow
+    ctx.save();
+    const grd = ctx.createRadialGradient(np.x, np.y, 0, np.x, np.y, 22);
+    grd.addColorStop(0, glowColor);
+    grd.addColorStop(1, 'transparent');
+    ctx.fillStyle = grd;
+    ctx.beginPath();
+    ctx.arc(np.x, np.y, 22, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+
+    // Node circle
+    ctx.save();
+    ctx.fillStyle = '#0a1228';
+    ctx.strokeStyle = nodeColor;
+    ctx.lineWidth = 1.5;
+    ctx.shadowColor = nodeColor;
+    ctx.shadowBlur = st === 'running' ? 15 : 8;
+    ctx.beginPath();
+    ctx.arc(np.x, np.y, 16, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.stroke();
+    ctx.restore();
+
+    // Icon
+    ctx.save();
+    ctx.font = '14px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(agentIcon(np.id), np.x, np.y);
+    ctx.restore();
+
+    // Label
+    ctx.save();
+    ctx.font = '500 10px "IBM Plex Mono", monospace';
+    ctx.fillStyle = nodeColor;
+    ctx.textAlign = 'center';
+    ctx.globalAlpha = 0.8;
+    ctx.fillText(shortLabel(np.id), np.x, np.y + 28);
+    ctx.restore();
+  }
+}
+
+function drawHexGrid() {
+  const size = 30;
+  const w = size * 2;
+  const h = Math.sqrt(3) * size;
+  ctx.save();
+  ctx.strokeStyle = 'rgba(0,240,255,0.03)';
+  ctx.lineWidth = 0.5;
+  for (let row = -1; row < cH / h + 1; row++) {
+    for (let col = -1; col < cW / w + 1; col++) {
+      const x = col * w * 0.75;
+      const y = row * h + (col % 2 ? h / 2 : 0);
+      drawHex(x, y, size);
+    }
+  }
+  ctx.restore();
+}
+
+function drawHex(x, y, size) {
+  ctx.beginPath();
+  for (let i = 0; i < 6; i++) {
+    const angle = (Math.PI / 3) * i - Math.PI / 6;
+    const px = x + size * Math.cos(angle);
+    const py = y + size * Math.sin(angle);
+    if (i === 0) ctx.moveTo(px, py);
+    else ctx.lineTo(px, py);
+  }
+  ctx.closePath();
+  ctx.stroke();
+}
+
+function drawEmptyState() {
+  ctx.save();
+  ctx.font = '600 16px "Syne", sans-serif';
+  ctx.fillStyle = 'rgba(0,240,255,0.15)';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText('Waiting for agents...', cW / 2, cH / 2);
+  ctx.font = '12px "IBM Plex Mono", monospace';
+  ctx.fillStyle = 'rgba(0,240,255,0.08)';
+  ctx.fillText('Polling /api/status/' + JOB.slice(0,12) + '...', cW / 2, cH / 2 + 24);
+  ctx.restore();
+}
+
+function animate() {
+  drawNetwork();
+  requestAnimationFrame(animate);
+}
+animate();
+
+// -- Init status bar --
+document.getElementById('sJobId').textContent = JOB.slice(0, 12) + '...';
+document.getElementById('sJobId').title = JOB;
+</script>
+</body>
+</html>

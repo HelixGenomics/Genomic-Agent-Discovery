@@ -1,0 +1,264 @@
+# ============================================================
+# Helix Genomics Agents — Cancer Research Preset
+# ============================================================
+#
+# Deep-dive into cancer genetics: tumor suppressors, oncogenes,
+# DNA repair pathways, mismatch repair, and pharmacogenomics
+# for chemotherapy metabolism.
+#
+# Agents: 4 collectors + 1 synthesizer + 1 narrator
+# Estimated cost: $3-8 depending on variants found
+# Estimated time: 10-15 minutes
+#
+# Usage:
+#   helix-agents --dna <file> --preset cancer-research
+#
+# ============================================================
+
+pipeline:
+  phases:
+
+    - id: collectors
+      label: "Cancer Domain Collectors"
+      parallel: true
+      agents:
+
+        - id: cancer-collector
+          role: collector
+          model: haiku
+          label: "Cancer & Tumor Genetics"
+          prompt: |
+            You are a cancer genomics specialist analyzing a patient's DNA.
+            Focus on: tumor suppressor genes (TP53, BRCA1/2, APC, etc.),
+            oncogenes, DNA repair pathways (BRCA1, BRCA2, PALB2, RAD51),
+            mismatch repair genes (MLH1, MSH2, MSH6, PMS2), and
+            cancer predisposition syndromes (Lynch, Li-Fraumeni, FAP).
+
+            Use query_gene to investigate key cancer genes. Use query_civic
+            for clinical cancer variant evidence. Cross-reference with ClinVar
+            and GWAS. Pay special attention to pathogenic and likely-pathogenic
+            variants in high-penetrance cancer genes.
+
+            Publish your 3-5 most significant findings. Check messages from
+            other agents every few tool calls.
+          focus_genes:
+            - BRCA1
+            - BRCA2
+            - TP53
+            - APC
+            - MLH1
+            - MSH2
+            - MSH6
+            - PMS2
+            - CHEK2
+            - ATM
+            - PALB2
+            - CDKN2A
+            - CDH1
+            - PTEN
+            - STK11
+            - RAD51D
+            - MUTYH
+            - RB1
+            - VHL
+            - RET
+          focus_conditions:
+            - hereditary breast and ovarian cancer
+            - Lynch syndrome
+            - Li-Fraumeni syndrome
+            - familial adenomatous polyposis
+          max_findings: 5
+          web_search: true
+
+        - id: immune-collector
+          role: collector
+          model: haiku
+          label: "Immune & HLA Genetics"
+          prompt: |
+            You are an immunogenomics specialist analyzing a patient's DNA
+            in the context of cancer risk and treatment response.
+            Focus on: HLA alleles relevant to immunotherapy response,
+            immune checkpoint genes (PD-L1, CTLA-4), DNA damage response
+            genes that affect immunotherapy efficacy, and tumor
+            microenvironment genetics.
+
+            Investigate immune-related cancer susceptibility: chronic
+            inflammation pathways, autoimmunity genes that intersect with
+            cancer risk, and immunosurveillance effectiveness.
+
+            Publish your 3-5 most significant findings.
+          focus_genes:
+            - HLA-A
+            - HLA-B
+            - HLA-C
+            - CD274
+            - CTLA4
+            - JAK2
+            - STAT3
+            - IL6
+            - TNF
+            - IFNG
+          focus_conditions:
+            - immunotherapy response
+            - immune checkpoint
+            - cancer immunosurveillance
+          max_findings: 5
+          web_search: true
+
+        - id: pharma-collector
+          role: collector
+          model: haiku
+          label: "Chemotherapy Pharmacogenomics"
+          prompt: |
+            You are a pharmacogenomics specialist focused on cancer treatment.
+            Analyze drug metabolism genes critical for chemotherapy dosing:
+            DPYD (fluoropyrimidines), UGT1A1 (irinotecan), TPMT/NUDT15
+            (thiopurines), CYP2D6 (tamoxifen), and other PGx genes relevant
+            to oncology drugs.
+
+            Start with get_all_pharmacogenomics for the full panel.
+            Then investigate any abnormal metabolizer statuses in detail.
+            For each finding, list specific chemotherapy drugs affected
+            and clinical dosing recommendations.
+
+            Publish your 3-5 most significant findings.
+          focus_genes:
+            - DPYD
+            - UGT1A1
+            - TPMT
+            - NUDT15
+            - CYP2D6
+            - CYP3A5
+            - CYP2C19
+            - ABCB1
+            - ERCC1
+            - GSTP1
+          focus_conditions:
+            - chemotherapy metabolism
+            - fluoropyrimidine toxicity
+            - tamoxifen metabolism
+            - adverse drug reactions
+          max_findings: 5
+          web_search: true
+
+        - id: repair-collector
+          role: collector
+          model: haiku
+          label: "DNA Repair & Genome Stability"
+          prompt: |
+            You are a specialist in DNA repair mechanisms and genome stability.
+            Focus on: homologous recombination repair (BRCA1, BRCA2, PALB2,
+            RAD51C, RAD51D), nucleotide excision repair (ERCC genes),
+            base excision repair (MUTYH, OGG1), and telomere maintenance
+            (TERT, POT1).
+
+            Investigate variants affecting DNA damage response that could
+            indicate PARP inhibitor sensitivity (BRCAness) or increased
+            mutational burden. Check for microsatellite instability markers.
+
+            Publish your 3-5 most significant findings.
+          focus_genes:
+            - BRCA1
+            - BRCA2
+            - PALB2
+            - RAD51C
+            - RAD51D
+            - ATR
+            - CHEK1
+            - CHEK2
+            - MUTYH
+            - OGG1
+            - ERCC2
+            - ERCC4
+            - TERT
+            - POT1
+            - FANCA
+          focus_conditions:
+            - DNA repair deficiency
+            - BRCAness
+            - microsatellite instability
+            - homologous recombination deficiency
+          max_findings: 5
+          web_search: true
+
+    - id: synthesis
+      label: "Cancer Findings Synthesis"
+      parallel: false
+      wait_for: collectors
+      agents:
+        - id: synthesizer
+          role: synthesizer
+          model: sonnet
+          label: "Cancer Synthesis"
+          prompt: |
+            You are a clinical cancer genomics synthesizer. Read ALL findings
+            from the collector agents. Your job is to:
+
+            1. Identify multi-hit cancer risk patterns (e.g. BRCA2 VUS + CHEK2
+               pathogenic = compound risk)
+            2. Cross-reference cancer risk with pharmacogenomics implications
+               (e.g. tamoxifen metabolizer status in breast cancer risk)
+            3. Assess hereditary cancer syndrome criteria
+            4. Identify variants qualifying for targeted therapy or clinical trials
+            5. Prioritize findings by clinical actionability
+
+            Publish a structured synthesis with clear risk stratification.
+          max_findings: 10
+          web_search: true
+
+    - id: narrators
+      label: "Cancer Report"
+      parallel: false
+      wait_for: synthesis
+      agents:
+        - id: narrator
+          role: narrator
+          model: opus
+          label: "Cancer Report Writer"
+          prompt: |
+            You are writing a comprehensive cancer genetics report.
+            Read ALL findings and produce a clear, actionable report with:
+
+            1. Executive Summary (headline risk findings)
+            2. High-Penetrance Gene Results (BRCA1/2, TP53, APC, MLH1, etc.)
+            3. Moderate-Penetrance Genes (CHEK2, ATM, PALB2)
+            4. Hereditary Cancer Syndrome Assessment
+            5. Pharmacogenomics for Oncology Drugs
+            6. DNA Repair & Treatment Sensitivity
+            7. Recommended Next Steps (genetic counseling, additional testing)
+            8. Methodology & Limitations
+
+            IMPORTANT: This is NOT a diagnosis. Include appropriate disclaimers.
+            Recommend genetic counseling for any significant findings.
+          max_findings: 0
+          web_search: false
+
+research:
+  focus_conditions:
+    - breast cancer
+    - ovarian cancer
+    - colorectal cancer
+    - Lynch syndrome
+    - Li-Fraumeni syndrome
+    - familial adenomatous polyposis
+    - hereditary cancer syndromes
+  focus_genes:
+    - BRCA1
+    - BRCA2
+    - TP53
+    - APC
+    - MLH1
+    - MSH2
+    - MSH6
+    - PMS2
+    - CHEK2
+    - ATM
+    - PALB2
+    - CDKN2A
+    - CDH1
+    - PTEN
+    - STK11
+
+cost:
+  warn_threshold_usd: 5.00
+  hard_limit_usd: 25.00

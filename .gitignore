@@ -1,0 +1,11 @@
+node_modules/
+data/
+state/
+output/
+.env
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
+downloads/
+.DS_Store

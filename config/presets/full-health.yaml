@@ -1,0 +1,66 @@
+# ============================================================
+# Helix Genomics Agents — Full Health Preset
+# ============================================================
+#
+# Comprehensive whole-genome health analysis across all domains.
+# Uses the full default pipeline with all 5 domain collectors,
+# plus a synthesizer and narrator. The most thorough option.
+#
+# Agents: 5 collectors + 1 synthesizer + 1 narrator (7 total)
+# Estimated cost: $5-15
+# Estimated time: 15-25 minutes
+#
+# This is essentially the default pipeline with all domains enabled
+# and no skipped areas. Included as a named preset for clarity.
+#
+# Usage:
+#   helix-agents --dna <file> --preset full-health
+#
+# ============================================================
+
+# Uses the full default pipeline (all 5 collectors + synthesizer + narrator)
+# No overrides needed for pipeline — the default is already comprehensive.
+
+# Additional research focus to ensure no domain is skipped
+research:
+  focus_conditions: []
+  focus_genes: []
+  skip_domains: []
+
+# Enable all database sources
+database:
+  sources:
+    clinvar: true
+    gwas: true
+    cpic: true
+    alphamissense: true
+    cadd: true
+    gnomad: true
+    hpo: true
+    disgenet: true
+    civic: true
+    pharmgkb: true
+    orphanet: true
+    snpedia: true
+
+# Enable all output formats
+output:
+  formats:
+    - markdown
+    - json
+  include_raw_findings: true
+  include_chat_log: true
+
+# Higher cost limits for comprehensive analysis
+cost:
+  warn_threshold_usd: 10.00
+  hard_limit_usd: 50.00
+
+# Enable web search for all agents
+agent_defaults:
+  web_search: true
+
+# Enable dashboard
+dashboard:
+  enabled: true
+  open_browser: true

@@ -1,0 +1,233 @@
+# ============================================================
+# Helix Genomics Agents — Rare Disease Preset
+# ============================================================
+#
+# Deep investigation of variants of uncertain significance (VUS),
+# rare disease gene associations, and atypical variant patterns.
+# Uses opus-level agents for complex reasoning about novel or
+# poorly-characterized variants.
+#
+# Designed for patients with:
+# - Known rare disease seeking genetic explanation
+# - Family history of undiagnosed conditions
+# - Previous genetic testing with inconclusive VUS results
+# - Interest in ultra-rare variant investigation
+#
+# Agents: 3 opus/sonnet agents (rare-disease-hunter, pharma, synthesizer)
+# Estimated cost: $8-20
+# Estimated time: 15-25 minutes
+#
+# Usage:
+#   helix-agents --dna <file> --preset rare-disease
+#   helix-agents --dna <file> --preset rare-disease --focus "suspected mitochondrial disease"
+#
+# ============================================================
+
+pipeline:
+  phases:
+
+    - id: collectors
+      label: "Rare Disease Investigation"
+      parallel: true
+      agents:
+
+        - id: rare-disease-hunter
+          role: collector
+          model: opus
+          label: "Rare Disease Variant Hunter"
+          prompt: |
+            You are an expert in rare and undiagnosed genetic diseases.
+            Your task is to perform a deep investigation of this patient's
+            genome looking for rare disease-causing variants that might be
+            missed by standard analysis.
+
+            STRATEGY:
+            1. Query ClinVar for ALL pathogenic and likely-pathogenic variants
+               in the patient's genome, not just well-known genes
+            2. Investigate Variants of Uncertain Significance (VUS) in genes
+               associated with rare diseases — use AlphaMissense and CADD
+               scores to assess potential pathogenicity
+            3. Check HPO (Human Phenotype Ontology) gene associations for
+               rare phenotype connections
+            4. Query Orphanet for rare disease gene lists
+            5. Look for compound heterozygosity — two different heterozygous
+               variants in the same recessive disease gene
+            6. Check for variants in ultra-rare disease genes that might be
+               overlooked: mitochondrial genes, metabolic enzymes, connective
+               tissue genes, ion channels
+
+            Pay special attention to:
+            - Variants with low population frequency (< 0.1% in gnomAD)
+            - Missense variants in conserved domains
+            - Loss-of-function variants in haploinsufficient genes
+            - Variants near splice sites
+
+            Publish 3-5 findings, prioritizing novel or unexpected results.
+            Include VUS that warrant further investigation.
+          focus_genes:
+            - CFTR
+            - SMN1
+            - GBA
+            - HEXA
+            - GAA
+            - GLA
+            - IDUA
+            - ATP7B
+            - PKD1
+            - PKD2
+            - FBN1
+            - COL3A1
+            - COL1A1
+            - NF1
+            - NF2
+            - TSC1
+            - TSC2
+            - RB1
+            - SLC6A3
+            - FOXP2
+          focus_conditions:
+            - rare disease
+            - variants of uncertain significance
+            - undiagnosed genetic disease
+            - inborn errors of metabolism
+            - connective tissue disorders
+          max_findings: 5
+          web_search: true
+
+        - id: pharma-collector
+          role: collector
+          model: sonnet
+          label: "Rare Disease Pharmacogenomics"
+          prompt: |
+            You are a pharmacogenomics specialist with expertise in rare
+            disease treatment. Analyze drug metabolism genes with a focus on:
+
+            1. Enzyme replacement therapy metabolism
+            2. Orphan drug interactions
+            3. Gene therapy eligibility markers
+            4. Standard PGx panel (CYP2D6, CYP2C19, etc.) relevant to
+               symptom management medications
+
+            Start with get_all_pharmacogenomics, then investigate any
+            metabolizer status that could affect rare disease treatment.
+
+            Also check for pharmacogenomic variants that might explain
+            unusual drug responses — a clue to underlying rare conditions.
+
+            Publish 3-5 findings.
+          focus_genes:
+            - CYP2D6
+            - CYP2C19
+            - CYP2C9
+            - CYP3A5
+            - DPYD
+            - TPMT
+            - NUDT15
+            - UGT1A1
+            - NAT2
+            - G6PD
+            - VKORC1
+            - SLCO1B1
+            - ABCG2
+          focus_conditions:
+            - rare disease treatment
+            - orphan drug metabolism
+            - enzyme replacement therapy
+          max_findings: 5
+          web_search: true
+
+    - id: synthesis
+      label: "Rare Disease Synthesis"
+      parallel: false
+      wait_for: collectors
+      agents:
+        - id: synthesizer
+          role: synthesizer
+          model: opus
+          label: "Rare Disease Synthesizer"
+          prompt: |
+            You are synthesizing findings from a rare disease investigation.
+            This requires careful, nuanced reasoning about variant significance.
+
+            Your tasks:
+            1. Review ALL findings from the rare disease hunter and PGx collector
+            2. Look for PATTERNS across multiple variants that might point to
+               a unifying diagnosis (e.g. multiple variants in the same pathway)
+            3. Assess compound heterozygosity potential
+            4. Cross-reference VUS findings with the patient's PGx profile
+            5. Identify which VUS findings warrant clinical confirmation
+               (Sanger sequencing, functional studies)
+            6. Check if any combination of moderate-effect variants creates
+               a clinically significant phenotype
+
+            For each synthesized finding, clearly state:
+            - Confidence level (high/medium/low)
+            - Whether clinical confirmation is recommended
+            - What type of specialist should evaluate (geneticist, neurologist, etc.)
+
+            Publish up to 10 synthesized findings.
+          max_findings: 10
+          web_search: true
+
+    - id: narrators
+      label: "Rare Disease Report"
+      parallel: false
+      wait_for: synthesis
+      agents:
+        - id: narrator
+          role: narrator
+          model: opus
+          label: "Rare Disease Report Writer"
+          prompt: |
+            Write a comprehensive rare disease genetics report. This report
+            may be shared with a geneticist, so be thorough and precise.
+
+            Structure:
+            1. Executive Summary
+            2. Pathogenic & Likely Pathogenic Variants
+            3. Variants of Uncertain Significance (VUS) — Prioritized
+               - High-priority VUS (strong computational evidence)
+               - Moderate-priority VUS (some evidence)
+               - Low-priority VUS (noted for completeness)
+            4. Compound Heterozygosity Analysis
+            5. Rare Disease Gene Panel Results
+            6. Pharmacogenomics Relevant to Rare Disease Treatment
+            7. Recommended Clinical Follow-Up
+               - Genetic counseling referral
+               - Suggested confirmatory testing
+               - Specialist referrals
+            8. Methodology, Databases Used & Limitations
+
+            For VUS, explain WHY each is flagged — what computational or
+            database evidence suggests it may be significant. Include
+            AlphaMissense scores, CADD scores, and population frequencies
+            where available.
+
+            IMPORTANT: VUS findings require clinical confirmation. State this
+            clearly. This report is for research purposes and discussion with
+            a qualified geneticist.
+          max_findings: 0
+          web_search: false
+
+research:
+  focus_conditions:
+    - rare disease
+    - variants of uncertain significance
+    - undiagnosed genetic disease
+    - inborn errors of metabolism
+    - lysosomal storage diseases
+    - connective tissue disorders
+    - ciliopathies
+    - mitochondrial disease
+  focus_genes: []
+  # No specific gene focus — cast a wide net
+
+# Higher cost limits for deep investigation
+cost:
+  warn_threshold_usd: 10.00
+  hard_limit_usd: 30.00
+
+# Use opus for maximum reasoning capability
+agent_defaults:
+  web_search: true
+  temperature: 0.3

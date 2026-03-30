@@ -1,0 +1,182 @@
+# ============================================================
+# Helix Genomics Agents — Cardiovascular Preset
+# ============================================================
+#
+# Focused analysis of cardiovascular genetics: lipid metabolism,
+# cardiomyopathy, arrhythmias, coagulation, and hypertension.
+#
+# Agents: 2 collectors + 1 narrator
+# Estimated cost: $1-3
+# Estimated time: 5-8 minutes
+#
+# Usage:
+#   helix-agents --dna <file> --preset cardiovascular
+#
+# ============================================================
+
+pipeline:
+  phases:
+
+    - id: collectors
+      label: "Cardiovascular Collectors"
+      parallel: true
+      agents:
+
+        - id: cardio-collector
+          role: collector
+          model: haiku
+          label: "Cardiovascular & Structural Heart"
+          prompt: |
+            You are a cardiovascular genetics specialist analyzing a patient's DNA.
+            Focus on three major areas:
+
+            1. LIPID METABOLISM: Familial hypercholesterolemia genes (LDLR, APOB,
+               PCSK9), lipoprotein(a) (LPA), and statin response (HMGCR, SLCO1B1).
+               Check for FH-causing variants and polygenic lipid risk.
+
+            2. STRUCTURAL HEART: Cardiomyopathy genes (MYH7, MYBPC3, TNNT2,
+               TNNI3, LMNA, TTN), dilated cardiomyopathy, and ARVC genes
+               (PKP2, DSP, DSG2).
+
+            3. ARRHYTHMIAS: Long QT syndrome (KCNQ1, KCNH2, SCN5A), Brugada
+               syndrome (SCN5A), and catecholaminergic polymorphic VT (RYR2).
+
+            Use query_gene for each key gene. Cross-reference with ClinVar
+            for pathogenic variants and GWAS for polygenic risk markers.
+
+            Publish your 3-5 most significant findings.
+          focus_genes:
+            - LDLR
+            - APOB
+            - PCSK9
+            - LPA
+            - HMGCR
+            - SLCO1B1
+            - MYH7
+            - MYBPC3
+            - TNNT2
+            - TNNI3
+            - LMNA
+            - TTN
+            - SCN5A
+            - KCNQ1
+            - KCNH2
+            - PKP2
+            - RYR2
+          focus_conditions:
+            - familial hypercholesterolemia
+            - hypertrophic cardiomyopathy
+            - dilated cardiomyopathy
+            - long QT syndrome
+            - Brugada syndrome
+          max_findings: 5
+          web_search: true
+
+        - id: metabolic-cardio-collector
+          role: collector
+          model: haiku
+          label: "Metabolic & Vascular Risk"
+          prompt: |
+            You are a specialist in metabolic and vascular risk genetics.
+            Focus on:
+
+            1. COAGULATION: Factor V Leiden (F5), prothrombin mutation (F2),
+               MTHFR variants affecting homocysteine, and other thrombophilia
+               markers (SERPINC1, PROC, PROS1).
+
+            2. HYPERTENSION: ACE, AGT, NOS3, ADD1, and GWAS-identified
+               blood pressure loci.
+
+            3. METABOLIC RISK: Diabetes risk genes affecting cardiovascular
+               outcomes (TCF7L2, PPARG), obesity genes (FTO, MC4R),
+               and inflammatory markers (CRP, IL6, TNF).
+
+            4. VASCULAR: Aortic aneurysm genes (FBN1, TGFBR1/2), stroke
+               risk markers, and PAD-associated variants.
+
+            Use query_gene for each key gene. Cross-reference with GWAS
+            for cardiovascular trait associations.
+
+            Publish your 3-5 most significant findings.
+          focus_genes:
+            - F5
+            - F2
+            - MTHFR
+            - ACE
+            - AGT
+            - NOS3
+            - ADD1
+            - FBN1
+            - TGFBR1
+            - TGFBR2
+            - TCF7L2
+            - FTO
+            - CRP
+            - IL6
+            - SERPINC1
+          focus_conditions:
+            - factor V Leiden
+            - thrombophilia
+            - hypertension
+            - aortic aneurysm
+            - stroke risk
+          max_findings: 5
+          web_search: true
+
+    - id: narrators
+      label: "Cardiovascular Report"
+      parallel: false
+      wait_for: collectors
+      agents:
+        - id: narrator
+          role: narrator
+          model: sonnet
+          label: "Cardiovascular Report Writer"
+          prompt: |
+            You are writing a cardiovascular genetics report.
+            Read ALL findings and produce a clear report with:
+
+            1. Executive Summary (headline cardiovascular risk findings)
+            2. Lipid Genetics (FH assessment, statin response, Lp(a))
+            3. Structural Heart Genetics (cardiomyopathy, ARVC)
+            4. Arrhythmia Risk (long QT, Brugada, CPVT)
+            5. Coagulation & Thrombosis (Factor V Leiden, prothrombin)
+            6. Blood Pressure & Vascular Risk
+            7. Cardiovascular Drug Metabolism (statins, clopidogrel, warfarin)
+            8. Recommended Next Steps
+            9. Methodology & Limitations
+
+            Focus on practical, actionable information. Note which findings
+            warrant follow-up with a cardiologist or genetic counselor.
+
+            IMPORTANT: This is NOT medical advice. Include disclaimers.
+          max_findings: 0
+          web_search: false
+
+research:
+  focus_conditions:
+    - familial hypercholesterolemia
+    - long QT syndrome
+    - hypertrophic cardiomyopathy
+    - dilated cardiomyopathy
+    - Brugada syndrome
+    - factor V Leiden
+    - thrombophilia
+    - aortic aneurysm
+  focus_genes:
+    - LDLR
+    - APOB
+    - PCSK9
+    - LPA
+    - HMGCR
+    - SCN5A
+    - KCNQ1
+    - MYH7
+    - MYBPC3
+    - F5
+    - F2
+    - MTHFR
+
+cost:
+  warn_threshold_usd: 3.00
+  hard_limit_usd: 10.00
