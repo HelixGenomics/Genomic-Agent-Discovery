@@ -1,11 +1,13 @@
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap');
+
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
 :root {
   /* Helix brand palette */
   --green:       #34D399;
   --green-light: #6EE7B7;
-  --green-dim:   rgba(52, 211, 153, 0.15);
-  --green-glow:  rgba(52, 211, 153, 0.25);
+  --green-dim:   rgba(52, 211, 153, 0.12);
+  --green-glow:  rgba(52, 211, 153, 0.22);
   --cyan:        #06b6d4;
   --cyan-light:  #38bdf8;
   --purple:      #8b5cf6;
@@ -14,24 +16,25 @@
   --red:         #f43f5e;
   --amber:       #f59e0b;
 
-  /* Backgrounds */
-  --bg:          #0f1923;
-  --bg-card:     #1a2332;
-  --bg-elevated: #1e2a3d;
-  --bg-hover:    rgba(52, 211, 153, 0.05);
+  /* Backgrounds — slightly warmer/deeper */
+  --bg:          #0c1520;
+  --bg-card:     #111e2e;
+  --bg-elevated: #16263a;
+  --bg-hover:    rgba(52, 211, 153, 0.04);
 
-  /* Borders */
-  --border:      rgba(52, 211, 153, 0.12);
-  --border-dim:  rgba(255, 255, 255, 0.06);
+  /* Borders — more intentional hierarchy */
+  --border:      rgba(52, 211, 153, 0.14);
+  --border-dim:  rgba(255, 255, 255, 0.055);
+  --border-mid:  rgba(255, 255, 255, 0.09);
 
   /* Text */
-  --text:        #e2e8f0;
-  --text-dim:    #9CA3AF;
-  --text-faint:  rgba(226, 232, 240, 0.4);
+  --text:        #dde6f0;
+  --text-dim:    #8B97A8;
+  --text-faint:  rgba(221, 230, 240, 0.35);
 
-  /* Fonts */
-  --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
-  --font-mono: 'JetBrains Mono', 'Fira Code', ui-monospace, monospace;
+  /* Fonts — IBM Plex: engineered for data & precision */
+  --font-sans: 'IBM Plex Sans', system-ui, -apple-system, sans-serif;
+  --font-mono: 'IBM Plex Mono', ui-monospace, monospace;
 
   font-family: var(--font-sans);
   font-size: 14px;
@@ -39,6 +42,7 @@
   color: var(--text);
   background: var(--bg);
   -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 body { margin: 0; min-height: 100svh; }
@@ -46,10 +50,10 @@ body { margin: 0; min-height: 100svh; }
 #root { min-height: 100svh; display: flex; flex-direction: column; }
 
 /* Scrollbars */
-::-webkit-scrollbar { width: 4px; height: 4px; }
+::-webkit-scrollbar { width: 3px; height: 3px; }
 ::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: rgba(52,211,153,0.2); border-radius: 2px; }
-::-webkit-scrollbar-thumb:hover { background: rgba(52,211,153,0.4); }
+::-webkit-scrollbar-thumb { background: rgba(52,211,153,0.18); border-radius: 2px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(52,211,153,0.35); }
 
 /* Utility */
 .mono { font-family: var(--font-mono); }

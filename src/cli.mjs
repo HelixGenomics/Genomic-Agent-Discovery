@@ -471,6 +471,14 @@ async function main() {
   try {
     const { Orchestrator } = await import("./orchestrator.mjs");
     orchestrator = new Orchestrator(config, { jobId, stateDir: jobStateDir });
+
+    // Apply per-agent overrides injected from the dashboard (e.g. custom md output paths)
+    if (process.env.HELIX_AGENT_OVERRIDES) {
+      try {
+        orchestrator.agentOverrides = JSON.parse(process.env.HELIX_AGENT_OVERRIDES);
+      } catch { /* ignore malformed JSON */ }
+    }
+
     const results = await orchestrator.run();
 
     // Generate reports

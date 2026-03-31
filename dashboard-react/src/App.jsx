@@ -3,11 +3,77 @@ import './App.css'
 // ── Inline Setup Panel ────────────────────────────────────────────────────────
 
 const PRESETS = [
-  { id: 'quick-scan',       icon: '⚡', name: 'Quick Scan',        desc: 'Fast overview across all domains',          agents: 2,  cost: '$0.05–0.10', time: '2–4 min',   color: '#06b6d4' },
-  { id: 'cancer-research',  icon: '🔬', name: 'Cancer Research',   desc: 'Deep cancer & tumor genetics',              agents: 10, cost: '$0.50–2.00', time: '10–20 min', color: '#f43f5e' },
-  { id: 'cardiovascular',   icon: '❤️', name: 'Cardiovascular',    desc: 'Heart & vascular genetic risk',             agents: 6,  cost: '$0.30–1.00', time: '8–15 min',  color: '#f97316' },
-  { id: 'pharmacogenomics', icon: '💊', name: 'Pharmacogenomics',  desc: 'Drug metabolism & interactions',            agents: 5,  cost: '$0.20–0.80', time: '6–12 min',  color: '#8b5cf6' },
-  { id: 'rare-disease',     icon: '🧬', name: 'Rare Disease',      desc: 'Rare & orphan disease panel',              agents: 8,  cost: '$0.40–1.50', time: '10–18 min', color: '#34D399' },
+  { id: 'quick-scan', icon: '⚡', name: 'Quick Scan', desc: 'Fast overview across all domains', cost: '$0.05–0.10', time: '2–4 min', color: '#06b6d4',
+    agentList: [
+      { id: 'general-scanner', label: 'General Health Scanner', model: 'haiku',
+        prompt: `You are performing a rapid whole-genome health overview. Cover ALL major domains at a surface level rather than going deep on any one area.\n\nWORKFLOW:\n1. Start with get_all_pharmacogenomics for the full PGx panel\n2. Query the top 5-10 most clinically important genes per domain:\n   - Cancer: BRCA1, BRCA2, TP53, APC, MLH1\n   - Cardio: LDLR, APOB, PCSK9, SCN5A, MYH7\n   - Neuro: APOE, LRRK2, GBA\n   - Metabolic: HFE, TCF7L2, FTO\n   - Coagulation: F5, F2, MTHFR\n3. Check GWAS for any high-significance associations\n4. Note anything flagged as pathogenic or likely pathogenic\n\nFocus on ACTIONABLE findings. Skip common benign variants. Publish your 5 most important findings across all domains.` },
+      { id: 'narrator', label: 'Quick Report Writer', model: 'haiku',
+        prompt: `Write a concise genomic health overview based on the scan findings. Keep it short and practical.\n\nStructure:\n1. Key Findings (bullet points, most important first)\n2. Pharmacogenomics Summary (brief metabolizer table)\n3. Areas Flagged for Deeper Analysis\n4. Disclaimer\n\nIf nothing significant was found, say so clearly. Keep the entire report under 2 pages. No fluff.` },
+    ]},
+  { id: 'cancer-research', icon: '🔬', name: 'Cancer Research', desc: 'Deep cancer & tumor genetics', cost: '$0.50–2.00', time: '10–20 min', color: '#f43f5e',
+    agentList: [
+      { id: 'cancer-collector', label: 'Cancer & Tumor Genetics', model: 'haiku',
+        prompt: `You are a cancer genomics specialist. Focus on: tumor suppressor genes (TP53, BRCA1/2, APC), DNA repair pathways (BRCA1, BRCA2, PALB2, RAD51), mismatch repair genes (MLH1, MSH2, MSH6, PMS2), and cancer predisposition syndromes (Lynch, Li-Fraumeni, FAP).\n\nUse query_gene to investigate key cancer genes. Use query_civic for clinical cancer variant evidence. Cross-reference with ClinVar and GWAS. Pay special attention to pathogenic and likely-pathogenic variants in high-penetrance cancer genes.\n\nPublish your 3-5 most significant findings.` },
+      { id: 'dpyd-safety', label: 'DPYD Safety Agent', model: 'haiku',
+        prompt: `You are a specialist in DPYD-related fluoropyrimidine toxicity. Investigate DPYD variants that cause severe or fatal toxicity to 5-fluorouracil and capecitabine.\n\nAnalyze: DPYD*2A (c.1905+1G>A), c.2846A>T, c.1679T>G (DPYD*13), c.1236G>A/HapB3. Classify as normal, intermediate, or poor metabolizer. Provide CPIC-based dosing recommendations.\n\nAlso check DPYS and TYMS variants. Publish 2-3 findings with clear clinical action items.` },
+      { id: 'platinum-chemo', label: 'Platinum Chemotherapy', model: 'haiku',
+        prompt: `Analyze genetic variants affecting response to platinum-based chemotherapy (cisplatin, carboplatin, oxaliplatin).\n\nFocus on: ERCC1/2 (nucleotide excision repair), GSTP1 (glutathione metabolism), ABCB1/ABCC2 (drug efflux), BRCA1/2 (homologous recombination, PARP inhibitor eligibility), XPC, XPD.\n\nNote any variants indicating increased sensitivity, resistance, or neuropathy risk. Publish 2-3 actionable findings.` },
+      { id: 'immunotherapy', label: 'Immunotherapy Markers', model: 'haiku',
+        prompt: `Analyze genetic markers relevant to cancer immunotherapy response.\n\nFocus on: HLA alleles (HLA-A, HLA-B, HLA-C — relevant to immune checkpoint response), CD274/PD-L1, CTLA4, JAK1/2, STAT3, tumor microenvironment genes.\n\nAssess whether the patient's immune genetics suggest likely response or resistance to checkpoint inhibitors (anti-PD-1, anti-CTLA4). Note any autoimmunity risk alleles relevant to irAE prediction.\n\nPublish 2-4 findings.` },
+      { id: 'targeted-therapy', label: 'Targeted Therapy', model: 'haiku',
+        prompt: `Investigate germline variants that may influence eligibility or response to targeted cancer therapies.\n\nFocus on: BRCA1/2 (PARP inhibitors — olaparib, rucaparib), ATM/CHEK2 (ATR inhibitors), PTEN (PI3K pathway), RET (RET inhibitors), NTRK fusions (entrectinib), MET amplification, FGFR alterations.\n\nAlso review any variants in AKT1, PIK3CA, and mTOR pathway genes. Publish 2-3 findings with specific targeted therapy relevance.` },
+      { id: 'synthesizer', label: 'Cancer Synthesizer', model: 'sonnet',
+        prompt: `You are a clinical cancer genomics synthesizer. Read ALL findings from the collector agents and:\n\n1. Identify multi-hit cancer risk patterns (e.g. BRCA2 VUS + CHEK2 pathogenic = compound risk)\n2. Cross-reference cancer risk with pharmacogenomics implications\n3. Assess hereditary cancer syndrome criteria (Lynch, HBOC, Li-Fraumeni, FAP)\n4. Identify variants qualifying for targeted therapy or clinical trials\n5. Prioritize findings by clinical actionability\n\nPublish a structured synthesis with clear risk stratification.` },
+      { id: 'narrator', label: 'Report Writer', model: 'haiku',
+        prompt: `Write a comprehensive cancer genetics report.\n\nStructure:\n1. Executive Summary (headline risk findings)\n2. High-Penetrance Gene Results (BRCA1/2, TP53, APC, MLH1, etc.)\n3. Moderate-Penetrance Genes (CHEK2, ATM, PALB2)\n4. Hereditary Cancer Syndrome Assessment\n5. Pharmacogenomics for Oncology Drugs\n6. DNA Repair & Treatment Sensitivity\n7. Recommended Next Steps (genetic counseling, additional testing)\n8. Methodology & Limitations\n\nIMPORTANT: This is NOT a diagnosis. Include appropriate disclaimers.` },
+    ]},
+  { id: 'cardiovascular', icon: '❤️', name: 'Cardiovascular', desc: 'Heart & vascular genetic risk', cost: '$0.30–1.00', time: '8–15 min', color: '#f97316',
+    agentList: [
+      { id: 'cardio-collector', label: 'Cardiovascular Genetics', model: 'haiku',
+        prompt: `You are a cardiovascular genetics specialist. Focus on three major areas:\n\n1. LIPID METABOLISM: Familial hypercholesterolemia genes (LDLR, APOB, PCSK9), lipoprotein(a) (LPA), and statin response (HMGCR, SLCO1B1).\n\n2. STRUCTURAL HEART: Cardiomyopathy genes (MYH7, MYBPC3, TNNT2, TNNI3, LMNA, TTN), dilated cardiomyopathy, and ARVC genes (PKP2, DSP, DSG2).\n\n3. ARRHYTHMIAS: Long QT syndrome (KCNQ1, KCNH2, SCN5A), Brugada syndrome (SCN5A), and catecholaminergic polymorphic VT (RYR2).\n\nPublish your 3-5 most significant findings.` },
+      { id: 'lipid-collector', label: 'Lipid & Cholesterol', model: 'haiku',
+        prompt: `Specialist in lipid genetics. Investigate:\n\n1. Familial hypercholesterolemia (LDLR, APOB, PCSK9) — score FH likelihood\n2. Lipoprotein(a): LPA kringle repeat variants\n3. Statin response: SLCO1B1 (myopathy risk), HMGCR, CYP3A4/5\n4. HDL metabolism: ABCA1, APOA1, CETP, LIPC\n5. Hypertriglyceridemia: LPL, APOC2, APOA5, GPIHBP1\n\nClassify overall lipid genetic risk. Note any variants qualifying for PCSK9 inhibitor eligibility. Publish 3-4 findings.` },
+      { id: 'arrhythmia-agent', label: 'Arrhythmia Risk', model: 'haiku',
+        prompt: `Investigate genetic risk for cardiac arrhythmias.\n\nFocus on:\n1. Long QT syndromes (LQT1: KCNQ1, LQT2: KCNH2, LQT3: SCN5A)\n2. Brugada syndrome (SCN5A, GPD1L, CACNA1C)\n3. Catecholaminergic polymorphic VT (RYR2, CASQ2)\n4. Atrial fibrillation risk loci (KCNQ1, PITX2, ZFHX3)\n5. Short QT syndrome (KCNQ1, KCNH2, KCNJ2)\n6. Wolff-Parkinson-White (PRKAG2)\n\nNote any variants warranting cardiology referral or ICD consideration. Publish 2-4 findings.` },
+      { id: 'coagulation-agent', label: 'Coagulation Factors', model: 'haiku',
+        prompt: `Specialist in coagulation and thrombophilia genetics.\n\nFocus on:\n1. Factor V Leiden (F5 c.1691G>A) and prothrombin mutation (F2 c.20210G>A)\n2. MTHFR variants (C677T, A1298C) — homocysteine metabolism\n3. Natural anticoagulant deficiencies (SERPINC1/antithrombin, PROC/protein C, PROS1/protein S)\n4. Fibrinogen variants (FGG, FGA, FGB)\n5. Anticoagulant pharmacogenomics: VKORC1, CYP2C9 (warfarin dosing)\n6. Platelet function: ITGA2B, ITGB3 (aspirin response)\n\nPublish 3-4 findings with VTE risk stratification.` },
+      { id: 'synthesizer', label: 'Cardio Synthesizer', model: 'sonnet',
+        prompt: `Synthesize all cardiovascular findings into an integrated risk assessment.\n\n1. Combine structural, arrhythmia, lipid, and coagulation findings\n2. Assess overall cardiovascular genetic risk tier (low/moderate/high)\n3. Identify compound risk patterns (e.g. FH + thrombophilia = very high CVD risk)\n4. Prioritize findings requiring immediate cardiology referral\n5. Note pharmacogenomic implications for cardiovascular medications\n\nPublish up to 8 synthesized findings with clear risk stratification.` },
+      { id: 'narrator', label: 'Report Writer', model: 'haiku',
+        prompt: `Write a cardiovascular genetics report.\n\nStructure:\n1. Executive Summary (headline cardiovascular risk findings)\n2. Lipid Genetics (FH assessment, statin response, Lp(a))\n3. Structural Heart Genetics (cardiomyopathy, ARVC)\n4. Arrhythmia Risk (long QT, Brugada, CPVT)\n5. Coagulation & Thrombosis (Factor V Leiden, prothrombin)\n6. Blood Pressure & Vascular Risk\n7. Cardiovascular Drug Metabolism (statins, clopidogrel, warfarin)\n8. Recommended Next Steps\n\nNote which findings warrant follow-up with a cardiologist or genetic counselor. IMPORTANT: This is NOT medical advice.` },
+    ]},
+  { id: 'pharmacogenomics', icon: '💊', name: 'Pharmacogenomics', desc: 'Drug metabolism & interactions', cost: '$0.20–0.80', time: '6–12 min', color: '#8b5cf6',
+    agentList: [
+      { id: 'cyp-collector', label: 'CYP Enzyme Panel', model: 'haiku',
+        prompt: `Comprehensive analysis of cytochrome P450 enzymes — the primary drug-metabolizing enzymes.\n\nInvestigate ALL CYP genes with clinical significance:\n- CYP2D6: codeine, tramadol, antidepressants, antipsychotics, tamoxifen\n- CYP2C19: clopidogrel, PPIs, antidepressants, antifungals\n- CYP2C9: warfarin, NSAIDs, phenytoin, sulfonylureas\n- CYP3A4/3A5: statins, immunosuppressants, benzodiazepines\n- CYP2B6: methadone, bupropion, efavirenz\n- CYP1A2: clozapine, caffeine, theophylline\n- CYP2A6: nicotine metabolism\n- CYP4F2: warfarin vitamin K metabolism\n\nClassify metabolizer status for each. Start with get_all_pharmacogenomics. Publish 4-5 findings covering the most prescribed drug categories.` },
+      { id: 'drug-transporter', label: 'Drug Transporters', model: 'haiku',
+        prompt: `Analyze drug transporter genes that control drug absorption, distribution, and elimination.\n\nFocus on:\n1. SLCO1B1 (OATP1B1): statin myopathy risk — especially simvastatin, atorvastatin\n2. ABCG2 (BCRP): rosuvastatin, methotrexate, chemotherapy\n3. ABCB1 (P-gp/MDR1): digoxin, antiretrovirals, many chemotherapeutics\n4. ABCC2 (MRP2): methotrexate, irinotecan, statins\n5. SLC22A1 (OCT1): metformin, morphine\n6. SLC22A2 (OCT2): metformin renal clearance\n\nPublish 3-4 findings with specific drug interaction implications.` },
+      { id: 'pharma-collector', label: 'Pharmacogenomics Panel', model: 'haiku',
+        prompt: `Comprehensive PGx panel analysis following CPIC guidelines. Cover all 34 CPIC pharmacogenes.\n\nStart with get_all_pharmacogenomics for the full panel, then investigate any abnormal metabolizer status.\n\nFor each abnormal result:\n1. Gene name and metabolizer status (star allele if available)\n2. ALL affected drugs with CPIC evidence level\n3. Specific clinical recommendations (dose adjustments, drug alternatives)\n4. Drug-drug interaction considerations\n\nPrioritize by how commonly the affected drugs are prescribed. Publish 3-5 findings.` },
+      { id: 'synthesizer', label: 'PGx Synthesizer', model: 'sonnet',
+        prompt: `Synthesize all pharmacogenomic findings into a unified drug interaction profile.\n\n1. Combine CYP enzyme, transporter, and CPIC panel findings\n2. Identify cross-gene drug interactions (e.g. CYP2D6 PM + CYP2C19 PM = increased TCA toxicity)\n3. Create a priority list of drugs requiring dose adjustment or avoidance\n4. Flag any life-threatening interactions (DPYD + fluoropyrimidines, TPMT + thiopurines)\n5. Assess polypharmacy risk for common drug combinations\n\nPublish 5-8 synthesized findings organized by drug category.` },
+      { id: 'narrator', label: 'Report Writer', model: 'haiku',
+        prompt: `Write a pharmacogenomics report for use with a doctor or pharmacist.\n\nStructure:\n1. Executive Summary (most important drug interactions)\n2. Metabolizer Status Table (gene | status | key drugs affected)\n3. High-Priority Alerts (drugs to avoid or dose-adjust)\n4. Drug Categories: Pain, Antidepressants, Cardiovascular, PPIs, Anticoagulants\n5. Drug-Drug Interaction Risks\n6. Recommended Actions (print for pharmacy, genetic counseling)\n7. Methodology & Limitations\n\nUse plain language. IMPORTANT: Not medical advice — recommend discussing with a healthcare provider.` },
+    ]},
+  { id: 'rare-disease', icon: '🧬', name: 'Rare Disease', desc: 'Rare & orphan disease panel', cost: '$0.40–1.50', time: '10–18 min', color: '#34D399',
+    agentList: [
+      { id: 'metabolic-collector', label: 'Metabolic Disorders', model: 'haiku',
+        prompt: `Specialist in inborn errors of metabolism. Investigate:\n\n1. Lysosomal storage diseases: GBA (Gaucher), HEXA (Tay-Sachs), GAA (Pompe), GLA (Fabry), IDUA (Hurler)\n2. Organic acid disorders: ACADM (MCAD), PAH (PKU), BTD (biotinidase)\n3. Urea cycle: ASS1, OTC, CPS1, ARG1\n4. Mitochondrial: POLG, RRM2B, SLC25A4 (nuclear genes affecting mtDNA)\n5. Metal metabolism: ATP7B (Wilson's disease), HFE (hemochromatosis), CP (aceruloplasminemia)\n6. Peroxisomal: PEX1, ABCD1 (X-ALD)\n\nFocus on variants with population frequency < 1%. Publish 3-5 findings including high-priority VUS.` },
+      { id: 'neuro-collector', label: 'Neurological Conditions', model: 'haiku',
+        prompt: `Investigate rare neurological genetic conditions.\n\nFocus on:\n1. Movement disorders: LRRK2, PRKN, PINK1, SNCA (Parkinson's), HTT (Huntington's)\n2. Spinocerebellar ataxias: ATXN1-3, CACNA1A (SCA6)\n3. Hereditary spastic paraplegia: SPG genes (SPAST, ATL1, REEP1)\n4. Charcot-Marie-Tooth: PMP22, MPZ, GJB1, MFN2\n5. Epilepsy genes: SCN1A, SCN2A, KCNQ2, CDKL5, PCDH19\n6. Intellectual disability: MECP2, FMR1 (check for premutation expansions)\n7. ALS/MND: SOD1, C9orf72 expansion, TARDBP, FUS\n\nPublish 3-5 findings with clinical significance and inheritance pattern.` },
+      { id: 'connective-tissue', label: 'Connective Tissue', model: 'haiku',
+        prompt: `Investigate rare connective tissue and skeletal disorders.\n\nFocus on:\n1. Heritable aortic aneurysm: FBN1 (Marfan), TGFBR1/2 (Loeys-Dietz), COL3A1 (vEDS), ACTA2, MYH11\n2. Ehlers-Danlos syndromes: COL5A1/2 (classical), COL3A1 (vascular), TNXB (hypermobile)\n3. Skeletal dysplasias: COL1A1/2 (osteogenesis imperfecta), FGFR3 (achondroplasia), EXT1/2 (hereditary multiple exostoses)\n4. Stickler syndrome: COL2A1, COL11A1\n5. Epidermolysis bullosa: COL7A1, KRT5, KRT14\n\nNote any variants with significant aortic dissection/rupture risk. Publish 2-4 findings.` },
+      { id: 'immunology-agent', label: 'Primary Immunodeficiency', model: 'haiku',
+        prompt: `Investigate primary immunodeficiency diseases (PID) and innate immune gene variants.\n\nFocus on:\n1. Humoral: BTK (X-linked agammaglobulinemia), IGHM, IGLL1, CD79A/B, BLNK\n2. Combined: ADA, RAG1/2, DCLRE1C (Artemis), IL7R, JAK3, IL2RG (SCID genes)\n3. Phagocyte: CYBB, NCF1/2/4 (CGD), ELANE (neutropenia), G6PC3\n4. Complement: C1Q/R/S, C2, C3, C4, CFB, CFH, CFHR1-5\n5. Autoinflammatory: MEFV (FMF), NLRP3 (CAPS), MVK (HIDS), TNFRSF1A (TRAPS)\n6. Immunodysregulation: FOXP3, IL2RA, LRBA, CTLA4\n\nPublish 2-4 findings with infection susceptibility or autoimmunity risk implications.` },
+      { id: 'rare-cancer', label: 'Rare Cancer Syndromes', model: 'haiku',
+        prompt: `Investigate rare hereditary cancer syndromes beyond the common BRCA/Lynch spectrum.\n\nFocus on:\n1. PTEN hamartoma tumor syndrome (PTEN) — Cowden, Bannayan-Riley-Ruvalcaba\n2. MEN syndromes (MEN1, RET, CDKN1B) — pituitary, pancreatic, adrenal\n3. von Hippel-Lindau (VHL) — hemangioblastomas, RCC, pheochromocytoma\n4. Neurofibromatosis (NF1, NF2, SMARCB1) — neurofibromas, acoustic neuromas\n5. Tuberous sclerosis (TSC1, TSC2) — hamartomas across multiple organs\n6. Hereditary paraganglioma (SDHA/B/C/D, MAX, TMEM127)\n7. BAP1 tumor predisposition (BAP1) — uveal melanoma, mesothelioma\n8. Constitutional mismatch repair deficiency (biallelic MMR variants)\n\nPublish 2-4 findings with organ-specific surveillance recommendations.` },
+      { id: 'synthesizer', label: 'Rare Disease Synthesizer', model: 'sonnet',
+        prompt: `Synthesizing findings from a rare disease investigation requires careful, nuanced reasoning.\n\n1. Review ALL findings from all collector agents\n2. Look for PATTERNS across multiple variants pointing to a unifying diagnosis\n3. Assess compound heterozygosity potential (two variants in same recessive gene)\n4. Cross-reference VUS findings with phenotypic implications\n5. Identify which VUS findings warrant clinical confirmation\n6. Check if combinations of moderate-effect variants create clinically significant phenotypes\n\nFor each synthesized finding, state: confidence level, whether clinical confirmation is recommended, and what specialist should evaluate.\n\nPublish up to 10 synthesized findings.` },
+      { id: 'narrator', label: 'Report Writer', model: 'haiku',
+        prompt: `Write a comprehensive rare disease genetics report for use with a geneticist.\n\nStructure:\n1. Executive Summary\n2. Pathogenic & Likely Pathogenic Variants\n3. Variants of Uncertain Significance (VUS) — Prioritized\n   - High-priority VUS (strong computational evidence)\n   - Moderate-priority VUS (some evidence)\n4. Compound Heterozygosity Analysis\n5. Rare Disease Gene Panel Results by System\n6. Pharmacogenomics for Rare Disease Treatment\n7. Recommended Clinical Follow-Up (genetic counseling, confirmatory testing, specialist referrals)\n8. Methodology, Databases Used & Limitations\n\nFor VUS, explain WHY each is flagged. Include AlphaMissense scores, CADD scores, and population frequencies. IMPORTANT: VUS requires clinical confirmation. This report is for discussion with a qualified geneticist.` },
+    ]},
+  { id: 'custom', icon: '⚙️', name: 'Custom', desc: 'Build your own agent pipeline', cost: 'varies', time: 'varies', color: '#9ca3af',
+    agentList: [] },
 ]
 
 function SetupPanel({ onStarted }) {
@@ -20,9 +86,32 @@ function SetupPanel({ onStarted }) {
   const [checkMessages, setCheckMessages] = useState('7')
   const [webSearch, setWebSearch] = useState(true)
   const [medHistory, setMedHistory] = useState('')
+  const [saveMd, setSaveMd] = useState(false)
+  const [mdOutputDir, setMdOutputDir] = useState('')
+  const [customAgents, setCustomAgents] = useState([
+    { id: 'custom-agent-1', label: 'Custom Agent', model: 'haiku', prompt: '' }
+  ])
+  const [expandedPrompts, setExpandedPrompts] = useState({})
   const [loading, setLoading] = useState(false)
   const [err, setErr] = useState('')
   const fileRef = useRef(null)
+  const dirRef = useRef(null)
+
+  function togglePrompt(id) {
+    setExpandedPrompts(prev => ({ ...prev, [id]: !prev[id] }))
+  }
+
+  function handleBrowseDir(e) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    // In Electron/Node context, file.path includes the full path
+    const p = file.path || file.webkitRelativePath || ''
+    if (p) {
+      // Strip filename to get directory
+      const dir = p.includes('/') ? p.substring(0, p.lastIndexOf('/')) : p
+      setMdOutputDir(dir)
+    }
+  }
 
   function onDrop(e) {
     e.preventDefault()
@@ -34,6 +123,16 @@ function SetupPanel({ onStarted }) {
     if (!dnaPath.trim()) { setErr('Please enter or drop a DNA file path.'); return }
     setErr(''); setLoading(true)
     try {
+      // Build per-agent overrides from single output dir
+      const selectedPreset = PRESETS.find(p => p.id === preset)
+      const agentList = preset === 'custom'
+        ? customAgents.filter(a => a.id && a.prompt)
+        : (selectedPreset?.agentList || [])
+      const dir = mdOutputDir.trim()
+      const agentOverrides = (saveMd && dir)
+        ? Object.fromEntries(agentList.map(a => [a.id, { mdOutputPath: dir.replace(/\/$/, '') + '/' + a.id + '.md' }]))
+        : {}
+
       const res = await fetch('/api/start-analysis', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -49,6 +148,8 @@ function SetupPanel({ onStarted }) {
             webSearch,
             medicalHistory: medHistory,
           },
+          agentOverrides,
+          customAgents: preset === 'custom' ? customAgents.filter(a => a.id && a.prompt) : undefined,
         }),
       })
       const data = await res.json()
@@ -102,10 +203,103 @@ function SetupPanel({ onStarted }) {
               <span className="setup-preset-icon">{p.icon}</span>
               <span className="setup-preset-name">{p.name}</span>
               <span className="setup-preset-desc">{p.desc}</span>
-              <span className="setup-preset-meta">{p.agents} agents · {p.cost} · {p.time}</span>
+              <span className="setup-preset-meta">{p.agentList.length} agents · {p.cost} · {p.time}</span>
             </button>
           ))}
         </div>
+      </div>
+
+      {/* Custom agent builder */}
+      {preset === 'custom' && (
+        <div className="setup-section">
+          <div className="setup-label">Custom Agents</div>
+          <div className="setup-agent-outputs">
+            {customAgents.map((agent, i) => (
+              <div key={i} className="setup-custom-agent">
+                <div className="setup-custom-agent-header">
+                  <input className="setup-input" placeholder="Agent ID (e.g. drug-metabolism)" value={agent.id}
+                    onChange={e => setCustomAgents(prev => prev.map((a, j) => j===i ? {...a, id: e.target.value} : a))} />
+                  <input className="setup-input" placeholder="Label" value={agent.label}
+                    onChange={e => setCustomAgents(prev => prev.map((a, j) => j===i ? {...a, label: e.target.value} : a))} />
+                  <select className="setup-select" value={agent.model}
+                    onChange={e => setCustomAgents(prev => prev.map((a, j) => j===i ? {...a, model: e.target.value} : a))}>
+                    <option value="haiku">Haiku</option>
+                    <option value="sonnet">Sonnet</option>
+                    <option value="opus">Opus</option>
+                  </select>
+                  <button className="btn-custom-agent-remove" onClick={() => setCustomAgents(prev => prev.filter((_, j) => j!==i))}>✕</button>
+                </div>
+                <textarea className="setup-textarea" placeholder="Research prompt for this agent…" value={agent.prompt}
+                  onChange={e => setCustomAgents(prev => prev.map((a, j) => j===i ? {...a, prompt: e.target.value} : a))} />
+              </div>
+            ))}
+            <button className="btn-add-custom-agent" onClick={() => setCustomAgents(prev => [...prev,
+              { id: `custom-agent-${prev.length+1}`, label: '', model: 'haiku', prompt: '' }
+            ])}>+ Add Agent</button>
+          </div>
+        </div>
+      )}
+
+      {/* Preset agent prompt viewer (read-only) */}
+      {preset !== 'custom' && (() => {
+        const selectedPreset = PRESETS.find(p => p.id === preset)
+        if (!selectedPreset?.agentList?.length) return null
+        return (
+          <div className="setup-section">
+            <div className="setup-label">Agent Prompts <span className="setup-opt">— read-only · click to expand</span></div>
+            <div className="setup-agent-prompts">
+              {selectedPreset.agentList.map(agent => (
+                <div key={agent.id} className={`setup-prompt-row${expandedPrompts[agent.id] ? ' expanded' : ''}`}>
+                  <button className="setup-prompt-toggle" onClick={() => togglePrompt(agent.id)}>
+                    <span className="setup-prompt-label">{agent.label}</span>
+                    <span className="setup-prompt-model">{agent.model}</span>
+                    <span className="setup-prompt-chevron">{expandedPrompts[agent.id] ? '▲' : '▼'}</span>
+                  </button>
+                  {expandedPrompts[agent.id] && (
+                    <pre className="setup-prompt-body">{agent.prompt || 'Prompt defined in preset YAML.'}</pre>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        )
+      })()}
+
+      {/* Output directory — shared for all agents */}
+      <div className="setup-section">
+        <div className="setup-label-row">
+          <label className="setup-agent-output-check">
+            <input type="checkbox" checked={saveMd} style={{ accentColor: 'var(--green)' }}
+              onChange={e => setSaveMd(e.target.checked)} />
+            <span className="setup-output-label">Save agent outputs as <code>.md</code></span>
+          </label>
+        </div>
+        {saveMd && (
+          <div className="setup-dir-row">
+            <input className="setup-input setup-dir-input" placeholder="/path/to/output/directory"
+              value={mdOutputDir} onChange={e => setMdOutputDir(e.target.value)} />
+            <button className="btn-browse-dir" title="Browse for folder" onClick={() => dirRef.current?.click()}>
+              <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
+                <path d="M1 3.5A1.5 1.5 0 012.5 2h3.172a1.5 1.5 0 011.06.44L7.94 3.5H13.5A1.5 1.5 0 0115 5v7a1.5 1.5 0 01-1.5 1.5h-11A1.5 1.5 0 011 11.5v-8z" stroke="currentColor" strokeWidth="1.2"/>
+              </svg>
+              Browse
+            </button>
+            <input ref={dirRef} type="file" style={{ display: 'none' }} webkitdirectory="true"
+              onChange={handleBrowseDir} />
+          </div>
+        )}
+        {saveMd && mdOutputDir && (
+          <div className="setup-dir-preview">
+            {(() => {
+              const agents = preset === 'custom'
+                ? customAgents.filter(a => a.id)
+                : PRESETS.find(p => p.id === preset)?.agentList || []
+              return agents.map(a => (
+                <span key={a.id} className="setup-dir-file">{a.id}.md</span>
+              ))
+            })()}
+          </div>
+        )}
       </div>
 
       {/* Settings row */}
@@ -211,24 +405,8 @@ function sigLabel(cat) {
 
 // ── Sub-components ────────────────────────────────────────────────────────────
 
-function HelixLogo() {
-  return (
-    <svg width="20" height="26" viewBox="0 0 20 26" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <defs>
-        <linearGradient id="pin-grad" x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0%" stopColor="#06b6d4" />
-          <stop offset="100%" stopColor="#34D399" />
-        </linearGradient>
-      </defs>
-      {/* Pin body: circle top narrowing to a point */}
-      <path
-        d="M10 1C5.03 1 1 5.03 1 10c0 6.5 9 15 9 15s9-8.5 9-15c0-4.97-4.03-9-9-9z"
-        fill="url(#pin-grad)"
-      />
-      {/* Inner circle cutout */}
-      <circle cx="10" cy="10" r="3.5" fill="#0f1923" />
-    </svg>
-  )
+function HelixLogo({ size = 32 }) {
+  return <img src="/helix-logo.png" alt="Helix" width={size} height={size} style={{ objectFit: 'contain' }} />
 }
 
 function StatusDot({ status }) {
@@ -258,8 +436,8 @@ function StatusPill({ status }) {
   )
 }
 
-function AgentCard({ agent, selected, onClick }) {
-  const { id, label, model, status, lastActivity, logSize } = agent
+function AgentCard({ agent, selected, onClick, onViewMd }) {
+  const { id, label, model, status, lastActivity, logSize, hasMd, mdPath } = agent
   const cardCls = [
     'agent-card',
     `status-${status || 'waiting'}`,
@@ -287,7 +465,17 @@ function AgentCard({ agent, selected, onClick }) {
         {lastActivity && (
           <span className="agent-meta-item highlight">{fmtAge(lastActivity)}</span>
         )}
+        {hasMd && (
+          <button
+            className="btn-view-md"
+            title={mdPath || 'View agent output'}
+            onClick={e => { e.stopPropagation(); onViewMd(id, label || id) }}
+          >📄 Output</button>
+        )}
       </div>
+      {hasMd && mdPath && (
+        <div className="agent-md-path" title={mdPath}>{mdPath.split('/').slice(-3).join('/')}</div>
+      )}
     </div>
   )
 }
@@ -296,18 +484,17 @@ function AgentsPanel({ agents, selectedId, onSelect, jobId }) {
   const entries = Object.entries(agents)
   const running = entries.filter(([, a]) => a.status === 'running' || a.status === 'spawning').length
   const done = entries.filter(([, a]) => a.status === 'done').length
-  const [modal, setModal] = useState(false)
-  const [form, setForm] = useState({ id: '', label: '', model: 'haiku', prompt: '' })
+  const [mdModal, setMdModal] = useState(null) // { title, content, path }
 
-  function launch() {
-    if (!form.id) return
-    fetch('/api/spawn-agent', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ jobId, ...form })
-    }).catch(() => {})
-    setModal(false)
-    setForm({ id: '', label: '', model: 'haiku', prompt: '' })
+  function viewMd(agentId, agentLabel) {
+    if (!jobId) return
+    fetch(`/api/agent-md/${jobId}/${agentId}`)
+      .then(r => r.json())
+      .then(data => {
+        if (data.content) setMdModal({ title: agentLabel, content: data.content, path: data.path })
+        else setMdModal({ title: agentLabel, content: `No output yet: ${data.error || ''}`, path: null })
+      })
+      .catch(() => setMdModal({ title: agentLabel, content: 'Failed to load output.', path: null }))
   }
 
   return (
@@ -317,32 +504,20 @@ function AgentsPanel({ agents, selectedId, onSelect, jobId }) {
         {entries.length > 0 && (
           <span className="panel-badge">{running > 0 ? `${running} active` : `${done}/${entries.length}`}</span>
         )}
-        <button className="btn-add-agent" onClick={() => setModal(true)}>+ Add Agent</button>
       </div>
-
-      {modal && (
-        <div className="modal-overlay" onClick={e => e.target === e.currentTarget && setModal(false)}>
-          <div className="modal">
-            <h3>Launch New Agent</h3>
-            <label>Agent ID</label>
-            <input value={form.id} onChange={e => setForm(f => ({...f, id: e.target.value}))} placeholder="e.g. drug-metabolism" />
-            <label>Label</label>
-            <input value={form.label} onChange={e => setForm(f => ({...f, label: e.target.value}))} placeholder="e.g. Drug Metabolism Agent" />
-            <label>Model</label>
-            <select value={form.model} onChange={e => setForm(f => ({...f, model: e.target.value}))}>
-              <option value="haiku">Haiku (fast, cheap)</option>
-              <option value="sonnet">Sonnet (balanced)</option>
-              <option value="opus">Opus (most capable)</option>
-            </select>
-            <label>Prompt</label>
-            <textarea value={form.prompt} onChange={e => setForm(f => ({...f, prompt: e.target.value}))} placeholder="Research instructions for this agent…" />
-            <div className="modal-btns">
-              <button className="btn-cancel" onClick={() => setModal(false)}>Cancel</button>
-              <button className="btn-launch" onClick={launch}>Launch</button>
+      {mdModal && (
+        <div className="modal-overlay" onClick={e => e.target === e.currentTarget && setMdModal(null)}>
+          <div className="modal modal-md-output">
+            <div className="modal-md-header">
+              <h3>📄 {mdModal.title} — Output</h3>
+              {mdModal.path && <span className="modal-md-path">{mdModal.path}</span>}
+              <button className="btn-cancel" onClick={() => setMdModal(null)}>✕</button>
             </div>
+            <pre className="modal-md-content">{mdModal.content}</pre>
           </div>
         </div>
       )}
+
       <div className="panel-body pad-sm">
         {entries.length === 0 ? (
           <div className="empty">
@@ -359,6 +534,7 @@ function AgentsPanel({ agents, selectedId, onSelect, jobId }) {
               agent={{ id, ...agent }}
               selected={selectedId === id}
               onClick={onSelect}
+              onViewMd={viewMd}
             />
           ))
         )}
@@ -528,15 +704,59 @@ function NetworkCanvas({ agents, selectedId, chat, findings }) {
       }
 
       const cx = cW / 2, cy = cH / 2
-      const r = Math.min(cW, cH) * 0.32
-      const nodePositions = ids.map((id, i) => {
-        const angle = (i / n) * Math.PI * 2 - Math.PI / 2
-        return { x: cx + Math.cos(angle) * r, y: cy + Math.sin(angle) * r, id }
-      })
+      const minDim = Math.min(cW, cH)
 
-      // Faint connection lines between all nodes
-      for (let i = 0; i < n; i++) {
-        for (let j = i + 1; j < n; j++) {
+      // Adaptive node size — shrink as count grows
+      const nodeR = Math.max(8, Math.min(16, 20 - n * 0.35))
+
+      // Multi-ring layout: distribute agents across concentric rings
+      // Ring capacities: [8, 14, 20, 26, ...] — each ring fits ~6 more
+      function buildRings(count) {
+        const rings = []
+        let remaining = count
+        const caps = [Math.min(8, count), 14, 20, 26]
+        let idx = 0
+        let filled = 0
+        for (const cap of caps) {
+          if (remaining <= 0) break
+          const inThisRing = Math.min(remaining, cap - filled)
+          rings.push(inThisRing)
+          remaining -= inThisRing
+          filled = cap
+          idx++
+        }
+        // If still leftover, add more rings
+        while (remaining > 0) {
+          const extra = Math.min(remaining, 8)
+          rings.push(extra)
+          remaining -= extra
+        }
+        return rings
+      }
+
+      const ringCounts = buildRings(n)
+      const numRings = ringCounts.length
+      // Outer ring radius fills ~80% of minDim/2, inner rings spaced evenly
+      const outerR = minDim * 0.36
+      const nodePositions = []
+      let agentIdx = 0
+      for (let ri = 0; ri < numRings; ri++) {
+        const ringR = numRings === 1 ? outerR : outerR * (0.45 + 0.55 * (ri / (numRings - 1)))
+        const count = ringCounts[ri]
+        for (let i = 0; i < count; i++) {
+          const angle = (i / count) * Math.PI * 2 - Math.PI / 2
+          nodePositions.push({ x: cx + Math.cos(angle) * ringR, y: cy + Math.sin(angle) * ringR, id: ids[agentIdx] })
+          agentIdx++
+        }
+      }
+
+      // Faint connection lines — skip full mesh for large n to avoid O(n²) noise
+      const maxConnections = n <= 12 ? n * (n - 1) / 2 : 40
+      let connDrawn = 0
+      for (let i = 0; i < n && connDrawn < maxConnections; i++) {
+        for (let j = i + 1; j < n && connDrawn < maxConnections; j++) {
+          // For large n, only connect ring-adjacent pairs
+          if (n > 12 && Math.abs(i - j) > 3 && !(i === 0 && j === n - 1)) continue
           const a = nodePositions[i], b = nodePositions[j]
           const g = ctx.createLinearGradient(a.x, a.y, b.x, b.y)
           g.addColorStop(0, 'rgba(52,211,153,0.04)')
@@ -548,6 +768,7 @@ function NetworkCanvas({ agents, selectedId, chat, findings }) {
           ctx.moveTo(a.x, a.y)
           ctx.lineTo(b.x, b.y)
           ctx.stroke()
+          connDrawn++
         }
       }
 
@@ -609,18 +830,23 @@ function NetworkCanvas({ agents, selectedId, chat, findings }) {
         const nodeColor = st === 'running' ? '#06b6d4' : st === 'done' ? '#34D399' : st === 'error' ? '#f43f5e' : '#6b7280'
         const glowAlpha = st === 'running' ? 0.3 : st === 'done' ? 0.2 : 0.1
 
+        const pulseOuter = nodeR * 1.55
+        const glowR = nodeR * 1.4
+        const selR = nodeR * 1.9
+        const labelOffset = nodeR + 12
+
         // Pulsing ring for running
         if (st === 'running' || st === 'spawning') {
           const pulseT = Math.sin(s.animFrame * 0.04) * 0.5 + 0.5
-          const pulseR = 24 + pulseT * 10
+          const pulseR = pulseOuter + pulseT * nodeR * 0.6
           ctx.save()
           ctx.globalAlpha = 0.15 + pulseT * 0.15
           ctx.strokeStyle = nodeColor
-          ctx.lineWidth = 2
+          ctx.lineWidth = 1.5
           ctx.shadowColor = nodeColor; ctx.shadowBlur = 20
           ctx.beginPath(); ctx.arc(np.x, np.y, pulseR, 0, Math.PI * 2); ctx.stroke()
           ctx.globalAlpha = 0.08 + pulseT * 0.08
-          ctx.beginPath(); ctx.arc(np.x, np.y, pulseR + 8, 0, Math.PI * 2); ctx.stroke()
+          ctx.beginPath(); ctx.arc(np.x, np.y, pulseR + nodeR * 0.5, 0, Math.PI * 2); ctx.stroke()
           ctx.restore()
         }
 
@@ -628,21 +854,21 @@ function NetworkCanvas({ agents, selectedId, chat, findings }) {
         if (selectedId === np.id) {
           ctx.save()
           ctx.strokeStyle = '#ffffff'
-          ctx.lineWidth = 2
+          ctx.lineWidth = 1.5
           ctx.globalAlpha = 0.5 + Math.sin(s.animFrame * 0.06) * 0.2
           ctx.setLineDash([4, 4])
           ctx.lineDashOffset = -s.animFrame * 0.5
-          ctx.beginPath(); ctx.arc(np.x, np.y, 30, 0, Math.PI * 2); ctx.stroke()
+          ctx.beginPath(); ctx.arc(np.x, np.y, selR, 0, Math.PI * 2); ctx.stroke()
           ctx.setLineDash([])
           ctx.restore()
         }
 
         // Glow
-        const grd = ctx.createRadialGradient(np.x, np.y, 0, np.x, np.y, 22)
+        const grd = ctx.createRadialGradient(np.x, np.y, 0, np.x, np.y, glowR)
         grd.addColorStop(0, nodeColor.replace(')', `,${glowAlpha})`).replace('rgb', 'rgba'))
         grd.addColorStop(1, 'transparent')
         ctx.save(); ctx.fillStyle = grd
-        ctx.beginPath(); ctx.arc(np.x, np.y, 22, 0, Math.PI * 2); ctx.fill(); ctx.restore()
+        ctx.beginPath(); ctx.arc(np.x, np.y, glowR, 0, Math.PI * 2); ctx.fill(); ctx.restore()
 
         // Node circle
         ctx.save()
@@ -650,23 +876,28 @@ function NetworkCanvas({ agents, selectedId, chat, findings }) {
         ctx.strokeStyle = nodeColor
         ctx.lineWidth = 1.5
         ctx.shadowColor = nodeColor; ctx.shadowBlur = st === 'running' ? 15 : 8
-        ctx.beginPath(); ctx.arc(np.x, np.y, 16, 0, Math.PI * 2)
+        ctx.beginPath(); ctx.arc(np.x, np.y, nodeR, 0, Math.PI * 2)
         ctx.fill(); ctx.stroke(); ctx.restore()
 
-        // Emoji icon
-        ctx.save()
-        ctx.font = '13px sans-serif'
-        ctx.textAlign = 'center'; ctx.textBaseline = 'middle'
-        ctx.fillText(agentIcon(np.id), np.x, np.y)
-        ctx.restore()
+        // Emoji icon — scale with node
+        if (nodeR >= 10) {
+          ctx.save()
+          ctx.font = `${Math.round(nodeR * 0.85)}px sans-serif`
+          ctx.textAlign = 'center'; ctx.textBaseline = 'middle'
+          ctx.fillText(agentIcon(np.id), np.x, np.y)
+          ctx.restore()
+        }
 
-        // Label below
-        ctx.save()
-        ctx.font = '500 9px "JetBrains Mono", monospace'
-        ctx.fillStyle = nodeColor
-        ctx.textAlign = 'center'; ctx.globalAlpha = 0.85
-        ctx.fillText(shortLabel(np.id), np.x, np.y + 28)
-        ctx.restore()
+        // Label — hide for very large counts
+        if (n <= 20) {
+          ctx.save()
+          const fontSize = Math.max(7, 10 - n * 0.15)
+          ctx.font = `500 ${fontSize}px "IBM Plex Mono", monospace`
+          ctx.fillStyle = nodeColor
+          ctx.textAlign = 'center'; ctx.globalAlpha = n > 14 ? 0.6 : 0.85
+          ctx.fillText(shortLabel(np.id), np.x, np.y + labelOffset)
+          ctx.restore()
+        }
       }
 
       rafId = requestAnimationFrame(draw)
@@ -829,6 +1060,17 @@ function ChatPanel({ messages, jobId }) {
 
 const POLL_MS = 3000
 
+function getClearedJobs() {
+  try { return new Set(JSON.parse(localStorage.getItem('helix-cleared-jobs') || '[]')) }
+  catch { return new Set() }
+}
+function markJobCleared(id) {
+  if (!id) return
+  const s = getClearedJobs()
+  s.add(id)
+  try { localStorage.setItem('helix-cleared-jobs', JSON.stringify([...s])) } catch {}
+}
+
 export default function App() {
   const [jobId, setJobId] = useState(() => jobIdFromUrl())
   const [jobStatus, setJobStatus] = useState('idle')
@@ -844,7 +1086,9 @@ export default function App() {
     try {
       const res = await fetch('/api/health')
       const data = await res.json()
-      if (data.activeJobId) setJobId(data.activeJobId)
+      if (data.activeJobId && !getClearedJobs().has(data.activeJobId)) {
+        setJobId(data.activeJobId)
+      }
       setIsRunning(!!data.isAnalysisRunning)
     } catch { /* server not up yet */ }
   }, [])
@@ -895,6 +1139,24 @@ export default function App() {
     }
     return current
   }, [agents, jobId])
+
+  function stopAndClear() {
+    markJobCleared(jobId)
+    fetch('/api/clear-job', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ jobId }),
+    }).catch(() => {})
+    setIsRunning(false)
+    setAgents({})
+    setFindings([])
+    setChat([])
+    setJobId(null)
+    setJobStatus('idle')
+    setPollCount(0)
+    setError(null)
+    setSelectedAgent(null)
+  }
 
   function saveAllData() {
     const blob = new Blob([JSON.stringify({ jobId, agents, findings, chat }, null, 2)], { type: 'application/json' })
@@ -947,7 +1209,7 @@ export default function App() {
 
       {/* ── Status Bar ── */}
       <div className="status-bar">
-        <span className="status-bar-brand">HELIX SEQUENCING</span>
+        <span className="status-bar-brand"><HelixLogo size={20} /> HELIX SEQUENCING</span>
         <span className="status-bar-sep">|</span>
         <span className="status-bar-label">Job:</span>
         <span className="status-bar-val" title={jobId || ''}>{jobId ? jobId.slice(0, 12) + '…' : '—'}</span>
@@ -962,15 +1224,11 @@ export default function App() {
         <span className="status-bar-cost">${costEstimate.toFixed(3)}</span>
         {error && <><span className="status-bar-sep">|</span><span className="status-bar-error">{error}</span></>}
         <div className="status-bar-btns">
-          {isRunning && (
-            <button className="btn-status btn-stop" onClick={() => {
-              fetch('/api/stop-job', { method: 'POST' }).catch(() => {})
-              setIsRunning(false)
-            }}>■ Stop</button>
+          {!noActivity && (
+            <button className="btn-status btn-stop" onClick={stopAndClear}>■ Stop & Clear</button>
           )}
           {!noActivity && <button className="btn-status btn-save" onClick={saveAllData}>Save All Data</button>}
           {!noActivity && <button className="btn-status btn-synth" onClick={runSynthesis}>Run Synthesis</button>}
-          {noActivity && <button className="btn-status btn-start" onClick={() => {}}>▶ New Analysis</button>}
         </div>
       </div>
     </div>

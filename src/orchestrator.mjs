@@ -115,6 +115,9 @@ export class Orchestrator {
     // Agent states keyed by agent ID
     this.agents = {};
 
+    // Per-agent overrides (e.g. mdOutputPath) injected from the dashboard
+    this.agentOverrides = {};
+
     // Completed phase IDs
     this.completedPhases = new Set();
 
@@ -248,7 +251,7 @@ export class Orchestrator {
    * @param {string} [opts.role] - Role ID to use
    */
   async spawnAgent(opts) {
-    const { id, label, model, prompt, role } = opts;
+    const { id, label, model, prompt, role, saveMd, mdOutputPath } = opts;
 
     if (this.agents[id]) {
       throw new Error(`Agent "${id}" already exists. Use restartAgent() instead.`);
@@ -264,6 +267,8 @@ export class Orchestrator {
       max_findings: 10,
       web_search: true,
       check_messages_every: 7,
+      saveMd: saveMd || false,
+      mdOutputPath: mdOutputPath || null,
     };
 
     // Create state
@@ -645,6 +650,9 @@ export class Orchestrator {
     });
 
     // Spawn the agent process
+    // Merge any dashboard-injected overrides (e.g. custom mdOutputPath)
+    const overrides = this.agentOverrides[agentId] || {};
+
     const handle = await spawnAgent(
       {
         id: agentId,
@@ -652,6 +660,7 @@ export class Orchestrator {
         systemPrompt,
         userPrompt,
         maxTokens: agentConfig.max_tokens || this.config.agent_defaults?.max_tokens || 16384,
+        mdOutputPath: overrides.mdOutputPath || agentConfig.mdOutputPath || null,
       },
       mcpConfigPath,
       this.stateDir,

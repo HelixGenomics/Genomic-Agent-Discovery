@@ -1,6 +1,6 @@
 import express from 'express';
 import cors from 'cors';
-import { readFileSync, existsSync, readdirSync, statSync, appendFileSync } from 'fs';
+import { readFileSync, existsSync, readdirSync, statSync, appendFileSync, mkdirSync, rmSync } from 'fs';
 import { join, basename } from 'path';
 import { spawn } from 'child_process';
 
@@ -58,13 +58,15 @@ function readAgentsFromDisk(jobDir) {
         }
       } catch { /* ignore */ }
 
+      const mdPath = join(logsDir, id + '.md');
       agents[id] = {
         label: id.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase()),
         model: 'haiku',
         status,
         logSize,
         lastActivity,
-        hasMd: existsSync(join(logsDir, id + '.md')),
+        hasMd: existsSync(mdPath),
+        mdPath: existsSync(mdPath) ? mdPath : null,
       };
     }
   } catch { /* ignore */ }
@@ -179,15 +181,46 @@ export function createApiServer(config, stateDir, orchestrator) {
   });
 
   /**
+   * GET /api/agent-md/:jobId/:agentId
+   *
+   * Returns the content of a finished agent's .md output file.
+   */
+  app.get('/api/agent-md/:jobId/:agentId', (req, res) => {
+    const { jobId, agentId } = req.params;
+
+    let jobDir = stateDir;
+    if (existsSync(join(stateDir, jobId))) {
+      jobDir = join(stateDir, jobId);
+    } else {
+      try {
+        const match = readdirSync(stateDir).find(d => d.endsWith(jobId) || d.includes(jobId));
+        if (match) jobDir = join(stateDir, match);
+      } catch { /* ignore */ }
+    }
+
+    const mdPath = join(jobDir, 'logs', agentId + '.md');
+    if (!existsSync(mdPath)) {
+      return res.status(404).json({ error: 'No .md output found for this agent yet' });
+    }
+
+    try {
+      const content = readFileSync(mdPath, 'utf-8');
+      res.json({ content, path: mdPath, agentId });
+    } catch (err) {
+      res.status(500).json({ error: 'Failed to read agent output', detail: err.message });
+    }
+  });
+
+  /**
    * POST /api/spawn-agent
    *
    * Launch a new agent for a job. Called from the dashboard "+ Add Agent" button.
    *
    * Request body:
-   * { jobId, id, label, model, prompt }
+   * { jobId, id, label, model, prompt, saveMd, mdOutputPath }
    */
   app.post('/api/spawn-agent', (req, res) => {
-    const { jobId, id, label, model, prompt } = req.body;
+    const { jobId, id, label, model, prompt, saveMd, mdOutputPath } = req.body;
 
     if (!id) {
       return res.status(400).json({ error: 'Agent id is required' });
@@ -198,7 +231,7 @@ export function createApiServer(config, stateDir, orchestrator) {
 
     try {
       if (orchestrator && typeof orchestrator.spawnAgent === 'function') {
-        orchestrator.spawnAgent({ jobId, id, label, model, prompt });
+        orchestrator.spawnAgent({ jobId, id, label, model, prompt, saveMd, mdOutputPath });
         res.json({ ok: true, agentId: id, message: `Agent "${id}" spawning with model ${model || 'default'}` });
       } else {
         res.status(501).json({ error: 'Orchestrator not available or does not support spawnAgent()' });
@@ -276,7 +309,7 @@ export function createApiServer(config, stateDir, orchestrator) {
    * Returns immediately — don't wait for completion.
    */
   app.post('/api/start-analysis', (req, res) => {
-    const { dnaPath, preset, settings, customAgents } = req.body || {};
+    const { dnaPath, preset, settings, customAgents, agentOverrides } = req.body || {};
 
     if (!dnaPath) {
       return res.status(400).json({ error: 'dnaPath is required' });
@@ -299,10 +332,16 @@ export function createApiServer(config, stateDir, orchestrator) {
       if (settings.costLimit != null) args.push('--cost-limit', String(settings.costLimit));
     }
 
+    const env = { ...process.env };
+    if (agentOverrides && Object.keys(agentOverrides).length > 0) {
+      env.HELIX_AGENT_OVERRIDES = JSON.stringify(agentOverrides);
+    }
+
     try {
       activeChild = spawn(process.execPath, args, {
         cwd: process.cwd(),
         stdio: 'inherit',
+        env,
         detached: false,
       });
 
@@ -336,6 +375,51 @@ export function createApiServer(config, stateDir, orchestrator) {
       activeChild = null;
     }
     res.json({ ok: true });
+  });
+
+  /**
+   * POST /api/clear-job
+   *
+   * Kills the subprocess (if running) and deletes the job state directory
+   * so the dashboard starts fresh on next load.
+   * Body: { jobId }
+   */
+  app.post('/api/clear-job', (req, res) => {
+    const { jobId } = req.body || {};
+
+    // Kill any running child first
+    if (activeChild) {
+      try { activeChild.kill('SIGTERM'); } catch { /* ignore */ }
+      activeChild = null;
+    }
+
+    if (!jobId) {
+      return res.json({ ok: true, deleted: false });
+    }
+
+    // Find and delete the job directory
+    let jobDir = null;
+    if (existsSync(join(stateDir, jobId))) {
+      jobDir = join(stateDir, jobId);
+    } else {
+      try {
+        const match = readdirSync(stateDir).find(d => d.endsWith(jobId) || d.includes(jobId));
+        if (match) jobDir = join(stateDir, match);
+      } catch { /* ignore */ }
+    }
+
+    if (jobDir && existsSync(jobDir)) {
+      try {
+        rmSync(jobDir, { recursive: true, force: true });
+        console.log(`[api-server] Deleted job directory: ${jobDir}`);
+        return res.json({ ok: true, deleted: true, path: jobDir });
+      } catch (err) {
+        console.error(`[api-server] Failed to delete job dir: ${err.message}`);
+        return res.status(500).json({ error: 'Failed to delete job data', detail: err.message });
+      }
+    }
+
+    res.json({ ok: true, deleted: false });
   });
 
   /**

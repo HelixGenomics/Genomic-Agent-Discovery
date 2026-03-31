@@ -175,6 +175,7 @@ export async function spawnAgent(agentConfig, mcpConfigPath, stateDir, options =
     model = "haiku",
     systemPrompt,
     userPrompt,
+    mdOutputPath: customMdPath = null,
   } = agentConfig;
 
   const provider = options.provider || "claude-cli";
@@ -205,7 +206,7 @@ export async function spawnAgent(agentConfig, mcpConfigPath, stateDir, options =
   const commonOpts = {
     agentId, model, systemPrompt, userPrompt,
     mcpConfigPath, stateDir, logPath, logStream,
-    apiKey, projectRoot, provider,
+    apiKey, projectRoot, provider, customMdPath,
   };
 
   // Route to the correct spawner based on provider
@@ -293,6 +294,7 @@ function spawnWithCli({
   apiKey,
   projectRoot,
   provider = "claude-cli",
+  customMdPath = null,
 }) {
   const resolvedModel = resolveModelName(model, provider);
 
@@ -330,10 +332,12 @@ function spawnWithCli({
     detached: false,
   });
 
-  // Pipe stdout and stderr to the log file
+  // Pipe stdout and stderr to the log file; capture clean stdout for .md output
+  const mdChunks = [];
   if (proc.stdout) {
     proc.stdout.on("data", (chunk) => {
       logStream.write(chunk);
+      mdChunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
     });
   }
 
@@ -355,6 +359,26 @@ function spawnWithCli({
       ].join("\n");
       logStream.write(footer);
       logStream.end();
+
+      // Write clean agent output as a .md file alongside the .log
+      if (mdChunks.length > 0) {
+        const mdBuffer = Buffer.concat(mdChunks);
+        try {
+          writeFileSync(logPath.replace(/\.log$/, ".md"), mdBuffer);
+        } catch { /* ignore */ }
+        // Also write to user-specified custom path if provided
+        if (customMdPath) {
+          try {
+            const customDir = customMdPath.replace(/\/[^/]+$/, "");
+            if (customDir && customDir !== customMdPath) {
+              mkdirSync(customDir, { recursive: true });
+            }
+            writeFileSync(customMdPath, mdBuffer);
+          } catch (err) {
+            logStream.write(`\n[warn] Could not write to custom md path "${customMdPath}": ${err.message}\n`);
+          }
+        }
+
       resolve({ code, signal });
     });
 
@@ -392,6 +416,7 @@ async function spawnWithSdk({
   logStream,
   apiKey,
   projectRoot,
+  customMdPath = null,
 }) {
   const resolvedModel = resolveModelName(model);
 
@@ -437,11 +462,29 @@ async function spawnWithSdk({
         messages: [{ role: "user", content: userPrompt }],
       });
 
-      // Write the response to the log
+      // Write the response to the log and capture for .md
+      let mdContent = "";
       for (const block of response.content) {
         if (block.type === "text") {
           logStream.write(block.text);
           logStream.write("\n");
+          mdContent += block.text + "\n";
+        }
+      }
+
+      // Write clean agent output as .md
+      if (mdContent) {
+        try {
+          writeFileSync(logPath.replace(/\.log$/, ".md"), mdContent, "utf8");
+        } catch { /* ignore */ }
+        if (customMdPath) {
+          try {
+            const customDir = customMdPath.replace(/\/[^/]+$/, "");
+            if (customDir && customDir !== customMdPath) {
+              mkdirSync(customDir, { recursive: true });
+            }
+            writeFileSync(customMdPath, mdContent, "utf8");
+          } catch { /* ignore */ }
         }
       }
 
