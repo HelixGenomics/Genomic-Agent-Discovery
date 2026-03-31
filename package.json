@@ -10,8 +10,9 @@
   "scripts": {
     "start": "node src/cli.mjs",
     "build-db": "bash scripts/build-database.sh",
+    "seed-demo": "node scripts/seed-demo-data.mjs",
     "verify-db": "node scripts/verify-database.mjs",
-    "test": "node --test tests/"
+    "test": "node --test 'tests/*.mjs'"
   },
   "keywords": [
     "genomics",
