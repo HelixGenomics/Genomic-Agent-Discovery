@@ -274,11 +274,16 @@ function applyCLIOverrides(config, args) {
 function validate(config) {
   const errors = [];
 
-  // API key is required (unless running in build-db mode or similar)
-  if (!config.api?.key) {
+  // API key is required for api-key-based providers.
+  // claude-cli provider uses OAuth login instead — no key needed.
+  const provider = config.api?.provider || "claude-cli";
+  const needsApiKey = provider !== "claude-cli";
+  if (needsApiKey && !config.api?.key) {
     errors.push(
       "Missing API key. Set ANTHROPIC_API_KEY environment variable or " +
-      "add api.key to your config file."
+      "add api.key to your config file.\n" +
+      "  Tip: If you have a Claude Pro/Max subscription, use the free OAuth setup instead:\n" +
+      "  Set api.provider: claude-cli in your config and run: claude login"
     );
   }
 

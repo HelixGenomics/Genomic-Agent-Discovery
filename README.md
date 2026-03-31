@@ -30,22 +30,41 @@
 
 Upload your raw DNA file from 23andMe, AncestryDNA, MyHeritage, FamilyTreeDNA, or any VCF -- and watch a team of AI agents fan out across 12+ public genomics databases, share discoveries with each other in real time, and produce a comprehensive health report. Everything runs on your machine. Nothing is uploaded anywhere.
 
-<p align="center">
-  <em>[screenshot: dashboard showing agents collaborating in real time]</em>
-</p>
 
 ## Quick Start
 
+### Have a Claude Pro or Max subscription? (Recommended)
+
+No API key needed. Your subscription covers everything.
+
 ```bash
+# 1. Install Claude CLI if you haven't already
+npm install -g @anthropic-ai/claude-code
+
+# 2. Log in once — opens browser OAuth (free, uses your Claude Pro/Max subscription)
+claude login
+
+# 3. Clone, build, and run
 git clone https://github.com/HelixGenomics/Genomic-Agent-Discovery.git
 cd Genomic-Agent-Discovery
 npm install && npm run build-db
 npm start -- --dna ~/Downloads/my-dna-raw.txt
 ```
 
-That's it. A dashboard opens in your browser and you can watch the agents work.
+A dashboard opens in your browser and you can watch the agents work. That's it — no API keys, no per-token charges.
 
-> **No API key?** If you have a Claude Max ($100/mo) or Pro ($20/mo) subscription, you don't need one. The Claude CLI authenticates via your subscription — just run `claude login` once and you're set. Your subscription covers unlimited agent runs with full MCP tool support. This is the recommended way to use Genomic Agent Discovery.
+### Using an Anthropic API key instead
+
+```bash
+export ANTHROPIC_API_KEY=sk-ant-...   # get one at console.anthropic.com
+
+git clone https://github.com/HelixGenomics/Genomic-Agent-Discovery.git
+cd Genomic-Agent-Discovery
+npm install && npm run build-db
+npm start -- --dna ~/Downloads/my-dna-raw.txt --provider anthropic-api
+```
+
+Typical cost: $1–5 per analysis run depending on preset. See [Provider options](#step-2-connect-an-llm) for OpenAI, Gemini, Ollama, and others.
 
 ## What You Get
 
@@ -55,9 +74,6 @@ That's it. A dashboard opens in your browser and you can watch the agents work.
 
 **Raw findings in JSON** for downstream analysis, integration with other tools, or building your own visualizations.
 
-<p align="center">
-  <em>[screenshot: sample report excerpt showing pharmacogenomics table]</em>
-</p>
 
 ### What the agents actually do
 

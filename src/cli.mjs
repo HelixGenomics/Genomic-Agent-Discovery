@@ -26,6 +26,7 @@
 import { resolve, dirname } from "path";
 import { fileURLToPath } from "url";
 import { existsSync, mkdirSync } from "fs";
+import { execSync } from "child_process";
 import chalk from "chalk";
 import { loadConfig, resolveProjectPath, getAllAgents } from "./config-loader.mjs";
 
@@ -115,14 +116,16 @@ ${chalk.bold("Examples:")}
   ${chalk.dim("# Pharmacogenomics only, no dashboard")}
   node src/cli.mjs --dna ~/dna/genome.txt --preset pharmacogenomics --no-dashboard
 
-${chalk.bold("Setup:")}
-  ${chalk.dim("# First time? Run the setup script:")}
-  bash setup.sh
-
-  ${chalk.dim("# Or manually:")}
+${chalk.bold("Setup (Claude Pro/Max — recommended, free to run):")}
   npm install
-  cp .env.example .env    ${chalk.dim("# then add your ANTHROPIC_API_KEY")}
+  claude login             ${chalk.dim("# one-time OAuth login with your Claude subscription")}
   npm run build-db         ${chalk.dim("# downloads reference databases")}
+
+${chalk.bold("Setup (Anthropic API key):")}
+  npm install
+  cp .env.example .env    ${chalk.dim("# add ANTHROPIC_API_KEY=sk-ant-...")}
+  ${chalk.dim("# then set api.provider: anthropic-api in config/default.yaml")}
+  npm run build-db
 `);
 }
 
@@ -188,12 +191,25 @@ function parseArgs(argv) {
 function checkPrerequisites(config) {
   const issues = [];
 
-  // Check API key
-  if (!config.api?.key || config.api.key === "" || config.api.key.includes("your-key-here")) {
+  // Check authentication — method depends on provider
+  const provider = config.api?.provider || "claude-cli";
+  if (provider === "claude-cli") {
+    // OAuth via Claude CLI — verify the binary exists
+    try {
+      execSync("claude --version", { stdio: "pipe", timeout: 5000 });
+    } catch {
+      issues.push(
+        "Claude CLI not found or not logged in.\n" +
+        "     Install: https://claude.ai/download  (requires Claude Pro or Max plan)\n" +
+        "     Then run: claude login"
+      );
+    }
+  } else if (!config.api?.key || config.api.key === "" || config.api.key.includes("your-key-here")) {
     issues.push(
       "ANTHROPIC_API_KEY is not set.\n" +
       "     Set it in your environment: export ANTHROPIC_API_KEY=sk-ant-...\n" +
-      "     Or copy .env.example to .env and add your key there."
+      "     Or copy .env.example to .env and add your key there.\n" +
+      "     Tip: Claude Pro/Max subscribers can use free OAuth instead — see README."
     );
   }
 
