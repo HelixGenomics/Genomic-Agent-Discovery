@@ -1,7 +1,11 @@
 import express from 'express';
 import cors from 'cors';
-import { readFileSync, existsSync, readdirSync, statSync } from 'fs';
+import { readFileSync, existsSync, readdirSync, statSync, appendFileSync } from 'fs';
 import { join, basename } from 'path';
+import { spawn } from 'child_process';
+
+// Track the active analysis subprocess
+let activeChild = null;
 
 /**
  * Parse a JSONL file safely, skipping malformed lines.
@@ -261,7 +265,119 @@ export function createApiServer(config, stateDir, orchestrator) {
       timestamp: new Date().toISOString(),
       orchestratorAvailable: !!orchestrator,
       activeJobId,
+      isAnalysisRunning: !!activeChild,
     });
+  });
+
+  /**
+   * POST /api/start-analysis
+   *
+   * Spawns `node src/cli.mjs` as a subprocess with the user's config.
+   * Returns immediately — don't wait for completion.
+   */
+  app.post('/api/start-analysis', (req, res) => {
+    const { dnaPath, preset, settings, customAgents } = req.body || {};
+
+    if (!dnaPath) {
+      return res.status(400).json({ error: 'dnaPath is required' });
+    }
+
+    // Kill any already-running child
+    if (activeChild) {
+      try { activeChild.kill(); } catch { /* ignore */ }
+      activeChild = null;
+    }
+
+    const args = ['src/cli.mjs', '--dna', dnaPath];
+
+    if (preset && preset !== 'custom') {
+      args.push('--preset', preset);
+    }
+
+    if (settings) {
+      if (settings.defaultModel) args.push('--model', settings.defaultModel);
+      if (settings.costLimit != null) args.push('--cost-limit', String(settings.costLimit));
+    }
+
+    try {
+      activeChild = spawn(process.execPath, args, {
+        cwd: process.cwd(),
+        stdio: 'inherit',
+        detached: false,
+      });
+
+      activeChild.on('exit', (code) => {
+        console.log(`[api-server] Analysis process exited with code ${code}`);
+        activeChild = null;
+      });
+
+      activeChild.on('error', (err) => {
+        console.error(`[api-server] Analysis process error: ${err.message}`);
+        activeChild = null;
+      });
+
+      res.json({ ok: true, message: 'Analysis started', pid: activeChild.pid });
+    } catch (err) {
+      console.error('[api-server] Failed to spawn analysis process:', err.message);
+      res.status(500).json({ error: 'Failed to start analysis', detail: err.message });
+    }
+  });
+
+  /**
+   * POST /api/stop-job
+   *
+   * Kills the running analysis subprocess.
+   */
+  app.post('/api/stop-job', (req, res) => {
+    if (activeChild) {
+      try {
+        activeChild.kill('SIGTERM');
+      } catch { /* ignore */ }
+      activeChild = null;
+    }
+    res.json({ ok: true });
+  });
+
+  /**
+   * POST /api/inject-chat
+   *
+   * Appends a user message to the active job's agent-chat.jsonl.
+   * Body: { jobId, message, from }
+   */
+  app.post('/api/inject-chat', (req, res) => {
+    const { jobId, message, from } = req.body || {};
+
+    if (!jobId || !message) {
+      return res.status(400).json({ error: 'jobId and message are required' });
+    }
+
+    // Locate the job state directory
+    let jobDir = stateDir;
+    if (existsSync(join(stateDir, jobId))) {
+      jobDir = join(stateDir, jobId);
+    } else {
+      try {
+        const match = readdirSync(stateDir).find(d => d.endsWith(jobId) || d.includes(jobId));
+        if (match) jobDir = join(stateDir, match);
+      } catch { /* ignore */ }
+    }
+
+    const chatFile = join(jobDir, 'agent-chat.jsonl');
+    const entry = {
+      from: from || 'user',
+      to: 'all',
+      message,
+      timestamp: new Date().toISOString(),
+      priority: 'normal',
+    };
+
+    try {
+      appendFileSync(chatFile, JSON.stringify(entry) + '\n', 'utf-8');
+      res.json({ ok: true });
+    } catch (err) {
+      console.error('[api-server] Failed to inject chat message:', err.message);
+      res.status(500).json({ error: 'Failed to inject message', detail: err.message });
+    }
   });
 
   return app;

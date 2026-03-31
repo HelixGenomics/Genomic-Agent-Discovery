@@ -1,5 +1,165 @@
-import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
+import { useState, useEffect, useRef, useCallback, useMemo, useId } from 'react'
 import './App.css'
+// ── Inline Setup Panel ────────────────────────────────────────────────────────
+
+const PRESETS = [
+  { id: 'quick-scan',       icon: '⚡', name: 'Quick Scan',        desc: 'Fast overview across all domains',          agents: 2,  cost: '$0.05–0.10', time: '2–4 min',   color: '#06b6d4' },
+  { id: 'cancer-research',  icon: '🔬', name: 'Cancer Research',   desc: 'Deep cancer & tumor genetics',              agents: 10, cost: '$0.50–2.00', time: '10–20 min', color: '#f43f5e' },
+  { id: 'cardiovascular',   icon: '❤️', name: 'Cardiovascular',    desc: 'Heart & vascular genetic risk',             agents: 6,  cost: '$0.30–1.00', time: '8–15 min',  color: '#f97316' },
+  { id: 'pharmacogenomics', icon: '💊', name: 'Pharmacogenomics',  desc: 'Drug metabolism & interactions',            agents: 5,  cost: '$0.20–0.80', time: '6–12 min',  color: '#8b5cf6' },
+  { id: 'rare-disease',     icon: '🧬', name: 'Rare Disease',      desc: 'Rare & orphan disease panel',              agents: 8,  cost: '$0.40–1.50', time: '10–18 min', color: '#34D399' },
+]
+
+function SetupPanel({ onStarted }) {
+  const [dnaPath, setDnaPath] = useState('')
+  const [preset, setPreset] = useState('quick-scan')
+  const [model, setModel] = useState('haiku')
+  const [costLimit, setCostLimit] = useState('10')
+  const [temperature, setTemperature] = useState('0.3')
+  const [maxToolCalls, setMaxToolCalls] = useState('100')
+  const [checkMessages, setCheckMessages] = useState('7')
+  const [webSearch, setWebSearch] = useState(true)
+  const [medHistory, setMedHistory] = useState('')
+  const [loading, setLoading] = useState(false)
+  const [err, setErr] = useState('')
+  const fileRef = useRef(null)
+
+  function onDrop(e) {
+    e.preventDefault()
+    const file = e.dataTransfer?.files?.[0]
+    if (file) setDnaPath(file.path || file.name)
+  }
+
+  async function startAnalysis() {
+    if (!dnaPath.trim()) { setErr('Please enter or drop a DNA file path.'); return }
+    setErr(''); setLoading(true)
+    try {
+      const res = await fetch('/api/start-analysis', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          dnaPath: dnaPath.trim(),
+          preset,
+          settings: {
+            defaultModel: model,
+            costLimit: parseFloat(costLimit) || 10,
+            temperature: parseFloat(temperature) || 0.3,
+            maxToolCalls: parseInt(maxToolCalls) || 100,
+            checkMessages: parseInt(checkMessages) || 7,
+            webSearch,
+            medicalHistory: medHistory,
+          },
+        }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Failed to start')
+      onStarted()
+    } catch (e) {
+      setErr(e.message)
+      setLoading(false)
+    }
+  }
+
+  return (
+    <div className="setup-panel">
+      <div className="setup-logo">
+        <HelixLogo />
+        <span>Helix Genomics</span>
+      </div>
+      <p className="setup-sub">Configure your analysis below, then hit Start.</p>
+
+      {/* DNA File */}
+      <div className="setup-section">
+        <div className="setup-label">DNA File</div>
+        <div
+          className={`setup-drop${dnaPath ? ' has-file' : ''}`}
+          onDragOver={e => e.preventDefault()}
+          onDrop={onDrop}
+          onClick={() => fileRef.current?.click()}
+        >
+          {dnaPath
+            ? <><span className="setup-drop-icon">✓</span><span className="setup-drop-name">{dnaPath.split('/').pop()}</span></>
+            : <><span className="setup-drop-icon">↑</span><span>Drop DNA file here or click to browse</span><span className="setup-drop-hint">23andMe · AncestryDNA · MyHeritage · VCF</span></>
+          }
+        </div>
+        <input ref={fileRef} type="file" style={{ display: 'none' }} accept=".txt,.csv,.vcf,.gz,.zip"
+          onChange={e => { if (e.target.files?.[0]) setDnaPath(e.target.files[0].path || e.target.files[0].name) }} />
+        <input className="setup-input" placeholder="Or paste full file path…" value={dnaPath}
+          onChange={e => setDnaPath(e.target.value)} />
+      </div>
+
+      {/* Preset */}
+      <div className="setup-section">
+        <div className="setup-label">Analysis Preset</div>
+        <div className="setup-presets">
+          {PRESETS.map(p => (
+            <button
+              key={p.id}
+              className={`setup-preset${preset === p.id ? ' active' : ''}`}
+              style={preset === p.id ? { borderColor: p.color, background: `${p.color}14` } : {}}
+              onClick={() => setPreset(p.id)}
+            >
+              <span className="setup-preset-icon">{p.icon}</span>
+              <span className="setup-preset-name">{p.name}</span>
+              <span className="setup-preset-desc">{p.desc}</span>
+              <span className="setup-preset-meta">{p.agents} agents · {p.cost} · {p.time}</span>
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Settings row */}
+      <div className="setup-section setup-row">
+        <div className="setup-field">
+          <div className="setup-label">Default Model</div>
+          <select className="setup-select" value={model} onChange={e => setModel(e.target.value)}>
+            <option value="haiku">Haiku — fast &amp; cheap</option>
+            <option value="sonnet">Sonnet — balanced</option>
+            <option value="opus">Opus — most capable</option>
+          </select>
+        </div>
+        <div className="setup-field">
+          <div className="setup-label">Cost Limit (USD)</div>
+          <input className="setup-input" type="number" min="0.5" step="0.5" value={costLimit}
+            onChange={e => setCostLimit(e.target.value)} />
+        </div>
+        <div className="setup-field">
+          <div className="setup-label">Temperature</div>
+          <input className="setup-input" type="number" min="0" max="1" step="0.05"
+            value={temperature} onChange={e => setTemperature(e.target.value)} />
+        </div>
+        <div className="setup-field">
+          <div className="setup-label">Max Tool Calls / Agent</div>
+          <input className="setup-input" type="number" min="10" max="500" step="10"
+            value={maxToolCalls} onChange={e => setMaxToolCalls(e.target.value)} />
+        </div>
+        <div className="setup-field">
+          <div className="setup-label">Check Messages Every</div>
+          <input className="setup-input" type="number" min="1" max="20" step="1"
+            value={checkMessages} onChange={e => setCheckMessages(e.target.value)} />
+        </div>
+        <div className="setup-field setup-field-toggle">
+          <div className="setup-label">Web Search</div>
+          <button className={`setup-toggle${webSearch ? ' on' : ''}`} onClick={() => setWebSearch(v => !v)}>
+            {webSearch ? 'ON' : 'OFF'}
+          </button>
+        </div>
+      </div>
+
+      <div className="setup-section">
+        <div className="setup-label">Medical History <span className="setup-opt">(optional)</span></div>
+        <textarea className="setup-textarea" rows={2} placeholder="e.g. 45-year-old female, family history of breast cancer, currently on statins…"
+          value={medHistory} onChange={e => setMedHistory(e.target.value)} />
+      </div>
+
+      {err && <div className="setup-error">{err}</div>}
+
+      <button className="setup-start" onClick={startAnalysis} disabled={loading}>
+        {loading ? 'Starting…' : '▶  Start Analysis'}
+      </button>
+    </div>
+  )
+}
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -132,10 +292,23 @@ function AgentCard({ agent, selected, onClick }) {
   )
 }
 
-function AgentsPanel({ agents, selectedId, onSelect, jobStatus }) {
+function AgentsPanel({ agents, selectedId, onSelect, jobId }) {
   const entries = Object.entries(agents)
   const running = entries.filter(([, a]) => a.status === 'running' || a.status === 'spawning').length
   const done = entries.filter(([, a]) => a.status === 'done').length
+  const [modal, setModal] = useState(false)
+  const [form, setForm] = useState({ id: '', label: '', model: 'haiku', prompt: '' })
+
+  function launch() {
+    if (!form.id) return
+    fetch('/api/spawn-agent', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ jobId, ...form })
+    }).catch(() => {})
+    setModal(false)
+    setForm({ id: '', label: '', model: 'haiku', prompt: '' })
+  }
 
   return (
     <aside className="panel-agents">
@@ -144,7 +317,32 @@ function AgentsPanel({ agents, selectedId, onSelect, jobStatus }) {
         {entries.length > 0 && (
           <span className="panel-badge">{running > 0 ? `${running} active` : `${done}/${entries.length}`}</span>
         )}
+        <button className="btn-add-agent" onClick={() => setModal(true)}>+ Add Agent</button>
       </div>
+
+      {modal && (
+        <div className="modal-overlay" onClick={e => e.target === e.currentTarget && setModal(false)}>
+          <div className="modal">
+            <h3>Launch New Agent</h3>
+            <label>Agent ID</label>
+            <input value={form.id} onChange={e => setForm(f => ({...f, id: e.target.value}))} placeholder="e.g. drug-metabolism" />
+            <label>Label</label>
+            <input value={form.label} onChange={e => setForm(f => ({...f, label: e.target.value}))} placeholder="e.g. Drug Metabolism Agent" />
+            <label>Model</label>
+            <select value={form.model} onChange={e => setForm(f => ({...f, model: e.target.value}))}>
+              <option value="haiku">Haiku (fast, cheap)</option>
+              <option value="sonnet">Sonnet (balanced)</option>
+              <option value="opus">Opus (most capable)</option>
+            </select>
+            <label>Prompt</label>
+            <textarea value={form.prompt} onChange={e => setForm(f => ({...f, prompt: e.target.value}))} placeholder="Research instructions for this agent…" />
+            <div className="modal-btns">
+              <button className="btn-cancel" onClick={() => setModal(false)}>Cancel</button>
+              <button className="btn-launch" onClick={launch}>Launch</button>
+            </div>
+          </div>
+        </div>
+      )}
       <div className="panel-body pad-sm">
         {entries.length === 0 ? (
           <div className="empty">
@@ -552,12 +750,33 @@ function FindingsPanel({ findings }) {
   )
 }
 
-function ChatPanel({ messages }) {
+function ChatPanel({ messages, jobId }) {
   const endRef = useRef(null)
+  const [inputMsg, setInputMsg] = useState('')
+  const [sending, setSending] = useState(false)
 
   useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages.length])
+
+  async function sendMessage(e) {
+    e.preventDefault()
+    const text = inputMsg.trim()
+    if (!text || !jobId) return
+    setSending(true)
+    try {
+      await fetch('/api/inject-chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ jobId, message: text, from: 'user' }),
+      })
+      setInputMsg('')
+    } catch {
+      // ignore
+    } finally {
+      setSending(false)
+    }
+  }
 
   return (
     <section className="panel-chat">
@@ -574,7 +793,7 @@ function ChatPanel({ messages }) {
           </div>
         ) : (
           messages.map((msg, i) => (
-            <div key={i} className="chat-message">
+            <div key={i} className={`chat-message ${msg.from === 'user' ? 'chat-message-user' : ''}`}>
               <span className={`chat-from ${msg.to ? 'chat-to' : ''}`}>
                 {msg.from || 'agent'}
                 {msg.to ? ` → ${msg.to}` : ''}
@@ -586,6 +805,22 @@ function ChatPanel({ messages }) {
         )}
         <div ref={endRef} />
       </div>
+      <form className="chat-input-row" onSubmit={sendMessage}>
+        <input
+          className="chat-input"
+          value={inputMsg}
+          onChange={e => setInputMsg(e.target.value)}
+          placeholder="Send a message to agents…"
+          disabled={!jobId || sending}
+        />
+        <button
+          className="chat-send-btn"
+          type="submit"
+          disabled={!jobId || sending || !inputMsg.trim()}
+        >
+          {sending ? '…' : '↑'}
+        </button>
+      </form>
     </section>
   )
 }
@@ -603,23 +838,20 @@ export default function App() {
   const [selectedAgent, setSelectedAgent] = useState(null)
   const [error, setError] = useState(null)
   const [pollCount, setPollCount] = useState(0)
+  const [isRunning, setIsRunning] = useState(false)
 
-  // If no jobId in URL, try health endpoint to find any active job
   const resolveJobId = useCallback(async () => {
     try {
       const res = await fetch('/api/health')
       const data = await res.json()
-      if (data.activeJobId) {
-        setJobId(data.activeJobId)
-      }
-    } catch {
-      // server not up yet
-    }
+      if (data.activeJobId) setJobId(data.activeJobId)
+      setIsRunning(!!data.isAnalysisRunning)
+    } catch { /* server not up yet */ }
   }, [])
 
   useEffect(() => {
-    if (!jobId) resolveJobId()
-  }, [jobId, resolveJobId])
+    resolveJobId()
+  }, [resolveJobId])
 
   const poll = useCallback(async () => {
     if (!jobId) return
@@ -688,6 +920,8 @@ export default function App() {
     }).catch(() => {})
   }
 
+  const noActivity = !isRunning && Object.keys(agents).length === 0
+
   return (
     <div className="app">
       {/* ── Body ── */}
@@ -696,16 +930,19 @@ export default function App() {
           agents={agents}
           selectedId={selectedAgent}
           onSelect={setSelectedAgent}
-          jobStatus={jobStatus}
+          jobId={jobId}
         />
 
         <main className="panel-viz">
-          <ActivityCanvas agents={agents} selectedId={selectedAgent} chat={chat} findings={findings} />
+          {noActivity
+            ? <SetupPanel onStarted={() => { setIsRunning(true); setTimeout(resolveJobId, 2000) }} />
+            : <ActivityCanvas agents={agents} selectedId={selectedAgent} chat={chat} findings={findings} />
+          }
         </main>
 
         <FindingsPanel findings={findings} />
 
-        <ChatPanel messages={chat} />
+        <ChatPanel messages={chat} jobId={jobId} />
       </div>
 
       {/* ── Status Bar ── */}
@@ -725,8 +962,15 @@ export default function App() {
         <span className="status-bar-cost">${costEstimate.toFixed(3)}</span>
         {error && <><span className="status-bar-sep">|</span><span className="status-bar-error">{error}</span></>}
         <div className="status-bar-btns">
-          <button className="btn-status btn-save" onClick={saveAllData}>Save All Data</button>
-          <button className="btn-status btn-synth" onClick={runSynthesis}>Run Synthesis</button>
+          {isRunning && (
+            <button className="btn-status btn-stop" onClick={() => {
+              fetch('/api/stop-job', { method: 'POST' }).catch(() => {})
+              setIsRunning(false)
+            }}>■ Stop</button>
+          )}
+          {!noActivity && <button className="btn-status btn-save" onClick={saveAllData}>Save All Data</button>}
+          {!noActivity && <button className="btn-status btn-synth" onClick={runSynthesis}>Run Synthesis</button>}
+          {noActivity && <button className="btn-status btn-start" onClick={() => {}}>▶ New Analysis</button>}
         </div>
       </div>
     </div>

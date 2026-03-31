@@ -152,6 +152,12 @@ function parseArgs(argv) {
       continue;
     }
 
+    if (arg === "--serve") {
+      args.serve = true;
+      i++;
+      continue;
+    }
+
     // All other flags take a value
     const flagMap = {
       "--dna":        "dna_file",
@@ -326,6 +332,31 @@ async function main() {
   if (args.help || process.argv.length <= 2) {
     printHelp();
     process.exit(0);
+  }
+
+  // Handle --serve: start only the API server without running an analysis
+  if (args.serve) {
+    printBanner();
+    const port = parseInt(args.port || "3000", 10);
+    const stateDir = resolve(PROJECT_ROOT, "./state");
+    if (!existsSync(stateDir)) {
+      mkdirSync(stateDir, { recursive: true });
+    }
+    const { createApiServer } = await import("./api-server.mjs");
+    const placeholderOrchestrator = { agents: {}, getAgents: () => ({}) };
+    // Load minimal config (no dna required)
+    let serveConfig = {};
+    try {
+      const { loadConfig } = await import("./config-loader.mjs");
+      serveConfig = loadConfig({ port: String(port) });
+    } catch { /* ignore config errors in serve mode */ }
+    const app = createApiServer(serveConfig, stateDir, placeholderOrchestrator);
+    app.listen(port, () => {
+      console.log(chalk.green(`\n  Helix Genomics Agents — Setup Mode`));
+      console.log(chalk.cyan(`  Open `) + chalk.underline.cyan(`http://localhost:${port}`) + chalk.cyan(` to configure and start your analysis\n`));
+    });
+    // Keep alive — do not exit
+    return;
   }
 
   // Print banner
