@@ -87,7 +87,7 @@ function SetupPanel({ onStarted }) {
   const [webSearch, setWebSearch] = useState(true)
   const [medHistory, setMedHistory] = useState('')
   const [saveMd, setSaveMd] = useState(true)
-  const [mdOutputDir, setMdOutputDir] = useState('')
+  const [mdOutputDir, setMdOutputDir] = useState('MD_DOCS')
   const [customAgents, setCustomAgents] = useState([
     { id: 'custom-agent-1', label: 'Custom Agent', model: 'haiku', prompt: '' }
   ])
@@ -95,22 +95,6 @@ function SetupPanel({ onStarted }) {
   const [loading, setLoading] = useState(false)
   const [err, setErr] = useState('')
   const fileRef = useRef(null)
-  const dirRef = useRef(null)
-
-  function handleBrowseDir(e) {
-    const files = e.target.files
-    if (!files || files.length === 0) return
-    const f = files[0]
-    // file.path is the full absolute path in Electron/Node-served context
-    const fullPath = f.path || ''
-    if (fullPath) {
-      const dir = fullPath.includes('/') ? fullPath.substring(0, fullPath.lastIndexOf('/')) : fullPath
-      setMdOutputDir(dir)
-    }
-    // Reset so same folder can be re-selected
-    e.target.value = ''
-  }
-
   function togglePrompt(id) {
     setExpandedPrompts(prev => ({ ...prev, [id]: !prev[id] }))
   }
@@ -277,15 +261,8 @@ function SetupPanel({ onStarted }) {
           </label>
         </div>
         {saveMd && (
-          <div className="setup-dir-row">
-            <input className="setup-input setup-dir-input" placeholder="/path/to/output/directory"
-              value={mdOutputDir} onChange={e => setMdOutputDir(e.target.value)} />
-            <button className="btn-browse-dir" onClick={() => dirRef.current?.click()}>
-              Browse…
-            </button>
-            <input ref={dirRef} type="file" style={{ display: 'none' }} webkitdirectory=""
-              onChange={handleBrowseDir} />
-          </div>
+          <input className="setup-input" style={{ marginTop: 6 }}
+            value={mdOutputDir} onChange={e => setMdOutputDir(e.target.value)} />
         )}
         {saveMd && (
           <div className="setup-dir-preview">
