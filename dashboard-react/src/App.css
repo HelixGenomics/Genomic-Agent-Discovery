@@ -6,6 +6,50 @@
   overflow: hidden;
 }
 
+/* ── Status Bar ─────────────────────────────────────────── */
+.status-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 16px;
+  height: 30px;
+  flex-shrink: 0;
+  font-size: 11px;
+  flex-wrap: nowrap;
+  background: linear-gradient(90deg, rgba(52,211,153,0.07), rgba(6,182,212,0.05), rgba(244,63,94,0.04));
+  border-top: 1px solid var(--border-dim);
+}
+.status-bar-brand {
+  font-family: var(--font-sans);
+  font-weight: 800;
+  font-size: 11px;
+  letter-spacing: 1.5px;
+  background: linear-gradient(90deg, var(--green), var(--cyan));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  flex-shrink: 0;
+}
+.status-bar-sep  { color: rgba(52,211,153,0.2); flex-shrink: 0; }
+.status-bar-label { color: var(--text-dim); flex-shrink: 0; }
+.status-bar-val  { color: var(--text); font-family: var(--font-mono); flex-shrink: 0; }
+.status-bar-cost { color: var(--amber); font-family: var(--font-mono); font-weight: 600; flex-shrink: 0; }
+.status-bar-error { color: var(--red); font-family: var(--font-mono); flex-shrink: 0; }
+.status-bar-btns { margin-left: auto; display: flex; gap: 8px; }
+.btn-status {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  padding: 3px 10px;
+  border-radius: 5px;
+  cursor: pointer;
+  border: 1px solid;
+  transition: all 0.2s;
+}
+.btn-save  { background: rgba(52,211,153,0.08); border-color: rgba(52,211,153,0.3); color: var(--green); }
+.btn-save:hover { background: rgba(52,211,153,0.18); }
+.btn-synth { background: rgba(6,182,212,0.08); border-color: rgba(6,182,212,0.3); color: var(--cyan); }
+.btn-synth:hover { background: rgba(6,182,212,0.18); }
+
 /* Top nav */
 .nav {
   display: flex;

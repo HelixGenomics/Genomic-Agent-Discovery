@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from 'react'
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import './App.css'
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -20,7 +20,10 @@ function fmtTime(ts) {
 
 function fmtAge(ts) {
   if (!ts) return ''
-  const secs = Math.floor((Date.now() - new Date(ts)) / 1000)
+  const d = new Date(ts)
+  if (isNaN(d.getTime())) return ''
+  const secs = Math.floor((Date.now() - d) / 1000)
+  if (secs < 0) return ''
   if (secs < 60) return `${secs}s ago`
   if (secs < 3600) return `${Math.floor(secs / 60)}m ago`
   return `${Math.floor(secs / 3600)}h ago`
@@ -50,18 +53,20 @@ function sigLabel(cat) {
 
 function HelixLogo() {
   return (
-    <svg width="22" height="22" viewBox="0 0 22 22" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <svg width="20" height="26" viewBox="0 0 20 26" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <linearGradient id="pin-grad" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%" stopColor="#06b6d4" />
+          <stop offset="100%" stopColor="#34D399" />
+        </linearGradient>
+      </defs>
+      {/* Pin body: circle top narrowing to a point */}
       <path
-        d="M11 2C7 2 4 5.5 4 9c0 2.5 1.5 4.5 3 6s3 3 3 5"
-        stroke="#34D399" strokeWidth="1.8" strokeLinecap="round" fill="none"
+        d="M10 1C5.03 1 1 5.03 1 10c0 6.5 9 15 9 15s9-8.5 9-15c0-4.97-4.03-9-9-9z"
+        fill="url(#pin-grad)"
       />
-      <path
-        d="M11 2c4 0 7 3.5 7 7 0 2.5-1.5 4.5-3 6s-3 3-3 5"
-        stroke="#06b6d4" strokeWidth="1.8" strokeLinecap="round" fill="none"
-      />
-      <line x1="5.5" y1="7" x2="16.5" y2="7" stroke="#34D399" strokeWidth="1.2" strokeLinecap="round" opacity="0.6"/>
-      <line x1="5" y1="11" x2="17" y2="11" stroke="#34D399" strokeWidth="1.2" strokeLinecap="round" opacity="0.6"/>
-      <line x1="5.5" y1="15" x2="16.5" y2="15" stroke="#34D399" strokeWidth="1.2" strokeLinecap="round" opacity="0.6"/>
+      {/* Inner circle cutout */}
+      <circle cx="10" cy="10" r="3.5" fill="#0f1923" />
     </svg>
   )
 }
@@ -164,73 +169,327 @@ function AgentsPanel({ agents, selectedId, onSelect, jobStatus }) {
   )
 }
 
-// Simple SVG activity graph — plots last N log sizes as a sparkline
-function ActivityCanvas({ agents, selectedId }) {
-  const entries = Object.values(agents)
-  const hasData = entries.length > 0
+function agentIcon(id) {
+  const s = (id || '').toLowerCase()
+  if (/tumor|genetic/i.test(s)) return '🧬'
+  if (/dpyd|safety/i.test(s)) return '💊'
+  if (/platinum|chemo/i.test(s)) return '⚗️'
+  if (/immunotherap/i.test(s)) return '🔬'
+  if (/target/i.test(s)) return '🎯'
+  if (/drug|metaboli/i.test(s)) return '💉'
+  if (/supplement/i.test(s)) return '🌿'
+  if (/inflammat/i.test(s)) return '🔥'
+  if (/immune/i.test(s)) return '🛡️'
+  if (/dna|repair/i.test(s)) return '🔗'
+  if (/neuropath/i.test(s)) return '⚡'
+  if (/trial|clinical/i.test(s)) return '🏥'
+  if (/synth|narrator/i.test(s)) return '📋'
+  if (/novel/i.test(s)) return '🔍'
+  if (/scanner|general/i.test(s)) return '🧬'
+  return '🧬'
+}
 
-  if (!hasData) {
-    return (
-      <div className="viz-canvas">
-        <div className="viz-placeholder">
-          <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.2">
-            <path d="M3 3v18h18"/>
-            <path d="M7 16l4-4 4 4 4-5"/>
-          </svg>
-          <span>Run an analysis to see activity</span>
-        </div>
-      </div>
-    )
-  }
+function shortLabel(id) {
+  if (!id) return '??'
+  const parts = id.split('-')
+  if (parts.length >= 2) return parts.slice(0, 2).map(p => p.charAt(0).toUpperCase() + p.slice(1, 5)).join(' ')
+  return id.slice(0, 8)
+}
 
-  const total = entries.length
-  const cols = Math.min(total, 8)
-  const colW = 100 / cols
+// Canvas network visualiser — ported from monitor.html
+function NetworkCanvas({ agents, selectedId, chat, findings }) {
+  const canvasRef = useRef(null)
+  const stateRef = useRef({ particles: [], commLines: [], animFrame: 0, prevChatLen: 0, prevFindingsLen: 0 })
+
+  // Spawn comm-line particles when new chat messages arrive
+  useEffect(() => {
+    const s = stateRef.current
+    const ids = Object.keys(agents).sort()
+    const canvas = canvasRef.current
+    if (!canvas) return
+    const cW = canvas.clientWidth, cH = canvas.clientHeight
+
+    function nodePos(id) {
+      const idx = ids.indexOf(id)
+      if (idx < 0) return null
+      const cx = cW / 2, cy = cH / 2
+      const r = Math.min(cW, cH) * 0.32
+      const angle = (idx / ids.length) * Math.PI * 2 - Math.PI / 2
+      return { x: cx + Math.cos(angle) * r, y: cy + Math.sin(angle) * r }
+    }
+
+    // New chat messages → comm lines
+    if (chat.length > s.prevChatLen) {
+      for (let i = s.prevChatLen; i < chat.length; i++) {
+        const m = chat[i]
+        const from = nodePos(m.from)
+        const to = nodePos(m.to)
+        if (from && to) {
+          const col = m.priority === 'critical' ? '#f43f5e' : m.priority === 'urgent' ? '#f59e0b' : '#06b6d4'
+          s.commLines.push({ from, to, life: 1, decay: 0.012, color: col })
+          for (let j = 0; j < 3; j++) {
+            const t = Math.random()
+            s.particles.push({
+              x: from.x + (to.x - from.x) * t, y: from.y + (to.y - from.y) * t,
+              vx: (to.x - from.x) * 0.02 + (Math.random() - 0.5),
+              vy: (to.y - from.y) * 0.02 + (Math.random() - 0.5),
+              life: 1, decay: 0.01 + Math.random() * 0.01,
+              color: col, radius: 1.5 + Math.random() * 1.5, trail: []
+            })
+          }
+        }
+      }
+      s.prevChatLen = chat.length
+    }
+
+    // New findings → burst particles from agent node
+    if (findings.length > s.prevFindingsLen) {
+      for (let i = s.prevFindingsLen; i < findings.length; i++) {
+        const f = findings[i]
+        const pos = nodePos(f.agent || f.from)
+        if (pos) {
+          const col = sigClass(f.category) === 'sig-high' ? '#f43f5e'
+            : sigClass(f.category) === 'sig-moderate' ? '#f59e0b'
+            : '#34D399'
+          for (let j = 0; j < 8; j++) {
+            s.particles.push({
+              x: pos.x, y: pos.y,
+              vx: (Math.random() - 0.5) * 4, vy: (Math.random() - 0.5) * 4,
+              life: 1, decay: 0.007 + Math.random() * 0.008,
+              color: col, radius: 2 + Math.random() * 2, trail: []
+            })
+          }
+        }
+      }
+      s.prevFindingsLen = findings.length
+    }
+  }, [chat.length, findings.length, agents])
+
+  useEffect(() => {
+    const canvas = canvasRef.current
+    if (!canvas) return
+    const ctx = canvas.getContext('2d')
+    const s = stateRef.current
+    let rafId
+    let dpr = window.devicePixelRatio || 1
+
+    function resize() {
+      dpr = window.devicePixelRatio || 1
+      canvas.width = canvas.clientWidth * dpr
+      canvas.height = canvas.clientHeight * dpr
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
+    }
+    resize()
+    const ro = new ResizeObserver(resize)
+    ro.observe(canvas)
+
+    function drawHexGrid(cW, cH) {
+      const size = 30, w = size * 2, h = Math.sqrt(3) * size
+      ctx.save()
+      ctx.strokeStyle = 'rgba(52,211,153,0.025)'
+      ctx.lineWidth = 0.5
+      for (let row = -1; row < cH / h + 1; row++) {
+        for (let col = -1; col < cW / w + 1; col++) {
+          const x = col * w * 0.75, y = row * h + (col % 2 ? h / 2 : 0)
+          ctx.beginPath()
+          for (let k = 0; k < 6; k++) {
+            const a = (Math.PI / 3) * k - Math.PI / 6
+            const px = x + size * Math.cos(a), py = y + size * Math.sin(a)
+            k === 0 ? ctx.moveTo(px, py) : ctx.lineTo(px, py)
+          }
+          ctx.closePath()
+          ctx.stroke()
+        }
+      }
+      ctx.restore()
+    }
+
+    function draw() {
+      const cW = canvas.clientWidth, cH = canvas.clientHeight
+      ctx.clearRect(0, 0, cW, cH)
+      s.animFrame++
+
+      drawHexGrid(cW, cH)
+
+      const ids = Object.keys(agents).sort()
+      const n = ids.length
+
+      if (n === 0) {
+        ctx.save()
+        ctx.font = '500 14px Inter, sans-serif'
+        ctx.fillStyle = 'rgba(52,211,153,0.2)'
+        ctx.textAlign = 'center'
+        ctx.textBaseline = 'middle'
+        ctx.fillText('Waiting for agents…', cW / 2, cH / 2)
+        ctx.font = '11px "JetBrains Mono", monospace'
+        ctx.fillStyle = 'rgba(52,211,153,0.1)'
+        ctx.fillText('Analysis will appear here', cW / 2, cH / 2 + 22)
+        ctx.restore()
+        rafId = requestAnimationFrame(draw)
+        return
+      }
+
+      const cx = cW / 2, cy = cH / 2
+      const r = Math.min(cW, cH) * 0.32
+      const nodePositions = ids.map((id, i) => {
+        const angle = (i / n) * Math.PI * 2 - Math.PI / 2
+        return { x: cx + Math.cos(angle) * r, y: cy + Math.sin(angle) * r, id }
+      })
+
+      // Faint connection lines between all nodes
+      for (let i = 0; i < n; i++) {
+        for (let j = i + 1; j < n; j++) {
+          const a = nodePositions[i], b = nodePositions[j]
+          const g = ctx.createLinearGradient(a.x, a.y, b.x, b.y)
+          g.addColorStop(0, 'rgba(52,211,153,0.04)')
+          g.addColorStop(0.5, 'rgba(52,211,153,0.08)')
+          g.addColorStop(1, 'rgba(52,211,153,0.04)')
+          ctx.strokeStyle = g
+          ctx.lineWidth = 0.5
+          ctx.beginPath()
+          ctx.moveTo(a.x, a.y)
+          ctx.lineTo(b.x, b.y)
+          ctx.stroke()
+        }
+      }
+
+      // Comm lines
+      for (let i = s.commLines.length - 1; i >= 0; i--) {
+        const cl = s.commLines[i]
+        cl.life -= cl.decay
+        if (cl.life <= 0) { s.commLines.splice(i, 1); continue }
+        ctx.save()
+        ctx.globalAlpha = cl.life * 0.7
+        ctx.strokeStyle = cl.color
+        ctx.lineWidth = 2 * cl.life
+        ctx.shadowColor = cl.color
+        ctx.shadowBlur = 12 * cl.life
+        ctx.beginPath()
+        ctx.moveTo(cl.from.x, cl.from.y)
+        ctx.lineTo(cl.to.x, cl.to.y)
+        ctx.stroke()
+        ctx.restore()
+      }
+
+      // Particles with trails
+      for (let i = s.particles.length - 1; i >= 0; i--) {
+        const p = s.particles[i]
+        p.trail.push({ x: p.x, y: p.y })
+        if (p.trail.length > 18) p.trail.shift()
+        p.x += p.vx; p.y += p.vy
+        p.vx *= 0.98; p.vy *= 0.98
+        p.life -= p.decay
+        if (p.life <= 0) { s.particles.splice(i, 1); continue }
+        if (p.trail.length > 1) {
+          ctx.save(); ctx.lineCap = 'round'
+          for (let t = 1; t < p.trail.length; t++) {
+            const al = (t / p.trail.length) * p.life * 0.4
+            ctx.globalAlpha = al
+            ctx.strokeStyle = p.color
+            ctx.lineWidth = p.radius * (t / p.trail.length)
+            ctx.beginPath()
+            ctx.moveTo(p.trail[t-1].x, p.trail[t-1].y)
+            ctx.lineTo(p.trail[t].x, p.trail[t].y)
+            ctx.stroke()
+          }
+          ctx.restore()
+        }
+        ctx.save()
+        ctx.globalAlpha = p.life
+        ctx.fillStyle = p.color
+        ctx.shadowColor = p.color; ctx.shadowBlur = 10
+        ctx.beginPath()
+        ctx.arc(p.x, p.y, p.radius * p.life, 0, Math.PI * 2)
+        ctx.fill()
+        ctx.restore()
+      }
+
+      // Agent nodes
+      for (const np of nodePositions) {
+        const a = agents[np.id] || {}
+        const st = a.status || 'waiting'
+        const nodeColor = st === 'running' ? '#06b6d4' : st === 'done' ? '#34D399' : st === 'error' ? '#f43f5e' : '#6b7280'
+        const glowAlpha = st === 'running' ? 0.3 : st === 'done' ? 0.2 : 0.1
+
+        // Pulsing ring for running
+        if (st === 'running' || st === 'spawning') {
+          const pulseT = Math.sin(s.animFrame * 0.04) * 0.5 + 0.5
+          const pulseR = 24 + pulseT * 10
+          ctx.save()
+          ctx.globalAlpha = 0.15 + pulseT * 0.15
+          ctx.strokeStyle = nodeColor
+          ctx.lineWidth = 2
+          ctx.shadowColor = nodeColor; ctx.shadowBlur = 20
+          ctx.beginPath(); ctx.arc(np.x, np.y, pulseR, 0, Math.PI * 2); ctx.stroke()
+          ctx.globalAlpha = 0.08 + pulseT * 0.08
+          ctx.beginPath(); ctx.arc(np.x, np.y, pulseR + 8, 0, Math.PI * 2); ctx.stroke()
+          ctx.restore()
+        }
+
+        // Selection dashed ring
+        if (selectedId === np.id) {
+          ctx.save()
+          ctx.strokeStyle = '#ffffff'
+          ctx.lineWidth = 2
+          ctx.globalAlpha = 0.5 + Math.sin(s.animFrame * 0.06) * 0.2
+          ctx.setLineDash([4, 4])
+          ctx.lineDashOffset = -s.animFrame * 0.5
+          ctx.beginPath(); ctx.arc(np.x, np.y, 30, 0, Math.PI * 2); ctx.stroke()
+          ctx.setLineDash([])
+          ctx.restore()
+        }
+
+        // Glow
+        const grd = ctx.createRadialGradient(np.x, np.y, 0, np.x, np.y, 22)
+        grd.addColorStop(0, nodeColor.replace(')', `,${glowAlpha})`).replace('rgb', 'rgba'))
+        grd.addColorStop(1, 'transparent')
+        ctx.save(); ctx.fillStyle = grd
+        ctx.beginPath(); ctx.arc(np.x, np.y, 22, 0, Math.PI * 2); ctx.fill(); ctx.restore()
+
+        // Node circle
+        ctx.save()
+        ctx.fillStyle = '#0f1923'
+        ctx.strokeStyle = nodeColor
+        ctx.lineWidth = 1.5
+        ctx.shadowColor = nodeColor; ctx.shadowBlur = st === 'running' ? 15 : 8
+        ctx.beginPath(); ctx.arc(np.x, np.y, 16, 0, Math.PI * 2)
+        ctx.fill(); ctx.stroke(); ctx.restore()
+
+        // Emoji icon
+        ctx.save()
+        ctx.font = '13px sans-serif'
+        ctx.textAlign = 'center'; ctx.textBaseline = 'middle'
+        ctx.fillText(agentIcon(np.id), np.x, np.y)
+        ctx.restore()
+
+        // Label below
+        ctx.save()
+        ctx.font = '500 9px "JetBrains Mono", monospace'
+        ctx.fillStyle = nodeColor
+        ctx.textAlign = 'center'; ctx.globalAlpha = 0.85
+        ctx.fillText(shortLabel(np.id), np.x, np.y + 28)
+        ctx.restore()
+      }
+
+      rafId = requestAnimationFrame(draw)
+    }
+
+    rafId = requestAnimationFrame(draw)
+    return () => { cancelAnimationFrame(rafId); ro.disconnect() }
+  }, [agents, selectedId])
 
   return (
+    <canvas
+      ref={canvasRef}
+      style={{ width: '100%', height: '100%', display: 'block' }}
+    />
+  )
+}
+
+function ActivityCanvas({ agents, selectedId, chat, findings }) {
+  return (
     <div className="viz-canvas">
-      <div className="phase-row">
-        <span className="phase-label">Agent Activity</span>
-        <span className="phase-line"/>
-      </div>
-      <svg
-        width="100%"
-        height="calc(100% - 32px)"
-        viewBox={`0 0 ${cols * 80} 120`}
-        preserveAspectRatio="xMidYMid meet"
-        style={{ display: 'block', padding: '8px 16px' }}
-      >
-        {entries.slice(0, cols).map((agent, i) => {
-          const x = i * 80 + 4
-          const isSelected = selectedId === agent.id
-          const statusColor = agent.status === 'done' ? '#34D399'
-            : agent.status === 'running' || agent.status === 'spawning' ? '#06b6d4'
-            : agent.status === 'error' ? '#f43f5e'
-            : 'rgba(255,255,255,0.12)'
-
-          const barH = agent.logSize ? Math.min(70, Math.max(8, agent.logSize / 200)) : 8
-          const barY = 90 - barH
-
-          return (
-            <g key={agent.id || i}>
-              <rect
-                x={x} y={barY} width="68" height={barH}
-                rx="3"
-                fill={statusColor}
-                opacity={isSelected ? 1 : 0.6}
-              />
-              <text
-                x={x + 34} y={105}
-                textAnchor="middle"
-                fontSize="8"
-                fill="rgba(226,232,240,0.5)"
-              >
-                {(agent.label || agent.id || '').slice(0, 10)}
-              </text>
-            </g>
-          )
-        })}
-      </svg>
+      <NetworkCanvas agents={agents} selectedId={selectedId} chat={chat} findings={findings} />
     </div>
   )
 }
@@ -343,7 +602,7 @@ export default function App() {
   const [chat, setChat] = useState([])
   const [selectedAgent, setSelectedAgent] = useState(null)
   const [error, setError] = useState(null)
-  const [lastPoll, setLastPoll] = useState(null)
+  const [pollCount, setPollCount] = useState(0)
 
   // If no jobId in URL, try health endpoint to find any active job
   const resolveJobId = useCallback(async () => {
@@ -373,7 +632,7 @@ export default function App() {
       setFindings(data.findings || [])
       setChat(data.chat || [])
       setError(null)
-      setLastPoll(new Date())
+      setPollCount(c => c + 1)
     } catch (err) {
       setError(err.message)
     }
@@ -385,42 +644,52 @@ export default function App() {
     return () => clearInterval(id)
   }, [poll])
 
-  // Estimate rough cost from agent count + model types
-  const costEstimate = (() => {
-    const n = Object.keys(agents).length
-    if (n === 0) return null
-    const haiku = Object.values(agents).filter(a => (a.model || '').includes('haiku')).length
-    const sonnet = n - haiku
-    // Very rough: haiku ~$0.02, sonnet ~$0.15 per agent
-    return (haiku * 0.02 + sonnet * 0.15).toFixed(2)
-  })()
+  // Cost estimation — persisted in localStorage so refresh doesn't reset it
+  const costEstimate = useMemo(() => {
+    const rates = { haiku: { i: 0.80, o: 4 }, sonnet: { i: 3, o: 15 }, opus: { i: 15, o: 75 } }
+    let current = 0
+    for (const a of Object.values(agents)) {
+      const tokens = (a.logSize || 0) / 4
+      const model = (a.model || 'haiku').toLowerCase()
+      const r = rates[model] || rates.haiku
+      current += (tokens * 0.6 / 1e6) * r.i + (tokens * 0.4 / 1e6) * r.o
+    }
+    if (jobId) {
+      const key = `helix-cost-${jobId}`
+      const prev = parseFloat(localStorage.getItem(key) || '0')
+      const peak = Math.max(prev, current)
+      if (current > prev) localStorage.setItem(key, current.toFixed(6))
+      return peak
+    }
+    return current
+  }, [agents, jobId])
+
+  function saveAllData() {
+    const blob = new Blob([JSON.stringify({ jobId, agents, findings, chat }, null, 2)], { type: 'application/json' })
+    const a = document.createElement('a')
+    a.href = URL.createObjectURL(blob)
+    a.download = `helix-${(jobId || 'job').slice(0, 12)}-${Date.now()}.json`
+    a.click()
+    URL.revokeObjectURL(a.href)
+  }
+
+  function runSynthesis() {
+    if (!jobId) return
+    fetch('/api/spawn-agent', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        jobId,
+        id: 'synthesis-' + Date.now().toString(36),
+        label: 'Final Synthesis',
+        model: 'sonnet',
+        prompt: 'Synthesize all findings from the research agents into a comprehensive genomics report.'
+      })
+    }).catch(() => {})
+  }
 
   return (
     <div className="app">
-      {/* ── Nav ── */}
-      <nav className="nav">
-        <div className="nav-logo">
-          <HelixLogo />
-          Helix Genomics
-        </div>
-        <div className="nav-divider" />
-        {jobId ? (
-          <span className="nav-job">{jobId}</span>
-        ) : (
-          <span className="nav-job" style={{ opacity: 0.4 }}>no active job</span>
-        )}
-        <div className="nav-spacer" />
-        {error && (
-          <span style={{ fontSize: 11, color: 'var(--red)', fontFamily: 'var(--font-mono)' }}>
-            {error}
-          </span>
-        )}
-        {costEstimate && (
-          <span className="nav-cost">~${costEstimate}</span>
-        )}
-        <StatusPill status={jobStatus} />
-      </nav>
-
       {/* ── Body ── */}
       <div className="body">
         <AgentsPanel
@@ -431,12 +700,34 @@ export default function App() {
         />
 
         <main className="panel-viz">
-          <ActivityCanvas agents={agents} selectedId={selectedAgent} />
+          <ActivityCanvas agents={agents} selectedId={selectedAgent} chat={chat} findings={findings} />
         </main>
 
         <FindingsPanel findings={findings} />
 
         <ChatPanel messages={chat} />
+      </div>
+
+      {/* ── Status Bar ── */}
+      <div className="status-bar">
+        <span className="status-bar-brand">HELIX SEQUENCING</span>
+        <span className="status-bar-sep">|</span>
+        <span className="status-bar-label">Job:</span>
+        <span className="status-bar-val" title={jobId || ''}>{jobId ? jobId.slice(0, 12) + '…' : '—'}</span>
+        <span className="status-bar-sep">|</span>
+        <span className="status-bar-label">Status:</span>
+        <span className="status-bar-val">{jobStatus}</span>
+        <span className="status-bar-sep">|</span>
+        <span className="status-bar-label">Poll:</span>
+        <span className="status-bar-val">{pollCount}</span>
+        <span className="status-bar-sep">|</span>
+        <span className="status-bar-label">Est. Cost:</span>
+        <span className="status-bar-cost">${costEstimate.toFixed(3)}</span>
+        {error && <><span className="status-bar-sep">|</span><span className="status-bar-error">{error}</span></>}
+        <div className="status-bar-btns">
+          <button className="btn-status btn-save" onClick={saveAllData}>Save All Data</button>
+          <button className="btn-status btn-synth" onClick={runSynthesis}>Run Synthesis</button>
+        </div>
       </div>
     </div>
   )

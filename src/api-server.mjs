@@ -1,7 +1,7 @@
 import express from 'express';
 import cors from 'cors';
-import { readFileSync, existsSync } from 'fs';
-import { join } from 'path';
+import { readFileSync, existsSync, readdirSync, statSync } from 'fs';
+import { join, basename } from 'path';
 
 /**
  * Parse a JSONL file safely, skipping malformed lines.
@@ -24,6 +24,48 @@ function parseJsonlFile(filePath) {
   } catch {
     return [];
   }
+}
+
+/**
+ * Read agent states from on-disk log files when orchestrator has no in-memory state.
+ * Each agent writes a <agentId>.log file to <jobDir>/logs/.
+ * We also look for a job-meta.json that may store agent metadata.
+ */
+function readAgentsFromDisk(jobDir) {
+  const agents = {};
+  const logsDir = join(jobDir, 'logs');
+  if (!existsSync(logsDir)) return agents;
+
+  try {
+    const files = readdirSync(logsDir).filter(f => f.endsWith('.log'));
+    for (const file of files) {
+      const id = basename(file, '.log');
+      const logPath = join(logsDir, file);
+      const logStat = statSync(logPath);
+      const logSize = logStat.size;
+      const lastActivity = logStat.mtime.toISOString();
+
+      // Read last few lines of log to guess status
+      let status = 'done';
+      try {
+        const tail = readFileSync(logPath, 'utf-8').slice(-2000);
+        if (/error|failed|exception/i.test(tail) && !/completed|finished/i.test(tail.slice(-200))) {
+          status = 'error';
+        }
+      } catch { /* ignore */ }
+
+      agents[id] = {
+        label: id.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase()),
+        model: 'haiku',
+        status,
+        logSize,
+        lastActivity,
+        hasMd: existsSync(join(logsDir, id + '.md')),
+      };
+    }
+  } catch { /* ignore */ }
+
+  return agents;
 }
 
 /**
@@ -95,9 +137,21 @@ export function createApiServer(config, stateDir, orchestrator) {
       }
 
       // Determine the job-specific state directory
-      const jobDir = existsSync(join(stateDir, jobId))
-        ? join(stateDir, jobId)
-        : stateDir;
+      // Job folders may have a date prefix like "2026-03-31T07-04-38-job-123"
+      let jobDir = stateDir;
+      if (existsSync(join(stateDir, jobId))) {
+        jobDir = join(stateDir, jobId);
+      } else {
+        try {
+          const match = readdirSync(stateDir).find(d => d.endsWith(jobId) || d.includes(jobId));
+          if (match) jobDir = join(stateDir, match);
+        } catch { /* ignore */ }
+      }
+
+      // Fall back to reading agent state from disk logs if orchestrator has none
+      if (Object.keys(agents).length === 0) {
+        Object.assign(agents, readAgentsFromDisk(jobDir));
+      }
 
       // Parse JSONL data files
       const findings = parseJsonlFile(join(jobDir, 'shared-findings.jsonl'));
@@ -183,14 +237,30 @@ export function createApiServer(config, stateDir, orchestrator) {
   });
 
   /**
-   * Health check endpoint
+   * Health check endpoint — also returns the most recent jobId so the
+   * dashboard can auto-load without needing a ?jobId= query param.
    */
   app.get('/api/health', (req, res) => {
+    let activeJobId = null;
+    try {
+      const dirs = readdirSync(stateDir)
+        .filter(d => d.includes('job-'))
+        .sort()
+        .reverse();
+      if (dirs.length > 0) {
+        // Extract the short jobId from the directory name (everything after last dash-prefixed date)
+        const dir = dirs[0];
+        const m = dir.match(/(job-\d+)$/);
+        activeJobId = m ? m[1] : dir;
+      }
+    } catch { /* ignore */ }
+
     res.json({
       ok: true,
       uptime: process.uptime(),
       timestamp: new Date().toISOString(),
-      orchestratorAvailable: !!orchestrator
+      orchestratorAvailable: !!orchestrator,
+      activeJobId,
     });
   });
 
