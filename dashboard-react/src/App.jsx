@@ -95,22 +95,8 @@ function SetupPanel({ onStarted }) {
   const [loading, setLoading] = useState(false)
   const [err, setErr] = useState('')
   const fileRef = useRef(null)
-  const dirRef = useRef(null)
-
   function togglePrompt(id) {
     setExpandedPrompts(prev => ({ ...prev, [id]: !prev[id] }))
-  }
-
-  function handleBrowseDir(e) {
-    const file = e.target.files?.[0]
-    if (!file) return
-    // In Electron/Node context, file.path includes the full path
-    const p = file.path || file.webkitRelativePath || ''
-    if (p) {
-      // Strip filename to get directory
-      const dir = p.includes('/') ? p.substring(0, p.lastIndexOf('/')) : p
-      setMdOutputDir(dir)
-    }
   }
 
   function onDrop(e) {
@@ -275,18 +261,8 @@ function SetupPanel({ onStarted }) {
           </label>
         </div>
         {saveMd && (
-          <div className="setup-dir-row">
-            <input className="setup-input setup-dir-input" placeholder="/path/to/output/directory"
-              value={mdOutputDir} onChange={e => setMdOutputDir(e.target.value)} />
-            <button className="btn-browse-dir" title="Browse for folder" onClick={() => dirRef.current?.click()}>
-              <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
-                <path d="M1 3.5A1.5 1.5 0 012.5 2h3.172a1.5 1.5 0 011.06.44L7.94 3.5H13.5A1.5 1.5 0 0115 5v7a1.5 1.5 0 01-1.5 1.5h-11A1.5 1.5 0 011 11.5v-8z" stroke="currentColor" strokeWidth="1.2"/>
-              </svg>
-              Browse
-            </button>
-            <input ref={dirRef} type="file" style={{ display: 'none' }} webkitdirectory="true"
-              onChange={handleBrowseDir} />
-          </div>
+          <input className="setup-input" style={{ marginTop: 6 }} placeholder="/path/to/output/directory"
+            value={mdOutputDir} onChange={e => setMdOutputDir(e.target.value)} />
         )}
         {saveMd && mdOutputDir && (
           <div className="setup-dir-preview">
