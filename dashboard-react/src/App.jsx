@@ -130,9 +130,9 @@ function SetupPanel({ onStarted }) {
       const agentList = preset === 'custom'
         ? customAgents.filter(a => a.id && a.prompt)
         : (selectedPreset?.agentList || [])
-      const dir = mdOutputDir.trim()
-      const agentOverrides = (saveMd && dir)
-        ? Object.fromEntries(agentList.map(a => [a.id, { mdOutputPath: dir.replace(/\/$/, '') + '/' + a.id + '.md' }]))
+      const dir = mdOutputDir.trim().replace(/\/$/, '')
+      const agentOverrides = saveMd
+        ? Object.fromEntries(agentList.map(a => [a.id, { mdOutputPath: dir ? `${dir}/${a.id}.md` : `${a.id}.md` }]))
         : {}
 
       const res = await fetch('/api/start-analysis', {
@@ -287,14 +287,15 @@ function SetupPanel({ onStarted }) {
               onChange={handleBrowseDir} />
           </div>
         )}
-        {saveMd && mdOutputDir && (
+        {saveMd && (
           <div className="setup-dir-preview">
             {(() => {
               const agents = preset === 'custom'
                 ? customAgents.filter(a => a.id)
                 : PRESETS.find(p => p.id === preset)?.agentList || []
+              const prefix = mdOutputDir.trim() ? mdOutputDir.trim().replace(/\/$/, '') + '/' : './'
               return agents.map(a => (
-                <span key={a.id} className="setup-dir-file">{a.id}.md</span>
+                <span key={a.id} className="setup-dir-file">{prefix}{a.id}.md</span>
               ))
             })()}
           </div>
