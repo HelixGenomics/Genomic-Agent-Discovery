@@ -302,6 +302,31 @@
   border-radius: 3px;
 }
 
+.setup-dir-row {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  margin-top: 6px;
+}
+.setup-dir-input { flex: 1; min-width: 0; }
+.btn-browse-dir {
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-dim);
+  border-radius: 5px;
+  color: var(--text-dim);
+  font-size: 11px;
+  font-family: var(--font-sans);
+  padding: 6px 12px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.15s;
+  flex-shrink: 0;
+}
+.btn-browse-dir:hover {
+  border-color: rgba(52,211,153,0.3);
+  color: var(--green-light);
+  background: rgba(52,211,153,0.05);
+}
 .setup-dir-preview {
   display: flex;
   flex-wrap: wrap;
