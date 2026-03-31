@@ -86,7 +86,7 @@ function SetupPanel({ onStarted }) {
   const [checkMessages, setCheckMessages] = useState('7')
   const [webSearch, setWebSearch] = useState(true)
   const [medHistory, setMedHistory] = useState('')
-  const [saveMd, setSaveMd] = useState(false)
+  const [saveMd, setSaveMd] = useState(true)
   const [mdOutputDir, setMdOutputDir] = useState('')
   const [customAgents, setCustomAgents] = useState([
     { id: 'custom-agent-1', label: 'Custom Agent', model: 'haiku', prompt: '' }
