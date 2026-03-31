@@ -51,17 +51,18 @@ export function createApiServer(config, stateDir, orchestrator) {
   app.use(cors());
   app.use(express.json());
 
-  // Serve the dashboard at root
-  app.get('/', (req, res) => {
-    const dashboardPath = join(process.cwd(), 'dashboard', 'monitor.html');
-    if (!existsSync(dashboardPath)) {
-      return res.status(404).send('Dashboard not found. Expected at dashboard/monitor.html');
-    }
-    res.sendFile(dashboardPath);
-  });
+  // Serve the React dashboard (built to dashboard/)
+  const dashboardDir = join(process.cwd(), 'dashboard');
+  app.use(express.static(dashboardDir));
 
-  // Serve static assets from dashboard directory (if any future CSS/JS files are added)
-  app.use('/dashboard', express.static(join(process.cwd(), 'dashboard')));
+  // SPA fallback — any non-API route serves index.html
+  app.get('/', (req, res) => {
+    const indexPath = join(dashboardDir, 'index.html');
+    if (!existsSync(indexPath)) {
+      return res.status(404).send('Dashboard not found. Run: cd dashboard-react && npm run build');
+    }
+    res.sendFile(indexPath);
+  });
 
   /**
    * GET /api/status/:jobId

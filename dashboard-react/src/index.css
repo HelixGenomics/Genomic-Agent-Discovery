@@ -1,0 +1,56 @@
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  /* Helix brand palette */
+  --green:       #34D399;
+  --green-light: #6EE7B7;
+  --green-dim:   rgba(52, 211, 153, 0.15);
+  --green-glow:  rgba(52, 211, 153, 0.25);
+  --cyan:        #06b6d4;
+  --cyan-light:  #38bdf8;
+  --purple:      #8b5cf6;
+  --blue:        #3b82f6;
+  --orange:      #f97316;
+  --red:         #f43f5e;
+  --amber:       #f59e0b;
+
+  /* Backgrounds */
+  --bg:          #0f1923;
+  --bg-card:     #1a2332;
+  --bg-elevated: #1e2a3d;
+  --bg-hover:    rgba(52, 211, 153, 0.05);
+
+  /* Borders */
+  --border:      rgba(52, 211, 153, 0.12);
+  --border-dim:  rgba(255, 255, 255, 0.06);
+
+  /* Text */
+  --text:        #e2e8f0;
+  --text-dim:    #9CA3AF;
+  --text-faint:  rgba(226, 232, 240, 0.4);
+
+  /* Fonts */
+  --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+  --font-mono: 'JetBrains Mono', 'Fira Code', ui-monospace, monospace;
+
+  font-family: var(--font-sans);
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--text);
+  background: var(--bg);
+  -webkit-font-smoothing: antialiased;
+}
+
+body { margin: 0; min-height: 100svh; }
+
+#root { min-height: 100svh; display: flex; flex-direction: column; }
+
+/* Scrollbars */
+::-webkit-scrollbar { width: 4px; height: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: rgba(52,211,153,0.2); border-radius: 2px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(52,211,153,0.4); }
+
+/* Utility */
+.mono { font-family: var(--font-mono); }
+.truncate { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
