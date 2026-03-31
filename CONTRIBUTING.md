@@ -37,7 +37,7 @@ src/
   cli.mjs              Entry point — CLI argument parsing
   orchestrator.mjs     Pipeline execution, phase coordination
   mcp-server.mjs       MCP tool server (18 tools agents can call)
-  api-server.mjs       Dashboard WebSocket/HTTP server
+  api-server.mjs       Dashboard HTTP/API server
   config-loader.mjs    YAML config loading and merging
   agents/
     spawner.mjs        Spawns Claude CLI subprocesses
@@ -51,14 +51,61 @@ src/
     loader.mjs         Unified annotation database queries
 config/
   default.yaml         Base configuration
-  presets/             Pre-tuned analysis configurations
+  presets/             Pre-tuned analysis configurations (YAML)
 scripts/
   build-database.sh    Downloads and indexes all 12 public databases
   downloaders/         Per-source download scripts
   verify-database.mjs  Database integrity checker
-dashboard/
-  monitor.html         Real-time analysis dashboard
+dashboard-react/       React dashboard source (Vite)
+  src/
+    App.jsx            Main dashboard component (setup panel + live view)
+    App.css            Dashboard styles
+    index.css          Theme variables and base styles
+  vite.config.js       Vite config with API proxy
+dashboard/             Built dashboard output (served by api-server)
+docs/
+  screenshots/         Dashboard screenshots and GIFs for README
+  capture-*.mjs        Puppeteer scripts to regenerate screenshots/GIFs
 ```
+
+## Dashboard Development
+
+The dashboard is a React app built with Vite in `dashboard-react/`.
+
+```bash
+cd dashboard-react
+npm install
+npm run dev          # Starts Vite dev server on http://localhost:5199
+```
+
+The Vite dev server proxies `/api` requests to `localhost:3000` (the API server). To see the dashboard with live data, also start the API server:
+
+```bash
+npm start -- --dna my-dna.txt   # Starts API server + analysis
+```
+
+To build the production dashboard (outputs to `dashboard/`):
+
+```bash
+cd dashboard-react
+npm run build
+```
+
+### Regenerating Screenshots & GIFs
+
+Screenshots and GIFs for the README are captured with Puppeteer scripts in `docs/`:
+
+```bash
+# Start the dev server first
+cd dashboard-react && npm run dev &
+
+# From project root:
+node docs/capture-screenshots.mjs    # 12 static screenshots
+node docs/capture-gifs.mjs           # 3 workflow GIFs
+node docs/capture-pipeline-gif.mjs   # Pipeline animation GIF (mocks API data)
+```
+
+Requires `puppeteer` (dev dependency) and `ffmpeg` for GIF assembly.
 
 ## Areas Where Help Is Most Valuable
 
@@ -77,6 +124,9 @@ Domain-specialist prompts are in `src/agents/prompts.mjs`. Improvements from peo
 
 ### Presets
 Presets are YAML files in `config/presets/`. A preset defines which agents run, what genes/conditions they focus on, and model tiers. See `config/presets/pharmacogenomics.yaml` for a minimal example.
+
+### Dashboard
+The React dashboard in `dashboard-react/` welcomes UI improvements, accessibility enhancements, and new visualizations. The setup panel presets and agent prompts are defined in the `PRESETS` array at the top of `App.jsx`.
 
 ### Documentation
 Guides, tutorials, and worked examples are always useful.

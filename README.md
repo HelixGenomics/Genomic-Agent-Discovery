@@ -10,10 +10,11 @@
 
 <p align="center">
   <a href="#quick-start">Quick Start</a> &bull;
-  <a href="#what-you-get">What You Get</a> &bull;
+  <a href="#dashboard">Dashboard</a> &bull;
+  <a href="#presets">Presets</a> &bull;
+  <a href="#agent-prompts">Agent Prompts</a> &bull;
   <a href="#architecture">Architecture</a> &bull;
   <a href="#configuration-reference">Configuration</a> &bull;
-  <a href="#presets">Presets</a> &bull;
   <a href="#database">Database</a> &bull;
   <a href="#privacy--security">Privacy</a>
 </p>
@@ -30,6 +31,11 @@
 
 Upload your raw DNA file from 23andMe, AncestryDNA, MyHeritage, FamilyTreeDNA, or any VCF -- and watch a team of AI agents fan out across 12+ public genomics databases, share discoveries with each other in real time, and produce a comprehensive health report. Everything runs on your machine. Nothing is uploaded anywhere.
 
+<p align="center">
+  <img src="docs/screenshots/gif-pipeline-running.gif" alt="Pipeline running — agents analyzing, findings arriving, inter-agent chat" width="720">
+  <br>
+  <em>Real-time pipeline: 7 agents collaborating on a cancer genomics analysis</em>
+</p>
 
 ## Quick Start
 
@@ -65,6 +71,96 @@ npm start -- --dna ~/Downloads/my-dna-raw.txt --provider anthropic-api
 ```
 
 Typical cost: $1–5 per analysis run depending on preset. See [Provider options](#step-2-connect-an-llm) for OpenAI, Gemini, Ollama, and others.
+
+## Dashboard
+
+The dashboard is a real-time mission control for your genomic analysis. It provides full visibility into agent status, findings, inter-agent communication, and costs — all in a single page.
+
+### Setup Panel
+
+When you launch the dashboard, you'll see the setup panel where you configure your analysis before starting.
+
+<p align="center">
+  <img src="docs/screenshots/01-setup-panel.png" alt="Dashboard setup panel" width="720">
+  <br>
+  <em>Setup panel — select a preset, configure settings, and start your analysis</em>
+</p>
+
+### Preset Selection
+
+Choose from 6 built-in research presets, each tuned for a specific domain. Selecting a preset instantly configures the agent pipeline, prompts, models, and focus areas.
+
+<p align="center">
+  <img src="docs/screenshots/gif-preset-switching.gif" alt="Switching between presets" width="720">
+  <br>
+  <em>Switch between presets — each configures a different agent team with specialized prompts</em>
+</p>
+
+Available presets:
+
+| Preset | Agents | Est. Cost | Focus |
+|--------|--------|-----------|-------|
+| **Quick Scan** ⚡ | 2 | $0.05–0.10 | Fast overview across all domains |
+| **Cancer Research** 🔬 | 7 | $0.50–2.00 | Deep cancer & tumor genetics with DPYD safety, platinum chemo, immunotherapy, and targeted therapy agents |
+| **Cardiovascular** ❤️ | 6 | $0.30–1.00 | Lipid genetics, arrhythmia risk, coagulation, and structural heart |
+| **Pharmacogenomics** 💊 | 4 | $0.20–0.80 | CYP enzyme panel, drug transporters, and full CPIC pharmacogene coverage |
+| **Rare Disease** 🧬 | 7 | $0.40–1.50 | Metabolic disorders, neurological conditions, connective tissue, immunodeficiency, and rare cancer syndromes |
+| **Custom** ⚙️ | You decide | Varies | Build your own agent pipeline from scratch |
+
+### Agent Prompts
+
+Every preset comes with full, detailed prompts visible in an expandable accordion. You can review exactly what each agent will investigate before starting the analysis.
+
+<p align="center">
+  <img src="docs/screenshots/gif-prompt-accordion.gif" alt="Expanding agent prompts" width="720">
+  <br>
+  <em>Expand any agent to see its full research prompt — every instruction is transparent</em>
+</p>
+
+Prompts are read-only for built-in presets (they're expert-tuned for each domain). For the **Custom** preset, prompts are fully editable — write your own research instructions for each agent.
+
+<p align="center">
+  <img src="docs/screenshots/06-prompts-expanded.png" alt="Multiple prompts expanded" width="720">
+  <br>
+  <em>Multiple agent prompts expanded — review the full research instructions for each specialist</em>
+</p>
+
+### Output Configuration
+
+Toggle markdown output and set a shared output directory for all agent reports. Files are named automatically based on agent IDs (e.g., `cancer-collector.md`, `synthesizer.md`).
+
+<p align="center">
+  <img src="docs/screenshots/07-output-config.png" alt="Output directory configuration" width="720">
+  <br>
+  <em>Output config — single shared directory, file preview chips show what will be generated</em>
+</p>
+
+The default output directory is `MD_DOCS/` in your repo root. Edit the path to save anywhere. Each agent writes its findings to a separate markdown file.
+
+### Pipeline Animation
+
+Once the analysis starts, the dashboard shows a real-time canvas visualization of the agent pipeline. Agents are distributed across concentric rings (scales to 20+ agents), with animated connections showing data flow and collaboration.
+
+<p align="center">
+  <img src="docs/screenshots/gif-pipeline-running.gif" alt="Full pipeline animation" width="720">
+  <br>
+  <em>Live pipeline — agents spawn, run, share findings, chat with each other, and complete</em>
+</p>
+
+The pipeline view shows:
+- **Agent status** — spawning (blue pulse), running (green glow), done (solid green), error (red)
+- **Findings** — each discovery appears in real-time with gene, confidence, and clinical category
+- **Inter-agent chat** — agents coordinate in real-time (e.g., cancer agent alerts pharma agent about DPYD variant)
+- **Cost tracking** — estimated cost updates as agents consume tokens
+- **Log sizes** — see how much each agent has written
+
+### Full Configuration Walkthrough
+
+<p align="center">
+  <img src="docs/screenshots/gif-config-walkthrough.gif" alt="Full configuration walkthrough" width="720">
+  <br>
+  <em>Complete walkthrough of the setup panel — presets, prompts, output, settings, and launch</em>
+</p>
 
 ## What You Get
 
@@ -216,12 +312,120 @@ HELIX_DB_PATH=/path/to/unified.db   # Custom database path
 
 You can also place these in a `.env` file (copy `.env.example` to get started).
 
+## Presets
+
+### Quick Scan ⚡
+
+Fast 2-agent overview. A general health scanner checks the top genes across all domains (cancer, cardio, neuro, metabolic, coagulation) plus the full pharmacogenomics panel. A narrator produces a concise summary.
+
+### Cancer Research 🔬
+
+<p align="center">
+  <img src="docs/screenshots/04-cancer-preset.png" alt="Cancer Research preset" width="720">
+  <br>
+  <em>Cancer Research preset — 7 specialized agents including DPYD safety, platinum chemo, immunotherapy, and targeted therapy</em>
+</p>
+
+Deep investigation with 7 agents:
+- **Cancer & Tumor Genetics** — BRCA1/2, TP53, APC, Lynch syndrome genes, DNA repair pathways
+- **DPYD Safety Agent** — Fluoropyrimidine toxicity screening (5-FU, capecitabine)
+- **Platinum Chemotherapy** — ERCC1/2, GSTP1, BRCA1/2 for platinum response
+- **Immunotherapy Markers** — HLA alleles, PD-L1, checkpoint inhibitor response prediction
+- **Targeted Therapy** — PARP inhibitor eligibility, ATR/PI3K/RET/NTRK pathways
+- **Cancer Synthesizer** (Sonnet) — Cross-references all findings for compound risk patterns
+- **Report Writer** — Structured cancer genetics report with hereditary syndrome assessment
+
+### Cardiovascular ❤️
+
+<p align="center">
+  <img src="docs/screenshots/12-cardio-preset.png" alt="Cardiovascular preset" width="720">
+  <br>
+  <em>Cardiovascular preset with expanded arrhythmia risk agent prompt</em>
+</p>
+
+6 agents covering:
+- **Cardiovascular Genetics** — Lipid metabolism, structural heart, arrhythmia genes
+- **Lipid & Cholesterol** — FH scoring, statin response, Lp(a), HDL/triglyceride genetics
+- **Arrhythmia Risk** — Long QT, Brugada, CPVT, atrial fibrillation risk loci
+- **Coagulation Factors** — Factor V Leiden, prothrombin, MTHFR, warfarin pharmacogenomics
+- **Cardio Synthesizer** (Sonnet) — Integrated cardiovascular risk stratification
+- **Report Writer** — Full cardiovascular genetics report
+
+### Pharmacogenomics 💊
+
+<p align="center">
+  <img src="docs/screenshots/10-pharma-preset.png" alt="Pharmacogenomics preset" width="720">
+  <br>
+  <em>Pharmacogenomics preset with CYP enzyme panel prompt expanded</em>
+</p>
+
+4 agents for comprehensive drug metabolism analysis:
+- **CYP Enzyme Panel** — All clinically significant CYP450 enzymes (CYP2D6, CYP2C19, CYP2C9, CYP3A4/5, CYP2B6, CYP1A2)
+- **Drug Transporters** — SLCO1B1, ABCG2, ABCB1, OCT1/2 for drug distribution
+- **Pharmacogenomics Panel** — Full 34 CPIC pharmacogene analysis
+- **PGx Synthesizer** (Sonnet) — Cross-gene drug interactions and polypharmacy risk
+
+### Rare Disease 🧬
+
+<p align="center">
+  <img src="docs/screenshots/11-rare-disease.png" alt="Rare Disease preset" width="720">
+  <br>
+  <em>Rare Disease preset — 7 agents covering metabolic, neurological, connective tissue, immunodeficiency, and rare cancer syndromes</em>
+</p>
+
+7 agents for rare/orphan disease investigation:
+- **Metabolic Disorders** — Lysosomal storage, organic acid disorders, urea cycle, Wilson's disease
+- **Neurological Conditions** — Parkinson's, CMT, epilepsy, hereditary spastic paraplegia, ALS
+- **Connective Tissue** — Marfan, EDS, osteogenesis imperfecta, aortic aneurysm genes
+- **Primary Immunodeficiency** — SCID genes, CGD, complement deficiencies, autoinflammatory
+- **Rare Cancer Syndromes** — PTEN, MEN, VHL, NF1/2, tuberous sclerosis, BAP1
+- **Rare Disease Synthesizer** (Sonnet) — Pattern recognition across systems, compound heterozygosity
+- **Report Writer** — VUS prioritization with computational evidence scores
+
+### Custom ⚙️
+
+<p align="center">
+  <img src="docs/screenshots/09-custom-preset.png" alt="Custom preset" width="720">
+  <br>
+  <em>Custom preset — add agents, set models, write your own research prompts</em>
+</p>
+
+Build your own pipeline from scratch. Add as many agents as you want, assign models (haiku/sonnet/opus), and write custom research prompts. Full control over what gets investigated and how.
+
+## Agent Prompts
+
+Every agent's research instructions are fully transparent. You can review the exact prompt each agent receives before starting analysis.
+
+Prompts are embedded directly in the dashboard UI — no need to dig through YAML files. For built-in presets, prompts are read-only (they're expert-tuned). For Custom presets, everything is editable.
+
+Example prompt (Cancer & Tumor Genetics agent):
+
+```
+You are a cancer genomics specialist. Focus on: tumor suppressor genes
+(TP53, BRCA1/2, APC), DNA repair pathways (BRCA1, BRCA2, PALB2, RAD51),
+mismatch repair genes (MLH1, MSH2, MSH6, PMS2), and cancer predisposition
+syndromes (Lynch, Li-Fraumeni, FAP).
+
+Use query_gene to investigate key cancer genes. Use query_civic for clinical
+cancer variant evidence. Cross-reference with ClinVar and GWAS. Pay special
+attention to pathogenic and likely-pathogenic variants in high-penetrance
+cancer genes.
+
+Publish your 3-5 most significant findings.
+```
+
+Each prompt tells the agent:
+1. **What domain to focus on** — specific genes, conditions, pathways
+2. **Which tools to use** — database queries, cross-referencing strategies
+3. **How many findings to publish** — controls output volume
+4. **What to prioritize** — pathogenic variants, clinical actionability, drug interactions
+
 ## Usage
 
 ### Basic Analysis
 
 ```bash
-# Analyze with default settings (5 collectors, auto-detect format)
+# Analyze with default settings (auto-detect format)
 npm start -- analyze ~/Downloads/23andme-raw.txt
 
 # Specify format explicitly
@@ -232,17 +436,6 @@ npm start -- analyze --medical-history "45M, family history of colon cancer, on 
 ```
 
 ### With Presets
-
-Presets are pre-tuned configurations for common use cases. They adjust which agents run, what genes they focus on, and how deep they go.
-
-| Preset | Description | Agents | Est. Cost |
-|--------|-------------|--------|-----------|
-| `cancer` | Deep dive into tumor suppressors, oncogenes, DNA repair, cancer predisposition syndromes | 3 collectors + synthesizer + narrator | ~$2-4 |
-| `pharma` | Comprehensive pharmacogenomics panel across all 34 CPIC genes with drug interaction tables | 2 collectors + synthesizer + narrator | ~$1-3 |
-| `cardio` | Cardiovascular risk: lipid genes, cardiomyopathy, arrhythmia, coagulation, hypertension | 2 collectors + synthesizer + narrator | ~$1-3 |
-| `neuro` | Neurological and psychiatric genetics: Alzheimer's, Parkinson's, psychiatric pharmacogenomics | 2 collectors + synthesizer + narrator | ~$1-3 |
-| `metabolic` | Diabetes risk, obesity genetics, iron metabolism, thyroid, metabolic syndromes | 2 collectors + synthesizer + narrator | ~$1-2 |
-| `full` | Everything. All 5 domain collectors + synthesis + report. Maximum coverage. | 5 collectors + synthesizer + narrator | ~$5-10 |
 
 ```bash
 # Use a preset
@@ -417,7 +610,7 @@ agent_defaults:
 
 1. **Parse**: Your raw DNA file is parsed into a SQLite database of genotypes (rsid, chromosome, position, alleles)
 2. **Annotate**: The MCP server connects each agent to both your genotype DB and the unified annotation DB (12+ public sources)
-3. **Collect**: Five domain-specialist agents run in parallel, each querying genes in their domain, cross-referencing databases, and publishing findings
+3. **Collect**: Domain-specialist agents run in parallel, each querying genes in their domain, cross-referencing databases, and publishing findings
 4. **Communicate**: Agents share discoveries through a real-time chatroom and can read each other's published findings. The pharma agent sees what the cancer agent found and vice versa.
 5. **Deduplicate**: Every finding is checked against existing findings using keyword overlap analysis. Duplicate research is blocked before it happens.
 6. **Synthesize**: A synthesis agent reads all findings and identifies cross-domain patterns, resolves contradictions, and prioritizes by clinical actionability
@@ -485,11 +678,11 @@ The default pipeline has three phases:
 
 | Phase | Agents | Model | Purpose |
 |-------|--------|-------|---------|
-| **Collectors** (parallel) | 5 domain specialists | Haiku | Fast, focused data gathering across cancer, cardio, pharma, neuro, metabolic |
+| **Collectors** (parallel) | Domain specialists | Haiku | Fast, focused data gathering across genomic domains |
 | **Synthesis** | 1 synthesizer | Sonnet | Cross-reference findings, identify patterns, resolve contradictions |
-| **Narration** | 1 report writer | Opus | Write clear, structured, human-readable report |
+| **Narration** | 1 report writer | Haiku/Opus | Write clear, structured, human-readable report |
 
-This phase-based design is intentional: cheap fast models do the high-volume database querying, a mid-tier model does the analytical synthesis, and a top-tier model writes the final report. You can customize this entirely.
+This phase-based design is intentional: cheap fast models do the high-volume database querying, a mid-tier model does the analytical synthesis, and the report writer produces the final output. You can customize this entirely.
 
 ## Database
 
@@ -615,7 +808,7 @@ pipeline:
   phases:
     - id: collectors
       agents:
-        # Your custom agent runs alongside the default 5
+        # Your custom agent runs alongside the default collectors
         - id: immunology-collector
           role: collector
           model: haiku
@@ -627,20 +820,6 @@ pipeline:
           focus_genes: [HLA_A, HLA_B, HLA_C, HLA_DRB1, IL6, TNF, CTLA4]
           max_findings: 5
 ```
-
-## Presets
-
-**`cancer`** -- Deep investigation of hereditary cancer syndromes. Covers BRCA1/2, Lynch syndrome genes (MLH1, MSH2, MSH6, PMS2), Li-Fraumeni (TP53), FAP (APC), and other tumor suppressor and oncogene pathways. Cross-references with CIViC for clinical cancer evidence.
-
-**`pharma`** -- Comprehensive pharmacogenomics panel. Analyzes all 34 CPIC pharmacogenes covering drug metabolism enzymes (CYP2D6, CYP2C19, CYP2C9, CYP3A5), drug transporters (SLCO1B1, ABCG2), and high-risk genes (DPYD, TPMT, NUDT15). Outputs a drug interaction table.
-
-**`cardio`** -- Cardiovascular genetics. Familial hypercholesterolemia (LDLR, APOB, PCSK9), cardiomyopathy (MYBPC3, MYH7), arrhythmia/long QT (SCN5A, KCNQ1, KCNH2), Factor V Leiden, and hypertension pathways.
-
-**`neuro`** -- Neurological and psychiatric genetics. APOE for Alzheimer's risk, Parkinson's genes (LRRK2, GBA, SNCA), psychiatric pharmacogenomics (COMT, SLC6A4), and seizure-related genes.
-
-**`metabolic`** -- Metabolic and endocrine genetics. Type 2 diabetes risk (TCF7L2, KCNJ11), MODY genes (HNF1A, GCK), obesity (FTO, MC4R), hereditary hemochromatosis (HFE), and thyroid function.
-
-**`full`** -- All five domain collectors plus synthesis and narration. Maximum coverage, maximum insight. Best for a first-time comprehensive analysis.
 
 ## Output
 
@@ -671,6 +850,21 @@ Finding types: `risk`, `protective`, `convergence`, `pharmacogenomic`, `notable`
 | JSON | `output/findings.json` | Structured findings for programmatic use |
 | HTML | `output/report.html` | Styled report for viewing in a browser |
 
+### Markdown Agent Output
+
+When markdown output is enabled in the dashboard (on by default), each agent writes its findings to a separate `.md` file in the configured output directory:
+
+```
+MD_DOCS/
+├── cancer-collector.md
+├── dpyd-safety.md
+├── platinum-chemo.md
+├── immunotherapy.md
+├── targeted-therapy.md
+├── synthesizer.md
+└── narrator.md
+```
+
 ### Cost Summary
 
 Every run outputs a cost breakdown:
@@ -695,8 +889,8 @@ This project was designed with a single principle: **your DNA data never leaves 
 - All analysis runs locally on your hardware
 - Your raw DNA file is parsed into a local SQLite database that stays in the project directory
 - The annotation database is built from publicly available data -- no proprietary databases
-- The only network calls are to the Anthropic API (for running the AI agents) and optionally to the web (if agents perform research searches)
-- Your API key is read from an environment variable or `.env` file -- it is never logged, stored in config, or sent anywhere other than Anthropic's API
+- The only network calls are to the LLM API (for running the AI agents) and optionally to the web (if agents perform research searches)
+- Your API key is read from an environment variable or `.env` file -- it is never logged, stored in config, or sent anywhere other than the API provider
 - State files (findings, chat logs) are stored locally and can be deleted at any time
 - No telemetry, no analytics, no tracking
 
@@ -714,12 +908,13 @@ This project was designed with a single principle: **your DNA data never leaves 
 
 ## Contributing
 
-Contributions are welcome. Some areas where help is especially valuable:
+Contributions are welcome. See [CONTRIBUTING.md](CONTRIBUTING.md) for detailed guidelines. Some areas where help is especially valuable:
 
 - **New database sources** -- Adding more public annotation databases to the unified DB
 - **Parsers** -- Supporting additional DNA file formats
 - **Agent prompts** -- Improving the domain-specialist prompts with clinical genetics expertise
 - **Presets** -- Creating focused presets for specific research areas
+- **Dashboard** -- UI improvements, new visualizations, accessibility
 - **Documentation** -- Improving guides, tutorials, and examples
 
 ```bash
