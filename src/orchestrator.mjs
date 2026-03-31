@@ -657,6 +657,7 @@ export class Orchestrator {
       this.stateDir,
       {
         apiKey: this.config.api?.key,
+        provider: this.config.api?.provider || "claude-cli",
         projectRoot: this.projectRoot,
       }
     );

@@ -33,7 +33,7 @@ pipeline:
 
         - id: rare-disease-hunter
           role: collector
-          model: opus
+          model: haiku
           label: "Rare Disease Variant Hunter"
           prompt: |
             You are an expert in rare and undiagnosed genetic diseases.
@@ -96,7 +96,7 @@ pipeline:
 
         - id: pharma-collector
           role: collector
-          model: sonnet
+          model: haiku
           label: "Rare Disease Pharmacogenomics"
           prompt: |
             You are a pharmacogenomics specialist with expertise in rare
@@ -143,7 +143,7 @@ pipeline:
       agents:
         - id: synthesizer
           role: synthesizer
-          model: opus
+          model: sonnet
           label: "Rare Disease Synthesizer"
           prompt: |
             You are synthesizing findings from a rare disease investigation.
@@ -176,7 +176,7 @@ pipeline:
       agents:
         - id: narrator
           role: narrator
-          model: opus
+          model: haiku
           label: "Rare Disease Report Writer"
           prompt: |
             Write a comprehensive rare disease genetics report. This report

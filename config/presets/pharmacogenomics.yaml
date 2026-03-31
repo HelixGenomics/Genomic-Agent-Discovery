@@ -103,7 +103,7 @@ pipeline:
       agents:
         - id: narrator
           role: narrator
-          model: sonnet
+          model: haiku
           label: "Pharmacogenomics Report Writer"
           prompt: |
             You are writing a pharmacogenomics report — the kind a patient

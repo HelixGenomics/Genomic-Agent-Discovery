@@ -3,12 +3,12 @@
 # ============================================================
 #
 # Fast, affordable overview of your genome across all domains.
-# Uses a single sonnet agent to do a broad surface-level scan.
+# Uses a single haiku agent to do a broad surface-level scan.
 # Good for a first look or when you want results quickly.
 #
-# Agents: 1 sonnet general-purpose agent
-# Estimated cost: ~$0.50
-# Estimated time: 2-3 minutes
+# Agents: 1 haiku general-purpose agent + 1 haiku narrator
+# Estimated cost: ~$0.05-0.10
+# Estimated time: 2-4 minutes
 #
 # Usage:
 #   helix-agents --dna <file> --preset quick-scan
@@ -25,7 +25,7 @@ pipeline:
 
         - id: general-scanner
           role: collector
-          model: sonnet
+          model: haiku
           label: "General Health Scanner"
           prompt: |
             You are performing a rapid whole-genome health overview. You have
@@ -75,7 +75,7 @@ pipeline:
       agents:
         - id: narrator
           role: narrator
-          model: sonnet
+          model: haiku
           label: "Quick Report Writer"
           prompt: |
             Write a concise genomic health overview based on the scan findings.

@@ -438,8 +438,7 @@ async function main() {
   console.log(chalk.bold.cyan("  Starting analysis...\n"));
 
   try {
-    // Import orchestrator dynamically — it may not exist yet during early development
-    const { Orchestrator } = await import("./agents/orchestrator.mjs");
+    const { Orchestrator } = await import("./orchestrator.mjs");
     orchestrator = new Orchestrator(config, { jobId, stateDir: jobStateDir });
     const results = await orchestrator.run();
 

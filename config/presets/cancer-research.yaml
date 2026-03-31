@@ -213,7 +213,7 @@ pipeline:
       agents:
         - id: narrator
           role: narrator
-          model: opus
+          model: haiku
           label: "Cancer Report Writer"
           prompt: |
             You are writing a comprehensive cancer genetics report.

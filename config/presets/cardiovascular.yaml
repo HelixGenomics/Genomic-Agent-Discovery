@@ -130,7 +130,7 @@ pipeline:
       agents:
         - id: narrator
           role: narrator
-          model: sonnet
+          model: haiku
           label: "Cardiovascular Report Writer"
           prompt: |
             You are writing a cardiovascular genetics report.

@@ -302,7 +302,8 @@ function spawnWithCli({
     "--system-prompt", systemPrompt,
     "--mcp-config", mcpConfigPath,
     "--print",
-    "--no-input",
+    "--dangerously-skip-permissions",
+    "--no-session-persistence",
     userPrompt,
   ];
 
