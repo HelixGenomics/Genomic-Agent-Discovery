@@ -379,6 +379,8 @@ function spawnWithCli({
           }
         }
 
+      }
+
       resolve({ code, signal });
     });
 

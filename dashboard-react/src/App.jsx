@@ -94,10 +94,32 @@ function SetupPanel({ onStarted }) {
   const [expandedPrompts, setExpandedPrompts] = useState({})
   const [loading, setLoading] = useState(false)
   const [err, setErr] = useState('')
+  const [chipInfo, setChipInfo] = useState(null)
+  const [chipLoading, setChipLoading] = useState(false)
   const fileRef = useRef(null)
   function togglePrompt(id) {
     setExpandedPrompts(prev => ({ ...prev, [id]: !prev[id] }))
   }
+
+  // Auto-run chip check when dnaPath changes
+  useEffect(() => {
+    if (!dnaPath || dnaPath.length < 3) { setChipInfo(null); return }
+    const timer = setTimeout(async () => {
+      setChipLoading(true); setChipInfo(null)
+      try {
+        const res = await fetch('/api/check-chip', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ dnaPath }),
+        })
+        const data = await res.json()
+        if (res.ok) { setChipInfo(data); setErr('') }
+        else setChipInfo(null)
+      } catch { setChipInfo(null) }
+      finally { setChipLoading(false) }
+    }, 600)
+    return () => clearTimeout(timer)
+  }, [dnaPath])
 
   function onDrop(e) {
     e.preventDefault()
@@ -173,6 +195,70 @@ function SetupPanel({ onStarted }) {
           onChange={e => { if (e.target.files?.[0]) setDnaPath(e.target.files[0].path || e.target.files[0].name) }} />
         <input className="setup-input" placeholder="Or paste full file path…" value={dnaPath}
           onChange={e => setDnaPath(e.target.value)} />
+
+        {/* Chip Detection Results */}
+        {chipLoading && (
+          <div style={{
+            marginTop: '12px', padding: '14px 18px',
+            background: 'rgba(94,234,212,0.04)', border: '1px solid rgba(94,234,212,0.15)',
+            borderRadius: '12px', fontSize: '13px', color: '#94a3b8',
+            display: 'flex', alignItems: 'center', gap: '10px',
+          }}>
+            <span style={{ display: 'inline-block', animation: 'spin 1s linear infinite' }}>🧬</span>
+            Analyzing your DNA file...
+          </div>
+        )}
+        {chipInfo && !chipLoading && (
+          <div style={{
+            marginTop: '12px', padding: '18px',
+            background: 'rgba(94,234,212,0.04)', border: '1px solid rgba(94,234,212,0.15)',
+            borderRadius: '14px',
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '12px' }}>
+              <span style={{ fontSize: '20px' }}>🧬</span>
+              <div>
+                <div style={{ fontSize: '14px', fontWeight: 700, color: '#fff' }}>
+                  {chipInfo.provider} — {chipInfo.chipVersion}
+                </div>
+                <div style={{ fontSize: '11px', color: '#94a3b8' }}>
+                  {chipInfo.sex} · {chipInfo.format}{chipInfo.build ? ` · ${chipInfo.build}` : ''}
+                </div>
+              </div>
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px', marginBottom: '12px' }}>
+              <div style={{
+                background: 'rgba(45,212,191,0.06)', border: '1px solid rgba(45,212,191,0.15)',
+                borderRadius: '10px', padding: '10px', textAlign: 'center',
+              }}>
+                <div style={{ fontSize: '20px', fontWeight: 900, color: '#2DD4BF' }}>{chipInfo.snpCount?.toLocaleString()}</div>
+                <div style={{ fontSize: '9px', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '1px' }}>SNPs on Chip</div>
+              </div>
+              <div style={{
+                background: 'rgba(94,234,212,0.06)', border: '1px solid rgba(94,234,212,0.15)',
+                borderRadius: '10px', padding: '10px', textAlign: 'center',
+              }}>
+                <div style={{ fontSize: '20px', fontWeight: 900, color: '#5EEAD4' }}>~{(chipInfo.estimatedImputedSnps / 1000000).toFixed(1)}M</div>
+                <div style={{ fontSize: '9px', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '1px' }}>After Imputation</div>
+              </div>
+              <div style={{
+                background: 'rgba(0,230,138,0.06)', border: '1px solid rgba(0,230,138,0.15)',
+                borderRadius: '10px', padding: '10px', textAlign: 'center',
+              }}>
+                <div style={{ fontSize: '20px', fontWeight: 900, color: chipInfo.noCallRate < 0.03 ? '#00e68a' : '#ffd166' }}>
+                  {(chipInfo.noCallRate * 100).toFixed(1)}%
+                </div>
+                <div style={{ fontSize: '9px', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '1px' }}>No-Call Rate</div>
+              </div>
+            </div>
+            <div style={{
+              padding: '10px 14px', background: 'rgba(45,212,191,0.06)',
+              border: '1px solid rgba(45,212,191,0.12)', borderRadius: '10px',
+              fontSize: '12px', color: '#e2e8f0', lineHeight: 1.5,
+            }}>
+              💡 {chipInfo.recommendation}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Preset */}

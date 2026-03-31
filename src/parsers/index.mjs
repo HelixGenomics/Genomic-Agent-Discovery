@@ -12,10 +12,13 @@
  *   - VCF 4.x (chip and WGS)
  */
 
-import { createReadStream } from 'node:fs';
+import { createReadStream, readFileSync, writeFileSync, mkdtempSync, unlinkSync, existsSync } from 'node:fs';
 import { createInterface } from 'node:readline';
-import { basename } from 'node:path';
+import { basename, join } from 'node:path';
 import { stat } from 'node:fs/promises';
+import { gunzipSync } from 'node:zlib';
+import { tmpdir } from 'node:os';
+import AdmZip from 'adm-zip';
 
 import { parse23andMe } from './twentythree-and-me.mjs';
 import { parseAncestryDna } from './ancestry-dna.mjs';
@@ -192,6 +195,53 @@ function detect23andMeVersion(count, parserVersion) {
  * @param {function} [options.onProgress] - Progress callback(lineCount).
  * @returns {Promise<{format: string, version: string|null, count: number, genotypes: Map, noCallRate: number, metadata: {headerLines: string[], build: string|null}}>}
  */
+
+/**
+ * Extract a DNA file from a .zip or .gz archive to a temp file.
+ * Returns the path to the extracted file (caller must clean up).
+ * Returns null if the file is not an archive.
+ */
+function extractArchive(filePath) {
+  const lower = filePath.toLowerCase();
+
+  if (lower.endsWith('.gz')) {
+    const compressed = readFileSync(filePath);
+    const decompressed = gunzipSync(compressed);
+    const tmpDir = mkdtempSync(join(tmpdir(), 'helix-'));
+    const outName = basename(filePath).replace(/\.gz$/i, '');
+    const outPath = join(tmpDir, outName);
+    writeFileSync(outPath, decompressed);
+    console.log(`[parser] Decompressed .gz: ${basename(filePath)} -> ${outName}`);
+    return outPath;
+  }
+
+  if (lower.endsWith('.zip')) {
+    const zip = new AdmZip(filePath);
+    const entries = zip.getEntries().filter(
+      e => !e.isDirectory && /\.(txt|csv|tsv|vcf)$/i.test(e.entryName)
+    );
+    if (entries.length === 0) {
+      throw new Error(
+        'No DNA data file found inside the zip archive. ' +
+        'Expected a .txt, .csv, .tsv, or .vcf file inside the zip.'
+      );
+    }
+    // Use the largest matching file (most likely the actual data)
+    entries.sort((a, b) => b.header.size - a.header.size);
+    const entry = entries[0];
+    const tmpDir = mkdtempSync(join(tmpdir(), 'helix-'));
+    const outPath = join(tmpDir, basename(entry.entryName));
+    writeFileSync(outPath, entry.getData());
+    console.log(
+      `[parser] Extracted from zip: ${entry.entryName} ` +
+      `(${(entry.header.size / 1024 / 1024).toFixed(1)} MB)`
+    );
+    return outPath;
+  }
+
+  return null;
+}
+
 export async function parseDnaFile(filePath, forceFormat, options = {}) {
   // Handle case where second arg is options object (no forceFormat)
   if (typeof forceFormat === 'object' && forceFormat !== null) {
@@ -199,19 +249,30 @@ export async function parseDnaFile(filePath, forceFormat, options = {}) {
     forceFormat = undefined;
   }
 
+  // Extract from archive if needed (.zip, .gz)
+  let extractedPath = null;
+  try {
+    extractedPath = extractArchive(filePath);
+  } catch (err) {
+    throw new Error(`Failed to extract archive: ${err.message}`);
+  }
+  const actualPath = extractedPath || filePath;
+
   // Verify file exists and is readable
   let fileStat;
   try {
-    fileStat = await stat(filePath);
+    fileStat = await stat(actualPath);
   } catch (err) {
-    throw new Error(`Cannot access DNA file: ${filePath} (${err.code || err.message})`);
+    if (extractedPath) try { unlinkSync(extractedPath); } catch {}
+    throw new Error(`Cannot access DNA file: ${actualPath} (${err.code || err.message})`);
   }
 
   if (!fileStat.isFile()) {
-    throw new Error(`Path is not a file: ${filePath}`);
+    if (extractedPath) try { unlinkSync(extractedPath); } catch {}
+    throw new Error(`Path is not a file: ${actualPath}`);
   }
 
-  const fileName = basename(filePath);
+  const fileName = basename(extractedPath ? filePath : actualPath);
   const fileSizeMB = (fileStat.size / 1024 / 1024).toFixed(1);
 
   // Determine format
@@ -231,9 +292,9 @@ export async function parseDnaFile(filePath, forceFormat, options = {}) {
     confidence = 'forced';
   } else {
     // Auto-detect from first 20 lines
-    const firstLines = await readFirstLines(filePath, 20);
+    const firstLines = await readFirstLines(actualPath, 20);
     if (firstLines.length === 0) {
-      throw new Error(`File is empty: ${filePath}`);
+      throw new Error(`File is empty: ${actualPath}`);
     }
     const detection = detectFormat(firstLines, fileName);
     format = detection.format;
@@ -259,23 +320,23 @@ export async function parseDnaFile(filePath, forceFormat, options = {}) {
 
   switch (format) {
     case FORMATS.TWENTYTHREE_AND_ME:
-      result = await parse23andMe(filePath, options);
+      result = await parse23andMe(actualPath, options);
       break;
 
     case FORMATS.ANCESTRY_DNA:
-      result = await parseAncestryDna(filePath, options);
+      result = await parseAncestryDna(actualPath, options);
       break;
 
     case FORMATS.MYHERITAGE:
-      result = await parseMyHeritage(filePath, options);
+      result = await parseMyHeritage(actualPath, options);
       break;
 
     case FORMATS.FAMILY_TREE_DNA:
-      result = await parseFamilyTreeDna(filePath, options);
+      result = await parseFamilyTreeDna(actualPath, options);
       break;
 
     case FORMATS.VCF:
-      result = await parseVcf(filePath, options);
+      result = await parseVcf(actualPath, options);
       break;
 
     default:
@@ -309,6 +370,11 @@ export async function parseDnaFile(filePath, forceFormat, options = {}) {
     `(${noCallCount.toLocaleString()} no-calls, ${(noCallRate * 100).toFixed(1)}% no-call rate) ` +
     `in ${elapsed}s`
   );
+
+  // Clean up extracted temp file
+  if (extractedPath) {
+    try { unlinkSync(extractedPath); } catch {}
+  }
 
   return {
     format,

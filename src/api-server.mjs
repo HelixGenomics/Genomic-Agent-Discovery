@@ -1,8 +1,33 @@
 import express from 'express';
 import cors from 'cors';
 import { readFileSync, existsSync, readdirSync, statSync, appendFileSync, mkdirSync, rmSync } from 'fs';
-import { join, basename } from 'path';
+import { join, basename, resolve, isAbsolute } from 'path';
+import { homedir } from 'os';
 import { spawn } from 'child_process';
+import { parseDnaFile } from './parsers/index.mjs';
+
+
+/**
+ * Resolve a DNA file path. Checks:
+ *   1. As-is (absolute or relative to CWD)
+ *   2. ~/Downloads/
+ *   3. Home directory
+ *   4. data/ directory in project
+ */
+function resolveDnaPath(raw) {
+  if (!raw) return null;
+  const candidates = [
+    isAbsolute(raw) ? raw : resolve(raw),
+    join(homedir(), 'Downloads', basename(raw)),
+    join(homedir(), raw),
+    join(homedir(), 'Desktop', basename(raw)),
+    join(process.cwd(), 'data', basename(raw)),
+  ];
+  for (const p of candidates) {
+    if (existsSync(p)) return p;
+  }
+  return isAbsolute(raw) ? raw : resolve(raw); // fall back to original
+}
 
 // Track the active analysis subprocess
 let activeChild = null;
@@ -321,7 +346,8 @@ export function createApiServer(config, stateDir, orchestrator) {
       activeChild = null;
     }
 
-    const args = ['src/cli.mjs', '--dna', dnaPath];
+    const resolvedDnaPath = resolveDnaPath(dnaPath);
+    const args = ['src/cli.mjs', '--dna', resolvedDnaPath, '--no-dashboard'];
 
     if (preset && preset !== 'custom') {
       args.push('--preset', preset);
@@ -461,6 +487,90 @@ export function createApiServer(config, stateDir, orchestrator) {
     } catch (err) {
       console.error('[api-server] Failed to inject chat message:', err.message);
       res.status(500).json({ error: 'Failed to inject message', detail: err.message });
+    }
+  });
+
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // POST /api/check-chip
+  //
+  // Quick chip analysis: detects provider, chip version, SNP count, sex,
+  // and coverage stats. No analysis run — just file introspection.
+  // ─────────────────────────────────────────────────────────────────────────
+  app.post('/api/check-chip', async (req, res) => {
+    const { dnaPath } = req.body || {};
+    if (!dnaPath) {
+      return res.status(400).json({ error: 'dnaPath is required' });
+    }
+
+    const resolvedPath = resolveDnaPath(dnaPath);
+    try {
+      const parsed = await parseDnaFile(resolvedPath);
+      const count = parsed.count;
+
+      // Detect provider and chip version
+      let provider = 'Unknown';
+      let chipVersion = 'Unknown';
+
+      if (parsed.format === '23andMe') {
+        provider = '23andMe';
+        if (count > 900000) chipVersion = 'v5+ (GSA chip)';
+        else if (count > 600000) chipVersion = 'v4/v5';
+        else if (count > 500000) chipVersion = 'v3';
+        else chipVersion = 'v2 or earlier';
+      } else if (parsed.format === 'AncestryDNA') {
+        provider = 'AncestryDNA';
+        if (count > 700000) chipVersion = 'v2+ chip';
+        else chipVersion = 'v1 chip';
+      } else if (parsed.format === 'MyHeritage') {
+        provider = 'MyHeritage';
+        chipVersion = 'Illumina OmniExpress';
+      } else if (parsed.format === 'FamilyTreeDNA') {
+        provider = 'FamilyTreeDNA';
+        chipVersion = 'Illumina chip';
+      } else if (parsed.format === 'VCF') {
+        provider = 'VCF file';
+        chipVersion = count > 1000000 ? 'Whole Genome / Imputed' : 'Genotyping chip';
+      }
+
+      // Detect sex from chrY/chrX genotype patterns
+      let chrYCount = 0, chrXCount = 0, chrXHetCount = 0;
+      for (const [, entry] of parsed.genotypes) {
+        const geno = entry.genotype;
+        if (!geno || geno === '--') continue;
+        if (entry.chromosome === 'Y') {
+          chrYCount++;
+        } else if (entry.chromosome === 'X') {
+          chrXCount++;
+          if (geno.length === 2 && geno[0] !== geno[1]) chrXHetCount++;
+        }
+      }
+      let sex = 'Not determined';
+      if (chrYCount > 100) sex = 'Male (XY)';
+      else if (chrYCount < 10 && chrXCount > 100 && (chrXHetCount / chrXCount) > 0.1) sex = 'Female (XX)';
+
+      // Coverage stats (without reference DB, provide estimates)
+      const estimatedImputed = Math.round(count * 46);
+
+      res.json({
+        provider,
+        chipVersion,
+        format: parsed.format,
+        version: parsed.version,
+        sex,
+        snpCount: count,
+        noCallRate: parsed.noCallRate,
+        estimatedImputedSnps: estimatedImputed,
+        build: parsed.metadata?.build || null,
+        recommendation: count < 500000
+          ? 'Your chip has limited coverage. Imputation is strongly recommended.'
+          : count > 900000
+          ? 'Excellent chip coverage! Imputation will still improve rare variant analysis.'
+          : 'Good chip coverage. Imputation recommended for best results.',
+      });
+    } catch (err) {
+      console.error('[api-server] Check-chip error:', err.message);
+      res.status(400).json({ error: `Could not parse DNA file: ${err.message}` });
     }
   });
 

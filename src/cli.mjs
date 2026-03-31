@@ -102,6 +102,8 @@ ${chalk.bold("Cost Control:")}
 
 ${chalk.bold("Other:")}
   ${chalk.green("--help")}                  Show this help message
+  ${chalk.green("--serve")}                  Start the dashboard in setup mode (no --dna required).
+                              Opens http://localhost:3000 to configure and launch analysis.
 
 ${chalk.bold("Examples:")}
   ${chalk.dim("# Quick scan with defaults")}

@@ -9,3 +9,6 @@ output/
 *.db-shm
 downloads/
 .DS_Store
+
+# Personal/custom presets
+config/presets/debendox-trisomy9.yaml
