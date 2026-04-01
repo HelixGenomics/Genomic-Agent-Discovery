@@ -742,7 +742,7 @@
 .body {
   flex: 1;
   display: grid;
-  grid-template-columns: 260px 1fr 380px;
+  grid-template-columns: 240px 1fr 380px;
   grid-template-rows: 1fr;
   overflow: hidden;
   min-height: 0;
@@ -758,40 +758,29 @@
   overflow: hidden;
 }
 
-/* Centre: Visualiser */
+/* Centre: Setup or Chat */
 .panel-viz {
   grid-row: 1;
-  grid-column: 2;
+  grid-column: 2 / 4;
   position: relative;
   overflow: hidden;
 }
+.panel-chat {
+  grid-row: 1;
+  grid-column: 2;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border-right: 1px solid var(--border-dim);
+}
 
-/* Right: Findings + Chat stacked */
-.panel-right {
+/* Right: Findings */
+.panel-findings {
   grid-row: 1;
   grid-column: 3;
   display: flex;
   flex-direction: column;
-  border-left: 1px solid var(--border-dim);
   overflow: hidden;
-}
-.panel-findings {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-  min-height: 100px;
-  resize: vertical;
-}
-.panel-chat {
-  flex: 0 0 auto;
-  max-height: 50%;
-  min-height: 120px;
-  border-top: 1px solid var(--border-dim);
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-  resize: vertical;
 }
 
 /* ── Panel chrome ───────────────────────────────────────── */
@@ -1327,25 +1316,24 @@
   }
   .panel-agents,
   .panel-viz,
-  .panel-right,
   .panel-findings,
   .panel-chat {
     border: none;
     border-bottom: 1px solid var(--border-dim);
     max-height: none;
     overflow: visible;
+    grid-column: auto;
   }
   .panel-agents  { min-height: 200px; }
   .panel-viz     { min-height: 260px; }
-  .panel-right   { min-height: 400px; }
+  .panel-chat    { min-height: 300px; }
   .panel-findings{ min-height: 300px; }
-  .panel-chat    { min-height: 220px; }
   .panel-body    { overflow: visible; max-height: none; }
   .nav-job { display: none; }
 }
 
 @media (min-width: 769px) and (max-width: 1100px) {
   .body {
-    grid-template-columns: 220px 1fr 320px;
+    grid-template-columns: 200px 1fr 300px;
   }
 }

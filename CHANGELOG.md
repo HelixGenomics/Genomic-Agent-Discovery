@@ -37,7 +37,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Agent model parsed from log headers instead of hardcoded to haiku
 - Web search duplicate detection improved with word-overlap matching (was prefix-only)
 - Duplicate search warning now suggests checking messages or using different angle
-- Right panel layout: findings and chat stacked vertically (was chat spanning full bottom)
+- 3-column layout when running: Agents (left) | Chat (center) | Findings (right) — no overlap
+- Agent status detection uses exit code from log footer instead of keyword matching (fixes false errors)
 - First agent auto-expands on load for both presets and custom agents
 - Custom agent cards are collapsible (click header to toggle)
 - Prompt textareas are vertically resizable

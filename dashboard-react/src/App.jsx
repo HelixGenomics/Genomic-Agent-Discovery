@@ -1593,17 +1593,16 @@ export default function App() {
           jobId={jobId}
         />
 
-        <main className="panel-viz">
-          {noActivity
-            ? <SetupPanel onStarted={() => { setIsRunning(true); setTimeout(resolveJobId, 2000) }} />
-            : <ActivityCanvas agents={agents} selectedId={selectedAgent} chat={chat} findings={findings} />
-          }
-        </main>
-
-        <div className="panel-right">
-          <FindingsPanel findings={findings} />
-          <ChatPanel messages={chat} jobId={jobId} />
-        </div>
+        {noActivity ? (
+          <main className="panel-viz" style={{ gridColumn: '2 / 4' }}>
+            <SetupPanel onStarted={() => { setIsRunning(true); setTimeout(resolveJobId, 2000) }} />
+          </main>
+        ) : (
+          <>
+            <ChatPanel messages={chat} jobId={jobId} />
+            <FindingsPanel findings={findings} />
+          </>
+        )}
       </div>
 
       {/* ── Status Bar ── */}
