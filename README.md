@@ -16,7 +16,7 @@
   <a href="#architecture">Architecture</a> &bull;
   <a href="#configuration-reference">Configuration</a> &bull;
   <a href="#database">Database</a> &bull;
-  <a href="#privacy--security">Privacy</a>
+  <a href="#privacy--security">Privacy</a> &bull;
   <a href="#about">About This Project</a>
 </p>
 
