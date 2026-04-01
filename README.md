@@ -122,7 +122,7 @@ I believe this provides a significant relation to the medication and my brothers
 
 
 
-## Upload your raw DNA file from 23andMe, AncestryDNA, MyHeritage, FamilyTreeDNA, or any VCF -- and watch a team of AI agents fan out across 12+ public genomics databases, share discoveries with each other in real time, and produce a comprehensive health report. Everything runs on your machine. Nothing is uploaded anywhere.
+Upload your raw DNA file from 23andMe, AncestryDNA, MyHeritage, FamilyTreeDNA, or any VCF -- and watch a team of AI agents fan out across 12+ public genomics databases, share discoveries with each other in real time, and produce a comprehensive health report. Everything runs on your machine. Nothing is uploaded anywhere.
 
 <p align="center">
   <img src="docs/screenshots/gif-pipeline-running.gif" alt="Pipeline running — agents analyzing, findings arriving, inter-agent chat" width="720">
