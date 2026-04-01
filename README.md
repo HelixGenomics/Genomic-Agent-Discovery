@@ -739,9 +739,9 @@ I am actively seeking contact with other families who experienced birth defects 
 Contact: admin@helixsequencing.com
 I am also planning whole genome sequencing (WGS) of my brother’s DNA to explore potential protective modifiers that may have contributed to his long-term survival — one of the oldest known living cases of mosaic trisomy 9.
 
+End of Debendox/Trisomy 9 case study. The general project README continues below.
 ---
 
-End of Debendox/Trisomy 9 case study. The general project README continues below.
 
 
 Upload your raw DNA file from 23andMe, AncestryDNA, MyHeritage, FamilyTreeDNA, or any VCF -- and watch a team of AI agents fan out across 12+ public genomics databases, share discoveries with each other in real time, and produce a comprehensive health report. Everything runs on your machine. Nothing is uploaded anywhere.
