@@ -45,10 +45,6 @@ This is something personally important to me and one of the main reasons for bui
 
 The full preset agent json template can be found here:
  
- - docs/debendox-trisomy9.json
- 
- Or view it inline below:
- 
  ```json
  {
    "helixTemplate": "1.0",
