@@ -12,7 +12,7 @@
     "build-db": "bash scripts/build-database.sh",
     "seed-demo": "node scripts/seed-demo-data.mjs",
     "verify-db": "node scripts/verify-database.mjs",
-    "test": "node --test 'tests/*.mjs'"
+    "test": "node --test tests/*.mjs"
   },
   "keywords": [
     "genomics",
