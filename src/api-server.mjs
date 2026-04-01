@@ -74,19 +74,24 @@ function readAgentsFromDisk(jobDir) {
       const logSize = logStat.size;
       const lastActivity = logStat.mtime.toISOString();
 
-      // Read last few lines of log to guess status
+      // Read log to detect status and model
       let status = 'done';
+      let model = 'haiku';
       try {
-        const tail = readFileSync(logPath, 'utf-8').slice(-2000);
+        const logContent = readFileSync(logPath, 'utf-8');
+        const tail = logContent.slice(-2000);
         if (/error|failed|exception/i.test(tail) && !/completed|finished/i.test(tail.slice(-200))) {
           status = 'error';
         }
+        // Parse model from log header: "Model: haiku (claude-haiku-4-5-20251001)"
+        const modelMatch = logContent.slice(0, 500).match(/Model:\s*(\w+)/);
+        if (modelMatch) model = modelMatch[1];
       } catch { /* ignore */ }
 
       const mdPath = join(logsDir, id + '.md');
       agents[id] = {
         label: id.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase()),
-        model: 'haiku',
+        model,
         status,
         logSize,
         lastActivity,

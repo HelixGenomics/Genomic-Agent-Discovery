@@ -279,10 +279,7 @@ function SetupPanel({ onStarted }) {
         agentOverrides[agentId] = { ...agentOverrides[agentId], ...edits }
       }
 
-      const res = await fetch('/api/start-analysis', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
+      const payload = {
           dnaPath: dnaPath.trim(),
           preset,
           settings: {
@@ -296,7 +293,15 @@ function SetupPanel({ onStarted }) {
           },
           agentOverrides,
           customAgents: preset === 'custom' ? customAgents.filter(a => a.id && a.prompt) : undefined,
-        }),
+      }
+      console.log('[helix] Start payload:', JSON.stringify(payload, null, 2).slice(0, 2000))
+      if (payload.customAgents) {
+        for (const a of payload.customAgents) console.log('[helix] Agent:', a.id, 'model:', a.model, 'role:', a.role, 'prompt:', (a.prompt||'').slice(0,50))
+      }
+      const res = await fetch('/api/start-analysis', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Failed to start')
