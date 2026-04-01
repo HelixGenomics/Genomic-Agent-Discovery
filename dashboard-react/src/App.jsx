@@ -465,27 +465,72 @@ function SetupPanel({ onStarted }) {
         <div className="setup-section">
           <div className="setup-label">Custom Agents</div>
           <div className="setup-agent-outputs">
-            {customAgents.map((agent, i) => (
-              <div key={i} className="setup-custom-agent">
-                <div className="setup-custom-agent-header">
-                  <input className="setup-input" placeholder="Agent ID (e.g. drug-metabolism)" value={agent.id}
-                    onChange={e => setCustomAgents(prev => prev.map((a, j) => j===i ? {...a, id: e.target.value} : a))} />
-                  <input className="setup-input" placeholder="Label" value={agent.label}
-                    onChange={e => setCustomAgents(prev => prev.map((a, j) => j===i ? {...a, label: e.target.value} : a))} />
-                  <select className="setup-select" value={agent.model}
-                    onChange={e => setCustomAgents(prev => prev.map((a, j) => j===i ? {...a, model: e.target.value} : a))}>
-                    <option value="haiku">Haiku</option>
-                    <option value="sonnet">Sonnet</option>
-                    <option value="opus">Opus</option>
-                  </select>
-                  <button className="btn-custom-agent-remove" onClick={() => setCustomAgents(prev => prev.filter((_, j) => j!==i))}>✕</button>
+            {customAgents.map((agent, i) => {
+              const isOpen = expandedPrompts[`custom-${i}`] ?? (i === 0)
+              return (
+                <div key={i} className={`setup-custom-agent${isOpen ? '' : ' collapsed'}`}>
+                  <div className="setup-custom-agent-header" onClick={() => setExpandedPrompts(prev => ({ ...prev, [`custom-${i}`]: !isOpen }))}>
+                    <span className="setup-prompt-chevron">{isOpen ? '▲' : '▼'}</span>
+                    <input className="setup-input" placeholder="Agent ID" value={agent.id} onClick={e => e.stopPropagation()}
+                      onChange={e => setCustomAgents(prev => prev.map((a, j) => j===i ? {...a, id: e.target.value} : a))} />
+                    <input className="setup-input" placeholder="Label" value={agent.label} onClick={e => e.stopPropagation()}
+                      onChange={e => setCustomAgents(prev => prev.map((a, j) => j===i ? {...a, label: e.target.value} : a))} />
+                    <select className="setup-select" value={agent.model} onClick={e => e.stopPropagation()}
+                      onChange={e => setCustomAgents(prev => prev.map((a, j) => j===i ? {...a, model: e.target.value} : a))}>
+                      <option value="haiku">Haiku</option>
+                      <option value="sonnet">Sonnet</option>
+                      <option value="opus">Opus</option>
+                    </select>
+                    <button className="btn-custom-agent-remove" onClick={e => { e.stopPropagation(); setCustomAgents(prev => prev.filter((_, j) => j!==i)) }}>✕</button>
+                  </div>
+                  {isOpen && (
+                    <>
+                      <div className="setup-agent-settings-grid" style={{ padding: '8px 10px 0' }}>
+                        <div className="setup-agent-setting">
+                          <label>Max Tool Calls</label>
+                          <input className="setup-input setup-input-sm" type="number" min="10" max="500" step="10"
+                            value={agent.maxToolCalls ?? 100}
+                            onChange={e => setCustomAgents(prev => prev.map((a, j) => j===i ? {...a, maxToolCalls: parseInt(e.target.value) || 100} : a))} />
+                        </div>
+                        <div className="setup-agent-setting">
+                          <label>Temperature</label>
+                          <input className="setup-input setup-input-sm" type="number" min="0" max="1" step="0.05"
+                            value={agent.temperature ?? 0.3}
+                            onChange={e => setCustomAgents(prev => prev.map((a, j) => j===i ? {...a, temperature: parseFloat(e.target.value) || 0.3} : a))} />
+                        </div>
+                        <div className="setup-agent-setting">
+                          <label>Check Msgs</label>
+                          <input className="setup-input setup-input-sm" type="number" min="1" max="20"
+                            value={agent.checkMessages ?? 7}
+                            onChange={e => setCustomAgents(prev => prev.map((a, j) => j===i ? {...a, checkMessages: parseInt(e.target.value) || 7} : a))} />
+                        </div>
+                        <div className="setup-agent-setting">
+                          <label>Web Search</label>
+                          <button className={`setup-toggle-sm${(agent.webSearch ?? true) ? ' on' : ''}`}
+                            onClick={() => setCustomAgents(prev => prev.map((a, j) => j===i ? {...a, webSearch: !(a.webSearch ?? true)} : a))}>
+                            {(agent.webSearch ?? true) ? 'ON' : 'OFF'}
+                          </button>
+                        </div>
+                        <div className="setup-agent-setting">
+                          <label>Role</label>
+                          <select className="setup-select setup-select-sm"
+                            value={agent.role || 'collector'}
+                            onChange={e => setCustomAgents(prev => prev.map((a, j) => j===i ? {...a, role: e.target.value} : a))}>
+                            <option value="collector">Collector</option>
+                            <option value="synthesizer">Synthesizer</option>
+                            <option value="narrator">Narrator</option>
+                          </select>
+                        </div>
+                      </div>
+                      <textarea className="setup-textarea setup-prompt-textarea" placeholder="Research prompt for this agent…" value={agent.prompt}
+                        onChange={e => setCustomAgents(prev => prev.map((a, j) => j===i ? {...a, prompt: e.target.value} : a))} />
+                    </>
+                  )}
                 </div>
-                <textarea className="setup-textarea" placeholder="Research prompt for this agent…" value={agent.prompt}
-                  onChange={e => setCustomAgents(prev => prev.map((a, j) => j===i ? {...a, prompt: e.target.value} : a))} />
-              </div>
-            ))}
+              )
+            })}
             <button className="btn-add-custom-agent" onClick={() => setCustomAgents(prev => [...prev,
-              { id: `custom-agent-${prev.length+1}`, label: '', model: 'haiku', prompt: '' }
+              { id: `custom-agent-${prev.length+1}`, label: '', model: 'haiku', role: 'collector', prompt: '' }
             ])}>+ Add Agent</button>
           </div>
         </div>
@@ -520,37 +565,68 @@ function SetupPanel({ onStarted }) {
                     Tier {tier}: {tierLabels[tier]}
                     <span className="setup-tier-meta">default: {tierModels[tier]} · {agents.length} agent{agents.length > 1 ? 's' : ''}</span>
                   </div>
-                  {agents.map(agent => {
-                    const editedPrompt = agentEdits[agent.id]?.prompt
-                    const editedModel = agentEdits[agent.id]?.model
-                    const isEdited = editedPrompt != null || editedModel != null
+                  {agents.map((agent, agentIdx) => {
+                    const edits = agentEdits[agent.id] || {}
+                    const isEdited = Object.keys(edits).length > 0
+                    // Auto-expand first agent in first tier
+                    const isFirstAgent = tier === '1' && agentIdx === 0
+                    const isOpen = expandedPrompts[agent.id] ?? isFirstAgent
                     return (
-                      <div key={agent.id} className={`setup-prompt-row${expandedPrompts[agent.id] ? ' expanded' : ''}${isEdited ? ' edited' : ''}`}>
-                        <button className="setup-prompt-toggle" onClick={() => togglePrompt(agent.id)}>
+                      <div key={agent.id} className={`setup-prompt-row${isOpen ? ' expanded' : ''}${isEdited ? ' edited' : ''}`}>
+                        <button className="setup-prompt-toggle" onClick={() => setExpandedPrompts(prev => ({ ...prev, [agent.id]: !isOpen }))}>
                           <span className="setup-prompt-label">{agent.label}</span>
-                          <span className="setup-prompt-model">{editedModel || agent.model}</span>
+                          <span className="setup-prompt-model">{edits.model || agent.model}</span>
                           {isEdited && <span className="setup-prompt-edited">edited</span>}
-                          <span className="setup-prompt-chevron">{expandedPrompts[agent.id] ? '▲' : '▼'}</span>
+                          <span className="setup-prompt-chevron">{isOpen ? '▲' : '▼'}</span>
                         </button>
-                        {expandedPrompts[agent.id] && (
+                        {isOpen && (
                           <div className="setup-prompt-edit-area">
-                            <div className="setup-prompt-controls">
-                              <select className="setup-select setup-select-sm" value={editedModel || agent.model}
-                                onChange={e => setAgentSetting(agent.id, 'model', e.target.value === agent.model ? undefined : e.target.value)}>
-                                <option value="haiku">haiku</option>
-                                <option value="sonnet">sonnet</option>
-                                <option value="opus">opus</option>
-                              </select>
-                              {isEdited && (
-                                <button className="setup-prompt-reset" onClick={() => setAgentEdits(prev => { const next = {...prev}; delete next[agent.id]; return next })}>
-                                  Reset
+                            <div className="setup-agent-settings-grid">
+                              <div className="setup-agent-setting">
+                                <label>Model</label>
+                                <select className="setup-select setup-select-sm" value={edits.model || agent.model}
+                                  onChange={e => setAgentSetting(agent.id, 'model', e.target.value === agent.model ? undefined : e.target.value)}>
+                                  <option value="haiku">haiku</option>
+                                  <option value="sonnet">sonnet</option>
+                                  <option value="opus">opus</option>
+                                </select>
+                              </div>
+                              <div className="setup-agent-setting">
+                                <label>Max Tool Calls</label>
+                                <input className="setup-input setup-input-sm" type="number" min="10" max="500" step="10"
+                                  value={edits.maxToolCalls ?? 100}
+                                  onChange={e => setAgentSetting(agent.id, 'maxToolCalls', parseInt(e.target.value) || 100)} />
+                              </div>
+                              <div className="setup-agent-setting">
+                                <label>Temperature</label>
+                                <input className="setup-input setup-input-sm" type="number" min="0" max="1" step="0.05"
+                                  value={edits.temperature ?? 0.3}
+                                  onChange={e => setAgentSetting(agent.id, 'temperature', parseFloat(e.target.value) || 0.3)} />
+                              </div>
+                              <div className="setup-agent-setting">
+                                <label>Check Msgs</label>
+                                <input className="setup-input setup-input-sm" type="number" min="1" max="20" step="1"
+                                  value={edits.checkMessages ?? 7}
+                                  onChange={e => setAgentSetting(agent.id, 'checkMessages', parseInt(e.target.value) || 7)} />
+                              </div>
+                              <div className="setup-agent-setting">
+                                <label>Web Search</label>
+                                <button className={`setup-toggle-sm${(edits.webSearch ?? true) ? ' on' : ''}`}
+                                  onClick={() => setAgentSetting(agent.id, 'webSearch', !(edits.webSearch ?? true))}>
+                                  {(edits.webSearch ?? true) ? 'ON' : 'OFF'}
                                 </button>
-                              )}
+                              </div>
+                              <div className="setup-agent-setting">
+                                {isEdited && (
+                                  <button className="setup-prompt-reset" onClick={() => setAgentEdits(prev => { const next = {...prev}; delete next[agent.id]; return next })}>
+                                    Reset All
+                                  </button>
+                                )}
+                              </div>
                             </div>
                             <textarea
                               className="setup-textarea setup-prompt-textarea"
-                              rows={8}
-                              value={editedPrompt ?? agent.prompt ?? ''}
+                              value={edits.prompt ?? agent.prompt ?? ''}
                               onChange={e => setAgentSetting(agent.id, 'prompt', e.target.value === agent.prompt ? undefined : e.target.value)}
                             />
                           </div>
@@ -1473,7 +1549,9 @@ export default function App() {
     }).catch(() => {})
   }
 
-  const noActivity = !isRunning && Object.keys(agents).length === 0
+  // Show setup only when no job has ever been loaded (no agents, no findings)
+  const hasJobData = Object.keys(agents).length > 0 || findings.length > 0 || chat.length > 0
+  const noActivity = !isRunning && !hasJobData
 
   return (
     <div className="app">
@@ -1493,9 +1571,10 @@ export default function App() {
           }
         </main>
 
-        <FindingsPanel findings={findings} />
-
-        <ChatPanel messages={chat} jobId={jobId} />
+        <div className="panel-right">
+          <FindingsPanel findings={findings} />
+          <ChatPanel messages={chat} jobId={jobId} />
+        </div>
       </div>
 
       {/* ── Status Bar ── */}

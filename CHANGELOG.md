@@ -5,6 +5,48 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.0] - 2026-04-01
+
+### Added
+- **Template import/export** — share agent configurations as JSON files, also supports importing YAML presets
+- **Editable agent prompts** — preset prompts are now fully editable in the dashboard (was read-only)
+- **Per-agent settings** — model, max tool calls, temperature, check messages, and web search per agent
+- **Tier grouping** — agents displayed by tier (Collection → Synthesis → Report) showing the pipeline flow
+- **Database status panel** — live view of all 13 annotation databases with row counts, sizes, and status indicators
+- **Custom agent pipeline from templates** — imported templates auto-build pipeline phases from agent roles
+- **Agent role selector** — custom agents can be assigned as collector, synthesizer, or narrator
+- `GET /api/db-status` endpoint returning table row counts and build metadata
+- Debendox/Trisomy 9 example template in `config/templates/`
+
+### Fixed
+- Per-agent model overrides now actually applied to spawned CLI processes (was ignored)
+- Per-agent prompt edits now passed through to agent system prompts (was ignored)
+- `maxToolCalls` now passed as `--max-turns` to Claude CLI (was not used)
+- Custom agents from imported templates now build proper pipeline phases (was not wired up)
+- Dashboard no longer auto-redirects to setup when job completes — stays on results
+- Findings and chat panels no longer overlap — stacked in right column with resize support
+- Contact emails updated to admin@helixsequencing.com
+
+### Changed
+- Right panel layout: findings and chat are now stacked vertically (was chat spanning full bottom)
+- First agent auto-expands on load for both presets and custom agents
+- Custom agent cards are collapsible (click header to toggle)
+- Prompt textareas are vertically resizable
+
+## [1.1.0] - 2026-04-01
+
+### Added
+- GitHub professionalism: CHANGELOG.md, SECURITY.md, CODE_OF_CONDUCT.md
+- CI workflow (Node 18/20/22), release workflow (auto on tag push)
+- FUNDING.yml, issue template config
+- 20 GitHub topics for discoverability
+
+### Fixed
+- PharmGKB downloader: fixed zip extraction and column name mapping (0 → 4,932 rows)
+- DisGeNET downloader: properly detects HTML auth-wall responses
+- SNPedia downloader: rewritten with retry/resume, JSON cache validation
+- Test glob pattern for CI compatibility
+
 ## [1.0.0] - 2026-04-01
 
 ### Added
@@ -28,4 +70,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - DisGeNET downloader: properly detects auth-wall HTML responses instead of caching them
 - SNPedia downloader: uses Semantic MediaWiki bulk API instead of individual page crawling
 
+[1.2.0]: https://github.com/HelixGenomics/Genomic-Agent-Discovery/releases/tag/v1.2.0
+[1.1.0]: https://github.com/HelixGenomics/Genomic-Agent-Discovery/releases/tag/v1.1.0
 [1.0.0]: https://github.com/HelixGenomics/Genomic-Agent-Discovery/releases/tag/v1.0.0

@@ -650,17 +650,30 @@ export class Orchestrator {
     });
 
     // Spawn the agent process
-    // Merge any dashboard-injected overrides (e.g. custom mdOutputPath)
+    // Merge any dashboard-injected overrides (model, prompt, maxToolCalls, etc.)
     const overrides = this.agentOverrides[agentId] || {};
+
+    // Apply model override
+    const finalModel = overrides.model || agentConfig.model || "haiku";
+
+    // Apply prompt override — if user edited the prompt in dashboard, use that
+    const finalSystemPrompt = overrides.prompt ? buildAgentPrompt(
+      { ...agentConfig, prompt: overrides.prompt },
+      this.config,
+      agentId
+    ) : systemPrompt;
+
+    const finalMaxToolCalls = overrides.maxToolCalls || agentConfig.max_tool_calls || undefined;
 
     const handle = await spawnAgent(
       {
         id: agentId,
-        model: agentConfig.model || "haiku",
-        systemPrompt,
+        model: finalModel,
+        systemPrompt: finalSystemPrompt,
         userPrompt,
         maxTokens: agentConfig.max_tokens || this.config.agent_defaults?.max_tokens || 16384,
         mdOutputPath: overrides.mdOutputPath || agentConfig.mdOutputPath || null,
+        maxToolCalls: finalMaxToolCalls,
       },
       mcpConfigPath,
       this.stateDir,
@@ -673,6 +686,7 @@ export class Orchestrator {
 
     // Update state
     this.agents[agentId].status = "running";
+    this.agents[agentId].model = finalModel;
     this.agents[agentId].logPath = handle.logPath;
     this.agents[agentId].handle = handle;
 

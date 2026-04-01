@@ -474,11 +474,63 @@ async function main() {
     const { Orchestrator } = await import("./orchestrator.mjs");
     orchestrator = new Orchestrator(config, { jobId, stateDir: jobStateDir });
 
-    // Apply per-agent overrides injected from the dashboard (e.g. custom md output paths)
+    // Apply per-agent overrides injected from the dashboard (model, prompt, settings)
     if (process.env.HELIX_AGENT_OVERRIDES) {
       try {
         orchestrator.agentOverrides = JSON.parse(process.env.HELIX_AGENT_OVERRIDES);
       } catch { /* ignore malformed JSON */ }
+    }
+
+    // Apply custom agent pipeline from dashboard (imported templates / custom presets)
+    if (process.env.HELIX_CUSTOM_AGENTS) {
+      try {
+        const customAgents = JSON.parse(process.env.HELIX_CUSTOM_AGENTS);
+        if (customAgents.length > 0) {
+          // Group agents by role into pipeline phases
+          const collectors = customAgents.filter(a => !a.role || a.role === 'collector');
+          const synthesizers = customAgents.filter(a => a.role === 'synthesizer');
+          const narrators = customAgents.filter(a => a.role === 'narrator');
+
+          const phases = [];
+          if (collectors.length > 0) {
+            phases.push({
+              id: 'collectors', label: 'Collection', parallel: true,
+              agents: collectors.map(a => ({
+                id: a.id, label: a.label, model: a.model || 'haiku', role: 'collector',
+                prompt: a.prompt, max_findings: 5, web_search: a.webSearch ?? true,
+                max_tool_calls: a.maxToolCalls,
+              }))
+            });
+          }
+          if (synthesizers.length > 0) {
+            phases.push({
+              id: 'synthesis', label: 'Synthesis', parallel: false, wait_for: 'collectors',
+              agents: synthesizers.map(a => ({
+                id: a.id, label: a.label, model: a.model || 'sonnet', role: 'synthesizer',
+                prompt: a.prompt, max_findings: 10, web_search: a.webSearch ?? true,
+                max_tool_calls: a.maxToolCalls,
+              }))
+            });
+          }
+          if (narrators.length > 0) {
+            phases.push({
+              id: 'narrators', label: 'Report', parallel: false,
+              wait_for: synthesizers.length > 0 ? 'synthesis' : 'collectors',
+              agents: narrators.map(a => ({
+                id: a.id, label: a.label, model: a.model || 'haiku', role: 'narrator',
+                prompt: a.prompt, web_search: false,
+                max_tool_calls: a.maxToolCalls,
+              }))
+            });
+          }
+
+          // Override the pipeline config
+          config.pipeline = { phases };
+          console.log(`  Custom pipeline: ${phases.length} phases, ${customAgents.length} agents`);
+        }
+      } catch (e) {
+        console.error(`  Warning: Failed to parse custom agents: ${e.message}`);
+      }
     }
 
     const results = await orchestrator.run();

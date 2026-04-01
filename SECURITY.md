@@ -21,7 +21,7 @@ This project is designed with a privacy-first architecture:
 If you discover a security vulnerability, please report it responsibly:
 
 1. **Do NOT open a public GitHub issue** for security vulnerabilities
-2. Email **security@helixgenomics.dev** with:
+2. Email **admin@helixsequencing.com** with:
    - Description of the vulnerability
    - Steps to reproduce
    - Potential impact

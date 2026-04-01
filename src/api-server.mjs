@@ -362,6 +362,14 @@ export function createApiServer(config, stateDir, orchestrator) {
     if (agentOverrides && Object.keys(agentOverrides).length > 0) {
       env.HELIX_AGENT_OVERRIDES = JSON.stringify(agentOverrides);
     }
+    if (customAgents && customAgents.length > 0) {
+      env.HELIX_CUSTOM_AGENTS = JSON.stringify(customAgents);
+    }
+    if (settings) {
+      if (settings.temperature != null) env.HELIX_TEMPERATURE = String(settings.temperature);
+      if (settings.maxToolCalls != null) env.HELIX_MAX_TOOL_CALLS = String(settings.maxToolCalls);
+      if (settings.webSearch != null) env.HELIX_WEB_SEARCH = String(settings.webSearch);
+    }
 
     try {
       activeChild = spawn(process.execPath, args, {

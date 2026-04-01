@@ -176,6 +176,7 @@ export async function spawnAgent(agentConfig, mcpConfigPath, stateDir, options =
     systemPrompt,
     userPrompt,
     mdOutputPath: customMdPath = null,
+    maxToolCalls = null,
   } = agentConfig;
 
   const provider = options.provider || "claude-cli";
@@ -207,6 +208,7 @@ export async function spawnAgent(agentConfig, mcpConfigPath, stateDir, options =
     agentId, model, systemPrompt, userPrompt,
     mcpConfigPath, stateDir, logPath, logStream,
     apiKey, projectRoot, provider, customMdPath,
+    maxToolCalls,
   };
 
   // Route to the correct spawner based on provider
@@ -295,6 +297,7 @@ function spawnWithCli({
   projectRoot,
   provider = "claude-cli",
   customMdPath = null,
+  maxToolCalls = null,
 }) {
   const resolvedModel = resolveModelName(model, provider);
 
@@ -306,8 +309,15 @@ function spawnWithCli({
     "--print",
     "--dangerously-skip-permissions",
     "--no-session-persistence",
-    userPrompt,
   ];
+
+  // Add max turns if specified (controls tool call limit)
+  if (maxToolCalls) {
+    args.push("--max-turns", String(maxToolCalls));
+  }
+
+  // User prompt must be last
+  args.push(userPrompt);
 
   // Set up environment
   // For claude-cli mode (OAuth/subscription), we do NOT need an API key.
