@@ -122,7 +122,7 @@ The full preset agent json template can be found here:
  }
  ```
 You can read the complete GENOMIC INVESTIGATIVE REPORT here:  [docs/narrator.md](docs/narrator.md) (or view the inline version below).
-It includes an empathetic note to families, detailed domain analyses, an integrated risk assessment with confidence levels, honest limitations, and recommended next steps (including genetic counseling and further sequencing).
+It includes detailed domain analyses, an integrated risk assessment with confidence levels, honest limitations, and recommended next steps (including genetic counseling and further sequencing).
  
  - View the full report as a Markdown page:
 
