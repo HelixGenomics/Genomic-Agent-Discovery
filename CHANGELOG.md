@@ -19,6 +19,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Debendox/Trisomy 9 example template in `config/templates/`
 
 ### Fixed
+- Template import now preserves all per-agent settings (role, maxToolCalls, temperature, webSearch)
 - Per-agent model overrides now actually applied to spawned CLI processes (was ignored)
 - Per-agent prompt edits now passed through to agent system prompts (was ignored)
 - `maxToolCalls` now passed as `--max-turns` to Claude CLI (was not used)

@@ -213,7 +213,7 @@ function SetupPanel({ onStarted }) {
           setAgentEdits(edits)
         } else {
           setPreset('custom')
-          setCustomAgents(t.agents?.map(a => ({ id: a.id, label: a.label || a.id, model: a.model || 'haiku', prompt: a.prompt || '', role: a.role })) || [])
+          setCustomAgents(t.agents?.map(a => ({ id: a.id, label: a.label || a.id, model: a.model || 'haiku', prompt: a.prompt || '', role: a.role || 'collector', maxToolCalls: a.maxToolCalls, temperature: a.temperature, checkMessages: a.checkMessages, webSearch: a.webSearch })) || [])
         }
         if (t.settings) {
           if (t.settings.defaultModel) setModel(t.settings.defaultModel)
