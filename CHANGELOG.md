@@ -39,6 +39,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Duplicate search warning now suggests checking messages or using different angle
 - 3-column layout when running: Agents (left) | Chat (center) | Findings (right) — no overlap
 - Agent status detection uses exit code from log footer instead of keyword matching (fixes false errors)
+- Analysis subprocess and agent processes now run detached — survive server restarts
+- Phase timeout (30 min) prevents orchestrator hanging if an agent process is orphaned
 - First agent auto-expands on load for both presets and custom agents
 - Custom agent cards are collapsible (click header to toggle)
 - Prompt textareas are vertically resizable

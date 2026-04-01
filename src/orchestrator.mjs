@@ -785,12 +785,22 @@ export class Orchestrator {
     }
 
     if (promises.length > 0) {
-      await Promise.allSettled(promises);
+      // Wait for agents with a timeout — don't hang forever if a process is orphaned
+      const PHASE_TIMEOUT_MS = 30 * 60 * 1000; // 30 minutes max per phase
+      const timeout = new Promise(resolve =>
+        setTimeout(() => resolve({ timedOut: true }), PHASE_TIMEOUT_MS)
+      );
+
+      await Promise.race([
+        Promise.allSettled(promises),
+        timeout,
+      ]);
 
       // Finalize any agents that haven't been finalized yet
       for (const agentConfig of phase.agents) {
         const state = this.agents[agentConfig.id];
         if (state && state.status === "running") {
+          console.log(`[orchestrator] Agent "${agentConfig.id}" still running — marking as done (may have timed out)`);
           this._finalizeAgent(agentConfig.id, { code: 0 });
         }
       }

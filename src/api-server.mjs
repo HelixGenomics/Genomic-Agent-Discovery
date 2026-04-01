@@ -388,10 +388,13 @@ export function createApiServer(config, stateDir, orchestrator) {
     try {
       activeChild = spawn(process.execPath, args, {
         cwd: process.cwd(),
-        stdio: 'inherit',
+        stdio: ['ignore', 'inherit', 'inherit'],
         env,
-        detached: false,
+        detached: true,
       });
+
+      // Detach so analysis survives server restarts
+      activeChild.unref();
 
       activeChild.on('exit', (code) => {
         console.log(`[api-server] Analysis process exited with code ${code}`);

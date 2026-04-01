@@ -339,7 +339,7 @@ function spawnWithCli({
     cwd: projectRoot,
     stdio: ["ignore", "pipe", "pipe"],
     // Detach so the orchestrator can track but not block
-    detached: false,
+    detached: true,
   });
 
   // Pipe stdout and stderr to the log file; capture clean stdout for .md output
