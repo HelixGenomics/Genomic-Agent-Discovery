@@ -29,6 +29,27 @@
 
 ---
 
+
+## Maternal Debendox Exposure and Offspring Trisomy 9: A Multi-Domain Pharmacogenomic Analysis
+
+This is something personally important to me and one of the main reasons for building a system like this. My brother has a rare condition Trisomy 9 Mosaicism. I built an agent preset that would research into the effects of specific medications (specifically Debendox) and how it could relate to the causation of my brothers condition as my mother took it during pregancny when whe was 18 during the 8-10 pregancny period. She was always convinced that this medicine was what caused her sons condition. Here I will publish the final findings of the report generated and its significance. 
+
+### First here is a full sped up version of the pipeline running with full agent communcition.
+
+
+<p align="center">
+  <img src="docs/screenshots/gif-pipeline-running.gif" alt="Pipeline running — agents analyzing, findings arriving, inter-agent chat" width="720">
+  <br>
+  <em>Real-time pipeline: 7 agents collaborating on Debendox / Trisomy 9 Investigation</em>
+</p>
+
+The full preset agent json template can be found here:
+
+## The final interpretation can be found here: 
+
+I believe this provides a significant relation to the medication and my brothers diagnosis. I am looking for other people who have had similar outcomes related to debendox + birth defects for futher research in order to determine statistically that some of these interactions could of caused said defects. If anyone knows of such people please reach out to me at admin@helixsequencing.com.
+
+
 Upload your raw DNA file from 23andMe, AncestryDNA, MyHeritage, FamilyTreeDNA, or any VCF -- and watch a team of AI agents fan out across 12+ public genomics databases, share discoveries with each other in real time, and produce a comprehensive health report. Everything runs on your machine. Nothing is uploaded anywhere.
 
 <p align="center">
@@ -98,7 +119,7 @@ When you launch the dashboard, you'll see the setup panel where you configure yo
 Choose from 6 built-in research presets, each tuned for a specific domain. Selecting a preset instantly configures the agent pipeline, prompts, models, and focus areas.
 
 <p align="center">
-  <img src="docs/screenshots/gif-preset-switching.gif" alt="Switching between presets" width="720">
+  <img src="docs/screenshots/-preset-switching.gif" alt="Switching between presets" width="720">
   <br>
   <em>Switch between presets — each configures a different agent team with specialized prompts</em>
 </p>
