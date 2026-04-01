@@ -114,23 +114,43 @@ Available presets:
 | **Rare Disease** 🧬 | 7 | $0.40–1.50 | Metabolic disorders, neurological conditions, connective tissue, immunodeficiency, and rare cancer syndromes |
 | **Custom** ⚙️ | You decide | Varies | Build your own agent pipeline from scratch |
 
-### Agent Prompts
+### Database Status
 
-Every preset comes with full, detailed prompts visible in an expandable accordion. You can review exactly what each agent will investigate before starting the analysis.
-
-<p align="center">
-  <img src="docs/screenshots/gif-prompt-accordion.gif" alt="Expanding agent prompts" width="720">
-  <br>
-  <em>Expand any agent to see its full research prompt — every instruction is transparent</em>
-</p>
-
-Prompts are read-only for built-in presets (they're expert-tuned for each domain). For the **Custom** preset, prompts are fully editable — write your own research instructions for each agent.
+The setup panel shows a live view of your annotation databases — which are loaded, how many rows each contains, and the total database size. This tells you at a glance whether you need to run `npm run build-db`.
 
 <p align="center">
-  <img src="docs/screenshots/06-prompts-expanded.png" alt="Multiple prompts expanded" width="720">
+  <img src="docs/screenshots/03-database-status-expanded.png" alt="Database status panel expanded" width="720">
   <br>
-  <em>Multiple agent prompts expanded — review the full research instructions for each specialist</em>
+  <em>13 databases loaded — 8.4M total rows across ClinVar, GWAS, CPIC, AlphaMissense, and more</em>
 </p>
+
+### Editable Agent Prompts & Tier Grouping
+
+Every preset shows its agents grouped by tier: **Collection** (cheap models, high tool calls), **Synthesis** (smarter models combining findings), and **Report** (final output). Click any agent to expand and edit its prompt, change its model, or adjust settings.
+
+<p align="center">
+  <img src="docs/screenshots/05-editable-agent-prompts.png" alt="Editable agent prompts with tier grouping" width="720">
+  <br>
+  <em>Cancer preset — 5 haiku collectors, 1 sonnet synthesizer, 1 haiku report writer. All prompts editable.</em>
+</p>
+
+<p align="center">
+  <img src="docs/screenshots/06-tier-grouping.png" alt="Tier grouping showing collection, synthesis, and report phases" width="720">
+  <br>
+  <em>Tiered pipeline: cheap models do high-volume database queries, expensive models synthesize findings</em>
+</p>
+
+### Template Import & Export
+
+Share your custom agent configurations as JSON template files. Export your current setup (including any prompt edits) and import templates shared by others.
+
+<p align="center">
+  <img src="docs/screenshots/04-template-import-export.png" alt="Template import and export buttons" width="720">
+  <br>
+  <em>Import/Export buttons below the preset selector — share templates as JSON files</em>
+</p>
+
+Templates include all agents, prompts, model assignments, and settings. An example Debendox/Trisomy 9 investigation template is included in `config/templates/`.
 
 ### Output Configuration
 
