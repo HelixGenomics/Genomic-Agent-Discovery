@@ -1504,16 +1504,28 @@ export default function App() {
     return () => clearInterval(id)
   }, [poll])
 
-  // Cost estimation — persisted in localStorage so refresh doesn't reset it
+  // Cost estimation — accounts for input tokens (tool responses, system prompt, web search)
+  // not just output tokens from log size. Actual costs are typically 5-10x raw output.
   const costEstimate = useMemo(() => {
     const rates = { haiku: { i: 0.80, o: 4 }, sonnet: { i: 3, o: 15 }, opus: { i: 15, o: 75 } }
     let current = 0
+    const numFindings = findings.length
+    const numMessages = chat.length
+    const numWebSearches = chat.filter(m => (m.message || '').toLowerCase().includes('web search')).length
     for (const a of Object.values(agents)) {
-      const tokens = (a.logSize || 0) / 4
+      const outputTokens = (a.logSize || 0) / 4
       const model = (a.model || 'haiku').toLowerCase()
       const r = rates[model] || rates.haiku
-      current += (tokens * 0.6 / 1e6) * r.i + (tokens * 0.4 / 1e6) * r.o
+      // Estimate input tokens: system prompt (~2K) + per-tool-call overhead
+      // Each tool call: ~200 tokens request + ~800 tokens response avg
+      // Web searches: ~3000 tokens per search result
+      // Input is typically 4-6x output for research-heavy agents
+      const estimatedInputTokens = outputTokens * 5
+      current += (estimatedInputTokens / 1e6) * r.i + (outputTokens / 1e6) * r.o
     }
+    // Add web search token overhead (search results are large)
+    const webSearchTokens = numWebSearches * 3000
+    current += (webSearchTokens / 1e6) * rates.haiku.i
     if (jobId) {
       const key = `helix-cost-${jobId}`
       const prev = parseFloat(localStorage.getItem(key) || '0')
