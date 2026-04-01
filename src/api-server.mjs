@@ -79,9 +79,18 @@ function readAgentsFromDisk(jobDir) {
       let model = 'haiku';
       try {
         const logContent = readFileSync(logPath, 'utf-8');
-        const tail = logContent.slice(-2000);
-        if (/error|failed|exception/i.test(tail) && !/completed|finished/i.test(tail.slice(-200))) {
+        // Check exit code from footer: "Agent X exited: code=0 signal=null"
+        const exitMatch = logContent.match(/exited:\s*code=(\d+)/);
+        if (exitMatch && exitMatch[1] !== '0') {
           status = 'error';
+        } else if (!exitMatch) {
+          // No exit line — agent might still be running or crashed hard
+          const tail = logContent.slice(-500);
+          if (/\[error\]|FATAL|Traceback|panic:/i.test(tail)) {
+            status = 'error';
+          } else if (logSize < 500 && !exitMatch) {
+            status = 'error'; // Very small log with no exit = likely crashed
+          }
         }
         // Parse model from log header: "Model: haiku (claude-haiku-4-5-20251001)"
         const modelMatch = logContent.slice(0, 500).match(/Model:\s*(\w+)/);
