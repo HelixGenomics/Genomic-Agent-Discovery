@@ -1,7 +1,3 @@
-Now I have everything I need. Let me compose the complete investigative report.
-
----
-
 # GENOMIC INVESTIGATIVE REPORT
 ## Maternal Debendox Exposure and Offspring Trisomy 9: A Multi-Domain Pharmacogenomic Analysis
 
