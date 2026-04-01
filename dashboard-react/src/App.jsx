@@ -1594,11 +1594,14 @@ export default function App() {
         />
 
         {noActivity ? (
-          <main className="panel-viz" style={{ gridColumn: '2 / 4' }}>
+          <main className="panel-viz">
             <SetupPanel onStarted={() => { setIsRunning(true); setTimeout(resolveJobId, 2000) }} />
           </main>
         ) : (
           <>
+            <main className="panel-viz-active">
+              <ActivityCanvas agents={agents} selectedId={selectedAgent} chat={chat} findings={findings} />
+            </main>
             <ChatPanel messages={chat} jobId={jobId} />
             <FindingsPanel findings={findings} />
           </>
