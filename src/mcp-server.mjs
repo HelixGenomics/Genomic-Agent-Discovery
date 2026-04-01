@@ -317,20 +317,26 @@ server.tool(
     const all = readJsonlLines(WEBSEARCH_LOG);
     const prev = all.slice(0, -1);
     const queryLower = query.toLowerCase();
-    const queryPrefix = queryLower.substring(0, 30);
+    const queryWords = new Set(queryLower.split(/\s+/).filter(w => w.length > 3));
 
     const dupes = prev.filter((p) => {
       const pLower = p.query.toLowerCase();
-      return pLower.includes(queryPrefix) || queryLower.includes(pLower.substring(0, 30));
+      // Check prefix overlap
+      if (pLower.includes(queryLower.substring(0, 30)) || queryLower.includes(pLower.substring(0, 30))) return true;
+      // Check word overlap — if 50%+ of significant words match, it's likely duplicate research
+      const pWords = new Set(pLower.split(/\s+/).filter(w => w.length > 3));
+      const overlap = [...queryWords].filter(w => pWords.has(w)).length;
+      const minSize = Math.min(queryWords.size, pWords.size);
+      return minSize > 0 && overlap / minSize >= 0.5;
     });
 
     if (dupes.length > 0) {
       const agents = [...new Set(dupes.map((d) => d.agent))].join(", ");
-      const queries = dupes.map((d) => d.query).join(" | ");
+      const queries = dupes.map((d) => `[${d.agent}] "${d.query}"`).join("\n  ");
       return {
         content: [{
           type: "text",
-          text: `WARNING: Similar search already done by ${agents}: ${queries}. Consider a different angle.`,
+          text: `WARNING: Similar research already done by other agents:\n  ${queries}\n\nYour search was still logged. Consider:\n- Using a more specific angle or different keywords\n- Checking messages from ${agents} for their findings instead\n- Focusing on aspects they haven't covered`,
         }],
       };
     }
