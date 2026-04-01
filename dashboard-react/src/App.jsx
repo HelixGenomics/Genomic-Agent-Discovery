@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback, useMemo, useId } from 'react'
+import yaml from 'js-yaml'
 import './App.css'
 // ── Inline Setup Panel ────────────────────────────────────────────────────────
 
@@ -146,14 +147,54 @@ function SetupPanel({ onStarted }) {
   }
 
   // Import a template JSON file
+  // Convert a YAML preset to our template format
+  function yamlPresetToTemplate(parsed, fileName) {
+    const agents = []
+    const phases = parsed?.pipeline?.phases || []
+    for (const phase of phases) {
+      for (const agent of (phase.agents || [])) {
+        agents.push({
+          id: agent.id,
+          label: agent.label || agent.id,
+          model: agent.model || 'haiku',
+          role: agent.role || 'collector',
+          prompt: agent.prompt || '',
+          maxToolCalls: agent.max_tool_calls,
+          focusGenes: agent.focus_genes,
+          maxFindings: agent.max_findings,
+        })
+      }
+    }
+    return {
+      helixTemplate: '1.0',
+      name: fileName.replace(/\.(yaml|yml)$/i, '').replace(/[-_]/g, ' '),
+      basePreset: 'custom',
+      agents,
+      settings: {
+        defaultModel: parsed?.agent_defaults?.model || 'haiku',
+        costLimit: parsed?.cost?.hard_limit_usd || 10,
+        temperature: parsed?.agent_defaults?.temperature || 0.3,
+        webSearch: parsed?.agent_defaults?.web_search ?? true,
+      },
+    }
+  }
+
   function importTemplate(e) {
     const file = e.target.files?.[0]
     if (!file) return
     const reader = new FileReader()
     reader.onload = () => {
       try {
-        const t = JSON.parse(reader.result)
-        if (!t.helixTemplate) throw new Error('Not a Helix template')
+        let t
+        const text = reader.result
+        // Detect YAML vs JSON
+        if (file.name.match(/\.(yaml|yml)$/i) || text.trimStart().startsWith('#') || text.includes('pipeline:')) {
+          const parsed = yaml.load(text)
+          t = yamlPresetToTemplate(parsed, file.name)
+        } else {
+          t = JSON.parse(text)
+        }
+        if (!t.helixTemplate && !t.agents?.length) throw new Error('Not a valid template or preset file')
         // Check if it matches a built-in preset
         const matchPreset = PRESETS.find(p => p.id === t.basePreset && p.id !== 'custom')
         if (matchPreset && t.agents?.length) {
@@ -414,7 +455,7 @@ function SetupPanel({ onStarted }) {
         <div className="setup-template-bar">
           <button className="setup-template-btn" onClick={() => importRef.current?.click()}>Import Template</button>
           <button className="setup-template-btn" onClick={exportTemplate}>Export Template</button>
-          <input ref={importRef} type="file" accept=".json" style={{ display: 'none' }} onChange={importTemplate} />
+          <input ref={importRef} type="file" accept=".json,.yaml,.yml" style={{ display: 'none' }} onChange={importTemplate} />
           {importNotice && <span className="setup-template-notice">{importNotice}</span>}
         </div>
       </div>
