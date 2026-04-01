@@ -1,14 +1,46 @@
+# Dependencies
 node_modules/
+
+# Database and data files
 data/
 state/
 output/
-.env
 *.db
 *.db-journal
 *.db-wal
 *.db-shm
 downloads/
+
+# Environment and secrets
+.env
+.env.local
+.env.*.local
+
+# OS files
 .DS_Store
+Thumbs.db
+
+# Editor/IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Logs
+*.log
+npm-debug.log*
+
+# Test coverage
+coverage/
+.nyc_output/
+
+# Build artifacts
+dist/
+*.tgz
 
 # Personal/custom presets
 config/presets/debendox-trisomy9.yaml
+
+# Private scripts with credentials
+scripts/snpedia-proxy-download.mjs

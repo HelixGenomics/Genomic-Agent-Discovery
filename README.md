@@ -59,6 +59,13 @@ npm start -- --dna ~/Downloads/my-dna-raw.txt
 
 A dashboard opens in your browser and you can watch the agents work. That's it — no API keys, no per-token charges.
 
+**Dashboard-first mode:** Want to configure everything in the browser first?
+
+```bash
+npm start -- --serve
+# Opens http://localhost:3000 — select your DNA file, pick a preset, customize agents, then click Start
+```
+
 ### Using an Anthropic API key instead
 
 ```bash
@@ -184,13 +191,17 @@ The pipeline view shows:
 
 | Format | Provider | Typical Variants | File Extension |
 |--------|----------|-----------------|----------------|
-| 23andMe | 23andMe | ~600,000 | `.txt` |
-| AncestryDNA | Ancestry | ~700,000 | `.txt` |
-| MyHeritage | MyHeritage | ~700,000 | `.csv` |
-| FamilyTreeDNA | FTDNA | ~700,000 | `.csv` |
+| 23andMe | 23andMe | ~600,000 | `.txt`, `.zip` |
+| AncestryDNA | Ancestry | ~700,000 | `.txt`, `.zip` |
+| MyHeritage | MyHeritage | ~700,000 | `.csv`, `.zip` |
+| FamilyTreeDNA | FTDNA | ~700,000 | `.csv`, `.zip` |
 | VCF | WGS / Clinical | 3,000,000+ | `.vcf`, `.vcf.gz` |
 
 Format is auto-detected from the file header. You can override with `--format`.
+
+**Archive support:** `.zip` and `.gz` files are automatically extracted before parsing. Just drop the file as-is from your provider — no need to unzip first.
+
+**Chip detection:** When you select a file in the dashboard, it automatically detects your provider, chip version, SNP count, estimated imputed variants, and biological sex from chrX/chrY patterns.
 
 ## Installation
 
@@ -200,17 +211,56 @@ Format is auto-detected from the file header. You can override with `--format`.
 - ~2GB disk space for the annotation database
 - **One of the following** for LLM access (see below)
 
-### Step 1: Clone and build
+### Step 1: Clone and install
 
 ```bash
 git clone https://github.com/HelixGenomics/Genomic-Agent-Discovery.git
 cd Genomic-Agent-Discovery
-npm install && npm run build-db
+npm install
 ```
 
-The `build-db` step downloads 12 public databases and compiles them into a single optimized SQLite file. This takes 5-15 minutes on a decent connection and only needs to happen once.
+### Step 2: Build the annotation database
 
-### Step 2: Connect an LLM
+This downloads 12 public genomics databases and compiles them into a single SQLite file. **Run this before your first analysis.**
+
+```bash
+npm run build-db
+```
+
+**What happens:**
+1. Downloads ClinVar variants from NCBI (~100MB, ~4M rows)
+2. Downloads GWAS Catalog associations from EBI (~50MB, ~400K rows)
+3. Fetches CPIC pharmacogenomics data via REST API (~3.5K entries)
+4. Downloads HPO gene-phenotype links from GitHub (~330K associations)
+5. Downloads Orphanet rare disease genes from orphadata.com (~8K entries)
+6. Downloads CIViC cancer evidence nightly dump (~5K entries)
+7. Crawls SNPedia annotations via MediaWiki API (CC BY-NC-SA 3.0, ~400+ curated SNPs)
+8. Fetches AlphaMissense/CADD/gnomAD scores via MyVariant.info API (batch queries, ~15 min each)
+9. Optimizes and indexes the database
+
+**Expected time:** 30-60 minutes on first run (mostly API rate limits). Re-runs are fast — downloads are cached for 7 days.
+
+**Expected size:** ~1-2 GB
+
+**Optional sources (require free registration):**
+- **DisGeNET** — Register at https://www.disgenet.org/signup/ then download "Curated gene-disease associations" and place in `data/downloads/disgenet-curated.tsv.gz`
+
+If these aren't available, the build continues without them — the script prints instructions.
+
+**SNPedia annotations:** SNPedia data is licensed CC BY-NC-SA 3.0 and must be fetched directly from their API. The crawl covers 108K+ pages and can take 2-4 hours due to rate limiting. Downloads are cached for 30 days so you only crawl once. If it times out, re-run `npm run build-db` — it resumes from where it left off.
+
+**Proxy support:** Some data sources have rate limits. You can set `HTTPS_PROXY` to speed up downloads:
+
+```bash
+HTTPS_PROXY=http://your-proxy:port npm run build-db
+```
+
+```bash
+# Verify your database after build
+npm run verify-db
+```
+
+### Step 3: Connect an LLM
 
 You need a way for agents to think. Pick **one** of these options:
 
@@ -707,36 +757,49 @@ The unified annotation database combines 12 public genomics databases into a sin
 
 ### Building the Database
 
+The database is built from scratch using public data sources — no pre-built downloads required. Each source has its own downloader script in `scripts/downloaders/`.
+
 ```bash
-# Build all sources (recommended, ~5-15 min)
+# Build all sources (~15-30 min depending on connection)
 npm run build-db
 
 # Verify the build
 npm run verify-db
 ```
 
-You can disable individual sources in your config to speed up the build or reduce disk usage:
+**How it works:**
 
-```yaml
-database:
-  sources:
-    clinvar: true
-    gwas: true
-    cpic: true
-    alphamissense: false   # Skip if you don't need AI pathogenicity predictions
-    cadd: true
-    gnomad: true
-    hpo: true
-    disgenet: true
-    civic: true
-    pharmgkb: true
-    orphanet: true
-    snpedia: true
-```
+1. **Schema initialization** — Creates all tables and indexes in SQLite
+2. **Source downloads** — Each downloader fetches from its public source (NCBI, EBI, CPIC API, etc.)
+3. **Parsing & import** — Data is parsed and batch-inserted using transactions for speed
+4. **Optimization** — Runs ANALYZE and VACUUM for query performance
+
+Downloads are cached in `data/downloads/` — re-running only re-downloads stale files (>7 days).
+
+**Data source details:**
+
+| Source | Method | Notes |
+|--------|--------|-------|
+| ClinVar | FTP download (TSV.gz) | Filters to GRCh38 assembly |
+| GWAS Catalog | HTTP download (TSV) | Full associations from EBI |
+| CPIC | REST API (JSON) | Alleles, recommendations, drug names |
+| HPO | GitHub release (TSV) | Gene-to-phenotype associations |
+| Orphanet | HTTP download (XML) | Rare disease gene associations |
+| CIViC | Nightly TSV dump | Cancer variant clinical evidence |
+| SNPedia | MediaWiki API | Paginated queries for annotated SNPs |
+| AlphaMissense | MyVariant.info API | Batch queries for known rsIDs |
+| CADD | MyVariant.info API | Batch queries for known rsIDs |
+| gnomAD | MyVariant.info API | Batch queries for known rsIDs |
+| DisGeNET | HTTP download (TSV.gz) | Requires free registration — prints instructions if auth fails |
+| PharmGKB | HTTP download (ZIP) | Requires free registration — prints instructions if auth fails |
+
+**Build order matters:** AlphaMissense, CADD, and gnomAD use the MyVariant.info API to fetch scores for rsIDs already in your database (from ClinVar and GWAS). Run ClinVar/GWAS first for best coverage.
+
+**Registration-gated sources:** DisGeNET and PharmGKB require free accounts for bulk downloads. If auth fails, the build continues without them and prints step-by-step instructions for manual download.
 
 ### Database Schema
 
-The genotype database (created per analysis run):
+**Per-analysis genotype database:**
 
 ```sql
 CREATE TABLE genotypes (
@@ -745,14 +808,27 @@ CREATE TABLE genotypes (
     position    INTEGER NOT NULL,
     genotype    TEXT NOT NULL
 );
-
-CREATE TABLE metadata (
-    key   TEXT PRIMARY KEY,
-    value TEXT
-);
 ```
 
-The unified annotation database contains one table per source (clinvar, gwas, cpic_allele_definitions, cpic_recommendations, cpic_diplotypes, alphamissense, gnomad, hpo_genes, disgenet, civic_variants, pharmgkb_annotations, orphanet, snpedia) with source-appropriate schemas.
+**Unified annotation database tables:**
+
+| Table | Key Columns | Description |
+|-------|-------------|-------------|
+| `clinvar` | variation_id, rsid, gene, clinical_significance | Clinical variant interpretations |
+| `gwas` | rsid, gene, trait, p_value, odds_ratio | Genome-wide association results |
+| `cpic_alleles` | gene, allele, function, activity_score | Pharmacogene allele definitions |
+| `cpic_recommendations` | gene, drug, phenotype, recommendation | Drug dosing guidelines |
+| `alphamissense` | chromosome, position, score, classification | AI pathogenicity predictions |
+| `cadd` | chromosome, position, raw_score, phred_score | Variant deleteriousness |
+| `gnomad` | rsid, af_total, af_eur/afr/eas/sas/amr | Population allele frequencies |
+| `hpo` | gene, hpo_id, hpo_name, disease_name | Gene-phenotype associations |
+| `disgenet` | gene, disease_id, disease_name, score | Disease-gene associations |
+| `civic` | gene, variant, disease, drugs, evidence_level | Cancer variant evidence |
+| `pharmgkb` | gene, rsid, drug, evidence_level | Drug-gene annotations |
+| `orphanet` | gene, orpha_code, disease_name | Rare disease associations |
+| `snpedia` | rsid, magnitude, repute, summary | Community variant annotations |
+| `gene_info` | gene_symbol, full_name, chromosome | Quick gene lookups |
+| `build_metadata` | source, version, row_count, built_at | Build provenance tracking |
 
 ## Writing Custom Agents
 

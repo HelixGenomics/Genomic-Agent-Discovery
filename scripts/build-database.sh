@@ -520,8 +520,13 @@ echo -e "  Time:      ${MINUTES}m ${SECONDS}s"
 echo ""
 
 if [ "$FAILED" -gt 0 ]; then
-  dimtext "Some data sources are not yet implemented. This is expected during"
-  dimtext "early development. Implement downloaders in scripts/downloaders/"
-  dimtext "and re-run: npm run build-db"
+  dimtext "Some data sources could not be downloaded. This is normal —"
+  dimtext "some sources require free registration or have rate limits."
+  echo ""
+  dimtext "  Registration-gated:  DisGeNET (https://www.disgenet.org/signup/)"
+  dimtext "  Rate-limited:        SNPedia (re-run later if it timed out)"
+  echo ""
+  dimtext "Re-run 'npm run build-db' to retry failed sources."
+  dimtext "The build caches successful downloads — only missing sources are retried."
   echo ""
 fi
