@@ -1,15 +1,99 @@
 #!/usr/bin/env bash
-# Placeholder: CADD downloader
-# Downloads CADD PHRED scores for common SNPs
-#
-# Source: https://cadd.gs.washington.edu/download (GRCh38-v1.7)
-# Expected rows: ~500K (filtered to chip-relevant positions)
-#
-# Usage: bash download-cadd.sh <db_path> <downloads_dir>
+set -euo pipefail
 
-DB_PATH="${1:?Database path required}"
-DOWNLOADS_DIR="${2:?Downloads directory required}"
+DB_PATH="${1:?Usage: download-cadd.sh <db_path> <downloads_dir>}"
+DOWNLOADS_DIR="${2:?Usage: download-cadd.sh <db_path> <downloads_dir>}"
 
-echo "    [PLACEHOLDER] CADD: Would download prescored CADD scores (GRCh38-v1.7)"
-echo "    [PLACEHOLDER] CADD: Would filter to chip-relevant SNPs and insert"
-echo "    [PLACEHOLDER] Source: https://cadd.gs.washington.edu/download"
+echo "    CADD: fetching scores via MyVariant.info API..."
+
+node --input-type=module -e "
+import Database from 'better-sqlite3';
+
+const db = new Database(process.argv[1]);
+db.pragma('journal_mode = WAL');
+db.pragma('synchronous = NORMAL');
+
+const rsids = new Set();
+try {
+  for (const r of db.prepare('SELECT DISTINCT rsid FROM clinvar WHERE rsid IS NOT NULL AND rsid LIKE ?').iterate('rs%'))
+    rsids.add(r.rsid);
+} catch(e) {}
+try {
+  for (const r of db.prepare('SELECT DISTINCT rsid FROM gwas WHERE rsid IS NOT NULL AND rsid LIKE ?').iterate('rs%'))
+    rsids.add(r.rsid);
+} catch(e) {}
+
+if (rsids.size === 0) {
+  console.log('    CADD: no rsIDs in database yet — run ClinVar/GWAS first');
+  db.close(); process.exit(0);
+}
+console.log('    CADD: querying ' + rsids.size.toLocaleString() + ' rsIDs...');
+
+db.exec('DELETE FROM cadd');
+const insert = db.prepare(\`INSERT OR IGNORE INTO cadd
+  (chromosome, position, ref_allele, alt_allele, raw_score, phred_score)
+  VALUES (?, ?, ?, ?, ?, ?)\`);
+
+const BATCH = 900;
+const rsidList = [...rsids];
+let inserted = 0, batches = 0;
+const idRegex = /chr(\w+):g\.(\d+)([A-Z])>([A-Z])/;
+
+for (let i = 0; i < rsidList.length; i += BATCH) {
+  const batch = rsidList.slice(i, i + BATCH);
+  batches++;
+  
+  try {
+    const body = new URLSearchParams({
+      q: batch.join(','),
+      scopes: 'dbsnp.rsid',
+      fields: 'cadd.phred,cadd.rawscore,cadd.chrom,cadd.pos,cadd.ref,cadd.alt,_id',
+      size: String(BATCH),
+      dotfield: 'true'
+    });
+    
+    const resp = await fetch('https://myvariant.info/v1/query', {
+      method: 'POST', body,
+      headers: { 'User-Agent': 'HelixGenomics/1.0', 'Content-Type': 'application/x-www-form-urlencoded' }
+    });
+    
+    if (!resp.ok) { await new Promise(r => setTimeout(r, 5000)); continue; }
+    const results = await resp.json();
+    if (!Array.isArray(results)) continue;
+    
+    const tx = db.transaction((rows) => { for (const r of rows) insert.run(...r); });
+    const rows = [];
+    
+    for (const hit of results) {
+      if (!hit || hit.notfound) continue;
+      const phred = hit['cadd.phred'];
+      const raw = hit['cadd.rawscore'];
+      if (phred == null && raw == null) continue;
+      
+      let chr = hit['cadd.chrom'] || '';
+      let pos = parseInt(hit['cadd.pos']) || 0;
+      let ref = hit['cadd.ref'] || '';
+      let alt = hit['cadd.alt'] || '';
+      
+      if (!chr) {
+        const m = (hit._id || '').match(idRegex);
+        if (m) { chr = m[1]; pos = parseInt(m[2]); ref = m[3]; alt = m[4]; }
+      }
+      if (!chr) continue;
+      chr = String(chr).replace('chr', '');
+      
+      rows.push([chr, pos, ref, alt,
+        raw != null ? (Array.isArray(raw) ? Math.max(...raw) : parseFloat(raw)) : null,
+        phred != null ? (Array.isArray(phred) ? Math.max(...phred) : parseFloat(phred)) : null
+      ]);
+    }
+    if (rows.length) { tx(rows); inserted += rows.length; }
+  } catch(e) {}
+  
+  if (batches % 50 === 0) process.stdout.write('    CADD: ' + inserted.toLocaleString() + ' rows (' + Math.round(i/rsidList.length*100) + '%)...\\r');
+  await new Promise(r => setTimeout(r, 350));
+}
+
+db.close();
+console.log('    CADD: ' + inserted.toLocaleString() + ' rows imported');
+" "$DB_PATH"

@@ -574,5 +574,70 @@ export function createApiServer(config, stateDir, orchestrator) {
     }
   });
 
+  // ─────────────────────────────────────────────────────────────────────────
+  // GET /api/db-status
+  //
+  // Returns row counts and build info for each annotation database table.
+  // ─────────────────────────────────────────────────────────────────────────
+  app.get('/api/db-status', async (req, res) => {
+    const dbPath = resolve(join(process.cwd(), 'data', 'helix-unified.db'));
+    if (!existsSync(dbPath)) {
+      return res.json({ ok: false, error: 'Database not found. Run: npm run build-db', databases: [], totalRows: 0 });
+    }
+
+    try {
+      const Database = (await import('better-sqlite3')).default;
+      const db = new Database(dbPath, { readonly: true });
+
+      const tables = [
+        { table: 'clinvar', label: 'ClinVar', desc: 'Clinical variant interpretations' },
+        { table: 'gwas', label: 'GWAS Catalog', desc: 'Genome-wide associations' },
+        { table: 'hpo', label: 'HPO', desc: 'Gene-phenotype links' },
+        { table: 'orphanet', label: 'Orphanet', desc: 'Rare disease genes' },
+        { table: 'civic', label: 'CIViC', desc: 'Cancer variant evidence' },
+        { table: 'cpic_alleles', label: 'CPIC Alleles', desc: 'Pharmacogene alleles' },
+        { table: 'cpic_recommendations', label: 'CPIC Recs', desc: 'Drug dosing guidelines' },
+        { table: 'disgenet', label: 'DisGeNET', desc: 'Disease-gene associations' },
+        { table: 'pharmgkb', label: 'PharmGKB', desc: 'Drug-gene annotations' },
+        { table: 'snpedia', label: 'SNPedia', desc: 'Community SNP annotations' },
+        { table: 'alphamissense', label: 'AlphaMissense', desc: 'Pathogenicity predictions' },
+        { table: 'cadd', label: 'CADD', desc: 'Deleteriousness scores' },
+        { table: 'gnomad', label: 'gnomAD', desc: 'Population frequencies' },
+      ];
+
+      const databases = [];
+      let totalRows = 0;
+
+      for (const t of tables) {
+        try {
+          const row = db.prepare(`SELECT COUNT(*) as count FROM ${t.table}`).get();
+          const meta = db.prepare(`SELECT built_at, download_url FROM build_metadata WHERE source = ?`).get(t.table) ||
+                       db.prepare(`SELECT built_at, download_url FROM build_metadata WHERE source LIKE ?`).get(t.label.toLowerCase() + '%');
+          const count = row?.count || 0;
+          totalRows += count;
+          databases.push({
+            name: t.label,
+            table: t.table,
+            description: t.desc,
+            rows: count,
+            status: count > 0 ? 'loaded' : 'empty',
+            builtAt: meta?.built_at || null,
+            source: meta?.download_url || null,
+          });
+        } catch {
+          databases.push({ name: t.label, table: t.table, description: t.desc, rows: 0, status: 'error' });
+        }
+      }
+
+      let dbSize = 0;
+      try { dbSize = statSync(dbPath).size; } catch {}
+
+      db.close();
+      res.json({ ok: true, databases, totalRows, dbSize, dbPath });
+    } catch (err) {
+      res.status(500).json({ ok: false, error: err.message, databases: [], totalRows: 0 });
+    }
+  });
+
   return app;
 }

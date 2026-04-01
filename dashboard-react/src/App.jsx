@@ -96,9 +96,101 @@ function SetupPanel({ onStarted }) {
   const [err, setErr] = useState('')
   const [chipInfo, setChipInfo] = useState(null)
   const [chipLoading, setChipLoading] = useState(false)
+  const [agentEdits, setAgentEdits] = useState({})
+  const [dbStatus, setDbStatus] = useState(null)
+  const [dbExpanded, setDbExpanded] = useState(false)
+  const [importNotice, setImportNotice] = useState('')
   const fileRef = useRef(null)
+  const importRef = useRef(null)
+  function getAgentSetting(agentId, key, fallback) {
+    return agentEdits[agentId]?.[key] ?? fallback
+  }
+  function setAgentSetting(agentId, key, value) {
+    setAgentEdits(prev => ({ ...prev, [agentId]: { ...prev[agentId], [key]: value } }))
+  }
+
   function togglePrompt(id) {
     setExpandedPrompts(prev => ({ ...prev, [id]: !prev[id] }))
+  }
+
+  // Fetch database status on mount
+  useEffect(() => {
+    fetch('/api/db-status').then(r => r.json()).then(setDbStatus).catch(() => {})
+  }, [])
+
+  // Export current config as template JSON
+  function exportTemplate() {
+    const selectedPreset = PRESETS.find(p => p.id === preset)
+    const agents = preset === 'custom'
+      ? customAgents.filter(a => a.id && a.prompt)
+      : (selectedPreset?.agentList || []).map(a => ({
+          ...a,
+          prompt: agentEdits[a.id]?.prompt ?? a.prompt,
+          model: agentEdits[a.id]?.model ?? a.model,
+          maxToolCalls: agentEdits[a.id]?.maxToolCalls ?? undefined,
+        }))
+    const template = {
+      helixTemplate: '1.0',
+      name: selectedPreset?.name || 'Custom Template',
+      description: selectedPreset?.desc || '',
+      basePreset: preset,
+      agents: agents.map(a => ({ id: a.id, label: a.label, model: a.model, role: a.role || (a.id.includes('narrator') ? 'narrator' : a.id.includes('synth') ? 'synthesizer' : 'collector'), prompt: a.prompt, maxToolCalls: a.maxToolCalls })),
+      settings: { defaultModel: model, costLimit: parseFloat(costLimit), temperature: parseFloat(temperature), maxToolCalls: parseInt(maxToolCalls), checkMessages: parseInt(checkMessages), webSearch },
+      medicalHistory: medHistory,
+    }
+    const blob = new Blob([JSON.stringify(template, null, 2)], { type: 'application/json' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url; a.download = `helix-template-${preset}-${new Date().toISOString().slice(0,10)}.json`
+    a.click(); URL.revokeObjectURL(url)
+  }
+
+  // Import a template JSON file
+  function importTemplate(e) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    const reader = new FileReader()
+    reader.onload = () => {
+      try {
+        const t = JSON.parse(reader.result)
+        if (!t.helixTemplate) throw new Error('Not a Helix template')
+        // Check if it matches a built-in preset
+        const matchPreset = PRESETS.find(p => p.id === t.basePreset && p.id !== 'custom')
+        if (matchPreset && t.agents?.length) {
+          setPreset(matchPreset.id)
+          const edits = {}
+          for (const agent of t.agents) {
+            const original = matchPreset.agentList.find(a => a.id === agent.id)
+            if (original) {
+              const diff = {}
+              if (agent.prompt && agent.prompt !== original.prompt) diff.prompt = agent.prompt
+              if (agent.model && agent.model !== original.model) diff.model = agent.model
+              if (agent.maxToolCalls) diff.maxToolCalls = agent.maxToolCalls
+              if (Object.keys(diff).length) edits[agent.id] = diff
+            }
+          }
+          setAgentEdits(edits)
+        } else {
+          setPreset('custom')
+          setCustomAgents(t.agents?.map(a => ({ id: a.id, label: a.label || a.id, model: a.model || 'haiku', prompt: a.prompt || '', role: a.role })) || [])
+        }
+        if (t.settings) {
+          if (t.settings.defaultModel) setModel(t.settings.defaultModel)
+          if (t.settings.costLimit != null) setCostLimit(String(t.settings.costLimit))
+          if (t.settings.temperature != null) setTemperature(String(t.settings.temperature))
+          if (t.settings.maxToolCalls != null) setMaxToolCalls(String(t.settings.maxToolCalls))
+          if (t.settings.checkMessages != null) setCheckMessages(String(t.settings.checkMessages))
+          if (t.settings.webSearch != null) setWebSearch(t.settings.webSearch)
+        }
+        if (t.medicalHistory) setMedHistory(t.medicalHistory)
+        setImportNotice(`Loaded: ${t.name || 'template'}`)
+        setTimeout(() => setImportNotice(''), 4000)
+      } catch (err) {
+        setErr('Invalid template file: ' + err.message)
+      }
+    }
+    reader.readAsText(file)
+    e.target.value = '' // reset so same file can be re-imported
   }
 
   // Auto-run chip check when dnaPath changes
@@ -137,9 +229,14 @@ function SetupPanel({ onStarted }) {
         ? customAgents.filter(a => a.id && a.prompt)
         : (selectedPreset?.agentList || [])
       const dir = mdOutputDir.trim().replace(/\/$/, '')
-      const agentOverrides = saveMd
+      const baseOverrides = saveMd
         ? Object.fromEntries(agentList.map(a => [a.id, { mdOutputPath: dir ? `${dir}/${a.id}.md` : `${a.id}.md` }]))
         : {}
+      // Merge per-agent setting edits into overrides
+      const agentOverrides = { ...baseOverrides }
+      for (const [agentId, edits] of Object.entries(agentEdits)) {
+        agentOverrides[agentId] = { ...agentOverrides[agentId], ...edits }
+      }
 
       const res = await fetch('/api/start-analysis', {
         method: 'POST',
@@ -261,6 +358,41 @@ function SetupPanel({ onStarted }) {
         )}
       </div>
 
+      {/* Database Status */}
+      {dbStatus && (
+        <div className="setup-section">
+          <button className="setup-db-toggle" onClick={() => setDbExpanded(v => !v)}>
+            <span className="setup-label" style={{ margin: 0 }}>Annotation Databases</span>
+            <span className="setup-db-summary">
+              {dbStatus.ok ? (
+                <>
+                  <span className="setup-db-dot loaded" />
+                  {dbStatus.databases.filter(d => d.rows > 0).length}/{dbStatus.databases.length} loaded
+                  <span className="setup-db-sep">·</span>
+                  {(dbStatus.totalRows / 1000000).toFixed(1)}M rows
+                  <span className="setup-db-sep">·</span>
+                  {(dbStatus.dbSize / 1024 / 1024 / 1024).toFixed(1)}GB
+                </>
+              ) : (
+                <><span className="setup-db-dot empty" /> Not built — run <code>npm run build-db</code></>
+              )}
+            </span>
+            <span className="setup-prompt-chevron">{dbExpanded ? '▲' : '▼'}</span>
+          </button>
+          {dbExpanded && dbStatus.databases && (
+            <div className="setup-db-grid">
+              {dbStatus.databases.map(db => (
+                <div key={db.table} className={`setup-db-item ${db.status}`}>
+                  <span className="setup-db-name">{db.name}</span>
+                  <span className="setup-db-rows">{db.rows > 0 ? db.rows.toLocaleString() : '—'}</span>
+                  <span className="setup-db-desc">{db.description}</span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Preset */}
       <div className="setup-section">
         <div className="setup-label">Analysis Preset</div>
@@ -278,6 +410,12 @@ function SetupPanel({ onStarted }) {
               <span className="setup-preset-meta">{p.agentList.length} agents · {p.cost} · {p.time}</span>
             </button>
           ))}
+        </div>
+        <div className="setup-template-bar">
+          <button className="setup-template-btn" onClick={() => importRef.current?.click()}>Import Template</button>
+          <button className="setup-template-btn" onClick={exportTemplate}>Export Template</button>
+          <input ref={importRef} type="file" accept=".json" style={{ display: 'none' }} onChange={importTemplate} />
+          {importNotice && <span className="setup-template-notice">{importNotice}</span>}
         </div>
       </div>
 
@@ -312,24 +450,73 @@ function SetupPanel({ onStarted }) {
         </div>
       )}
 
-      {/* Preset agent prompt viewer (read-only) */}
+      {/* Preset agent prompts — editable with tier grouping */}
       {preset !== 'custom' && (() => {
         const selectedPreset = PRESETS.find(p => p.id === preset)
         if (!selectedPreset?.agentList?.length) return null
+        // Group agents by tier based on role/id patterns
+        const getTier = (a) => {
+          if (a.role === 'narrator' || a.id.includes('narrator') || a.id.includes('report')) return 3
+          if (a.role === 'synthesizer' || a.id.includes('synth')) return 2
+          return 1
+        }
+        const tierLabels = { 1: 'Collection', 2: 'Synthesis', 3: 'Report' }
+        const tierColors = { 1: '#06b6d4', 2: '#8b5cf6', 3: '#f59e0b' }
+        const tierModels = { 1: 'haiku', 2: 'sonnet', 3: 'haiku' }
+        const grouped = {}
+        for (const agent of selectedPreset.agentList) {
+          const tier = getTier(agent)
+          if (!grouped[tier]) grouped[tier] = []
+          grouped[tier].push(agent)
+        }
         return (
           <div className="setup-section">
-            <div className="setup-label">Agent Prompts <span className="setup-opt">— read-only · click to expand</span></div>
+            <div className="setup-label">Agent Pipeline <span className="setup-opt">— click to expand & edit prompts</span></div>
             <div className="setup-agent-prompts">
-              {selectedPreset.agentList.map(agent => (
-                <div key={agent.id} className={`setup-prompt-row${expandedPrompts[agent.id] ? ' expanded' : ''}`}>
-                  <button className="setup-prompt-toggle" onClick={() => togglePrompt(agent.id)}>
-                    <span className="setup-prompt-label">{agent.label}</span>
-                    <span className="setup-prompt-model">{agent.model}</span>
-                    <span className="setup-prompt-chevron">{expandedPrompts[agent.id] ? '▲' : '▼'}</span>
-                  </button>
-                  {expandedPrompts[agent.id] && (
-                    <pre className="setup-prompt-body">{agent.prompt || 'Prompt defined in preset YAML.'}</pre>
-                  )}
+              {Object.entries(grouped).sort(([a],[b]) => a - b).map(([tier, agents]) => (
+                <div key={tier}>
+                  <div className="setup-tier-label" style={{ borderLeftColor: tierColors[tier] }}>
+                    Tier {tier}: {tierLabels[tier]}
+                    <span className="setup-tier-meta">default: {tierModels[tier]} · {agents.length} agent{agents.length > 1 ? 's' : ''}</span>
+                  </div>
+                  {agents.map(agent => {
+                    const editedPrompt = agentEdits[agent.id]?.prompt
+                    const editedModel = agentEdits[agent.id]?.model
+                    const isEdited = editedPrompt != null || editedModel != null
+                    return (
+                      <div key={agent.id} className={`setup-prompt-row${expandedPrompts[agent.id] ? ' expanded' : ''}${isEdited ? ' edited' : ''}`}>
+                        <button className="setup-prompt-toggle" onClick={() => togglePrompt(agent.id)}>
+                          <span className="setup-prompt-label">{agent.label}</span>
+                          <span className="setup-prompt-model">{editedModel || agent.model}</span>
+                          {isEdited && <span className="setup-prompt-edited">edited</span>}
+                          <span className="setup-prompt-chevron">{expandedPrompts[agent.id] ? '▲' : '▼'}</span>
+                        </button>
+                        {expandedPrompts[agent.id] && (
+                          <div className="setup-prompt-edit-area">
+                            <div className="setup-prompt-controls">
+                              <select className="setup-select setup-select-sm" value={editedModel || agent.model}
+                                onChange={e => setAgentSetting(agent.id, 'model', e.target.value === agent.model ? undefined : e.target.value)}>
+                                <option value="haiku">haiku</option>
+                                <option value="sonnet">sonnet</option>
+                                <option value="opus">opus</option>
+                              </select>
+                              {isEdited && (
+                                <button className="setup-prompt-reset" onClick={() => setAgentEdits(prev => { const next = {...prev}; delete next[agent.id]; return next })}>
+                                  Reset
+                                </button>
+                              )}
+                            </div>
+                            <textarea
+                              className="setup-textarea setup-prompt-textarea"
+                              rows={8}
+                              value={editedPrompt ?? agent.prompt ?? ''}
+                              onChange={e => setAgentSetting(agent.id, 'prompt', e.target.value === agent.prompt ? undefined : e.target.value)}
+                            />
+                          </div>
+                        )}
+                      </div>
+                    )
+                  })}
                 </div>
               ))}
             </div>

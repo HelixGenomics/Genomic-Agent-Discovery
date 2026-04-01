@@ -1,15 +1,52 @@
 #!/usr/bin/env bash
-# Placeholder: HPO downloader
-# Downloads Human Phenotype Ontology gene-to-phenotype annotations
-#
-# Source: https://hpo.jax.org/data/annotations (genes_to_phenotype.txt)
-# Expected rows: ~200,000
-#
-# Usage: bash download-hpo.sh <db_path> <downloads_dir>
+set -euo pipefail
 
-DB_PATH="${1:?Database path required}"
-DOWNLOADS_DIR="${2:?Downloads directory required}"
+DB_PATH="${1:?Usage: download-hpo.sh <db_path> <downloads_dir>}"
+DOWNLOADS_DIR="${2:?Usage: download-hpo.sh <db_path> <downloads_dir>}"
 
-echo "    [PLACEHOLDER] HPO: Would download genes_to_phenotype.txt"
-echo "    [PLACEHOLDER] HPO: Would parse and insert ~200K gene-phenotype associations"
-echo "    [PLACEHOLDER] Source: https://hpo.jax.org/data/annotations"
+URL="https://github.com/obophenotype/human-phenotype-ontology/releases/latest/download/genes_to_phenotype.txt"
+FILE="$DOWNLOADS_DIR/genes_to_phenotype.txt"
+
+if [ -f "$FILE" ]; then
+  AGE=$(( ($(date +%s) - $(stat -f %m "$FILE" 2>/dev/null || stat -c %Y "$FILE" 2>/dev/null)) ))
+  if [ "$AGE" -lt 604800 ]; then
+    echo "    HPO: cached ($(( AGE / 3600 ))h old)"
+  else
+    curl -L --retry 3 --progress-bar -o "$FILE" "$URL"
+  fi
+else
+  echo "    HPO: downloading genes_to_phenotype.txt..."
+  curl -L --retry 3 --progress-bar -o "$FILE" "$URL"
+fi
+
+echo "    HPO: importing into database..."
+
+node --input-type=module -e "
+import Database from 'better-sqlite3';
+import { readFileSync } from 'fs';
+
+const db = new Database(process.argv[1]);
+db.pragma('journal_mode = WAL');
+db.exec('DELETE FROM hpo');
+
+const insert = db.prepare(\`INSERT INTO hpo
+  (gene, gene_id, hpo_id, hpo_name, disease_id, disease_name, frequency, source)
+  VALUES (?, ?, ?, ?, ?, ?, ?, ?)\`);
+
+const lines = readFileSync(process.argv[2], 'utf8').split('\\n');
+let count = 0;
+const tx = db.transaction((rows) => { for (const r of rows) insert.run(...r); });
+let batch = [];
+
+for (const line of lines) {
+  if (!line || line.startsWith('#')) continue;
+  const c = line.split('\\t');
+  if (c.length < 4) continue;
+  batch.push([c[1]||null, c[0]||null, c[2]||null, c[3]||null,
+              c[5]||null, c[6]||null, c[4]||null, c[8]||null]);
+  if (batch.length >= 5000) { tx(batch); count += batch.length; batch = []; }
+}
+if (batch.length) { tx(batch); count += batch.length; }
+db.close();
+console.log('    HPO: ' + count.toLocaleString() + ' rows imported');
+" "$DB_PATH" "$FILE"

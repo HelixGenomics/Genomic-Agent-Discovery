@@ -291,6 +291,160 @@
   background: rgba(0,0,0,0.18);
 }
 
+/* ── Database Status ──────────────────────────────────── */
+.setup-db-toggle {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  background: rgba(255,255,255,0.02);
+  border: 1px solid var(--border-dim);
+  border-radius: 10px;
+  padding: 10px 14px;
+  cursor: pointer;
+  color: inherit;
+  font: inherit;
+}
+.setup-db-toggle:hover { background: rgba(255,255,255,0.035); }
+.setup-db-summary {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  color: var(--text-dim);
+  margin-left: auto;
+}
+.setup-db-summary code { font-family: var(--font-mono); font-size: 10px; background: rgba(255,255,255,0.06); padding: 1px 5px; border-radius: 4px; }
+.setup-db-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+.setup-db-dot.loaded { background: #22c55e; box-shadow: 0 0 6px rgba(34,197,94,0.4); }
+.setup-db-dot.empty { background: #ef4444; }
+.setup-db-sep { color: var(--text-faint); }
+.setup-db-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 6px;
+  margin-top: 8px;
+}
+.setup-db-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  border: 1px solid var(--border-dim);
+  background: rgba(255,255,255,0.015);
+}
+.setup-db-item.loaded { border-left: 3px solid #22c55e; }
+.setup-db-item.empty { border-left: 3px solid #ef4444; opacity: 0.6; }
+.setup-db-item.error { border-left: 3px solid #f59e0b; opacity: 0.5; }
+.setup-db-name { font-size: 11px; font-weight: 600; color: var(--text); }
+.setup-db-rows { font-family: var(--font-mono); font-size: 10px; color: var(--cyan); }
+.setup-db-desc { font-size: 9px; color: var(--text-faint); }
+
+/* ── Template Import/Export ──────────────────────────── */
+.setup-template-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+}
+.setup-template-btn {
+  padding: 5px 12px;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text-dim);
+  background: rgba(255,255,255,0.04);
+  border: 1px solid var(--border-dim);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.setup-template-btn:hover { background: rgba(255,255,255,0.08); color: var(--text); border-color: var(--cyan); }
+.setup-template-notice {
+  font-size: 11px;
+  color: #22c55e;
+  animation: fadeIn 0.3s ease;
+}
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+/* ── Tier Labels ─────────────────────────────────────── */
+.setup-tier-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  margin: 8px 0 4px;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  color: var(--text-dim);
+  border-left: 3px solid var(--cyan);
+  background: rgba(255,255,255,0.015);
+  border-radius: 0 6px 6px 0;
+}
+.setup-tier-label:first-child { margin-top: 0; }
+.setup-tier-meta {
+  font-weight: 400;
+  font-size: 9px;
+  color: var(--text-faint);
+  text-transform: none;
+  letter-spacing: 0;
+  margin-left: auto;
+}
+
+/* ── Editable Prompts ────────────────────────────────── */
+.setup-prompt-row.edited .setup-prompt-toggle { border-color: rgba(139,92,246,0.3); }
+.setup-prompt-edited {
+  font-size: 9px;
+  color: #8b5cf6;
+  background: rgba(139,92,246,0.12);
+  padding: 1px 6px;
+  border-radius: 4px;
+  font-weight: 500;
+}
+.setup-prompt-edit-area {
+  border-top: 1px solid var(--border-dim);
+  background: rgba(0,0,0,0.18);
+  padding: 10px 12px;
+}
+.setup-prompt-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+.setup-select-sm { padding: 3px 8px; font-size: 10px; min-width: 80px; }
+.setup-prompt-reset {
+  font-size: 10px;
+  color: var(--text-faint);
+  background: none;
+  border: 1px solid var(--border-dim);
+  border-radius: 4px;
+  padding: 2px 8px;
+  cursor: pointer;
+}
+.setup-prompt-reset:hover { color: #ef4444; border-color: rgba(239,68,68,0.3); }
+.setup-prompt-textarea {
+  width: 100%;
+  min-height: 120px;
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  line-height: 1.6;
+  color: var(--text-faint);
+  background: rgba(0,0,0,0.2);
+  border: 1px solid var(--border-dim);
+  border-radius: 6px;
+  padding: 10px;
+  resize: vertical;
+  box-sizing: border-box;
+}
+.setup-prompt-textarea:focus {
+  outline: none;
+  border-color: var(--cyan);
+  color: var(--text);
+}
+
 /* Output directory row */
 .setup-label-row {
   display: flex;
