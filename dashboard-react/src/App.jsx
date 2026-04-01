@@ -808,11 +808,25 @@ function StatusPill({ status }) {
   )
 }
 
+// Tier detection from agent ID/role
+function getAgentTier(id) {
+  const s = (id || '').toLowerCase()
+  if (s.includes('narrator') || s.includes('report') || s.includes('writer')) return 'report'
+  if (s.includes('synth')) return 'synthesis'
+  return 'collection'
+}
+const TIER_COLORS = { collection: '#06b6d4', synthesis: '#8b5cf6', report: '#f59e0b' }
+const STATUS_COLORS = { running: '#06b6d4', spawning: '#06b6d4', done: '#22c55e', error: '#ef4444', waiting: '#6b7280' }
+
 function AgentCard({ agent, selected, onClick, onViewMd }) {
   const { id, label, model, status, lastActivity, logSize, hasMd, mdPath } = agent
+  const tier = getAgentTier(id)
+  const tierColor = TIER_COLORS[tier]
+  const statusColor = STATUS_COLORS[status] || STATUS_COLORS.waiting
   const cardCls = [
     'agent-card',
     `status-${status || 'waiting'}`,
+    `tier-${tier}`,
     selected ? 'selected' : '',
   ].filter(Boolean).join(' ')
 
@@ -821,14 +835,14 @@ function AgentCard({ agent, selected, onClick, onViewMd }) {
     : '—'
 
   return (
-    <div className={cardCls} onClick={() => onClick(id)}>
+    <div className={cardCls} onClick={() => onClick(id)} style={{ borderLeftColor: tierColor }}>
       <div className="agent-row">
         <StatusDot status={status || 'waiting'} />
-        <span className="agent-icon">
+        <span className="agent-icon" style={{ color: statusColor }}>
           {status === 'done' ? '✓' : status === 'error' ? '✗' : status === 'running' || status === 'spawning' ? '⟳' : '○'}
         </span>
         <span className="agent-label">{label || id}</span>
-        <span className="agent-model">{modelShort}</span>
+        <span className="agent-model" style={{ color: tierColor }}>{modelShort}</span>
       </div>
       <div className="agent-meta">
         {logSize != null && (

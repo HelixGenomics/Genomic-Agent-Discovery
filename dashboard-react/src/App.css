@@ -835,6 +835,7 @@
   margin-bottom: 3px;
   border-radius: 6px;
   border: 1px solid transparent;
+  border-left: 3px solid transparent;
   background: transparent;
   cursor: pointer;
   transition: background 0.15s, border-color 0.15s;
@@ -843,15 +844,15 @@
 }
 .agent-card:hover {
   background: rgba(255,255,255,0.028);
-  border-color: var(--border-dim);
 }
 .agent-card.selected {
   background: rgba(52,211,153,0.06);
-  border-color: rgba(52,211,153,0.18);
 }
-.agent-card.status-running { border-color: rgba(52,211,153,0.18); }
-.agent-card.status-done    { border-color: rgba(255,255,255,0.05); }
-.agent-card.status-error   { border-color: rgba(244,63,94,0.18); }
+/* Status border glow (right/top/bottom) */
+.agent-card.status-running { border-right-color: rgba(6,182,212,0.25); border-top-color: rgba(6,182,212,0.1); border-bottom-color: rgba(6,182,212,0.1); }
+.agent-card.status-done    { border-right-color: rgba(34,197,94,0.15); }
+.agent-card.status-error   { border-right-color: rgba(244,63,94,0.25); border-top-color: rgba(244,63,94,0.1); border-bottom-color: rgba(244,63,94,0.1); }
+/* Tier left border is set via inline style */
 
 /* Scan line on running */
 .agent-card.status-running::after {
