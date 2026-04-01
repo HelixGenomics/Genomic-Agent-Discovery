@@ -29,7 +29,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Contact emails updated to admin@helixsequencing.com
 
 ### Changed
-- Right panel layout: findings and chat are now stacked vertically (was chat spanning full bottom)
+- **All preset prompts rewritten** — research-driven instead of checklist-driven. Agents now research first, then query. Uses web search for current guidelines before investigating patient data.
+- All collector prompts include thoroughness instruction: "You are the cheap model — do the heavy lifting"
+- Cost estimates updated to reflect higher tool usage ($0.50-8.00 depending on preset)
+- Cost estimation in status bar now accounts for input tokens (5x output) and web search overhead
+- Agent cards color-coded by tier (cyan=collector, purple=synthesizer, amber=narrator) and status
+- Agent model parsed from log headers instead of hardcoded to haiku
+- Web search duplicate detection improved with word-overlap matching (was prefix-only)
+- Duplicate search warning now suggests checking messages or using different angle
+- Right panel layout: findings and chat stacked vertically (was chat spanning full bottom)
 - First agent auto-expands on load for both presets and custom agents
 - Custom agent cards are collapsible (click header to toggle)
 - Prompt textareas are vertically resizable
