@@ -126,8 +126,6 @@ It includes an empathetic note to families, detailed domain analyses, an integra
  
  - View the full report as a Markdown page:
 
-Inline version (click to expand):
-
 <details>
 <summary><strong>Show the full Debendox/Trisomy 9 investigative report inline</strong></summary>
 
