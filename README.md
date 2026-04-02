@@ -1069,6 +1069,7 @@ Please open an issue before starting work on large changes so we can discuss the
 ## Community
 
 - **Reddit:** [r/HelixSequencing](https://reddit.com/r/HelixSequencing) — share templates, findings, and pipeline configs
+- **TikTok:** [@helix_sequencing](https://tiktok.com/@helix_sequencing)
 - **Twitter/X:** [@HelixSequencing](https://x.com/HelixSequencing)
 - **GitHub:** [Issues](https://github.com/HelixGenomics/Genomic-Agent-Discovery/issues) for bugs and feature requests
 - **Email:** [admin@helixsequencing.com](mailto:admin@helixsequencing.com)
