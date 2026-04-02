@@ -17,6 +17,7 @@
   <a href="#configuration-reference">Configuration</a> &bull;
   <a href="#database">Database</a> &bull;
   <a href="#privacy--security">Privacy</a> &bull;
+  <a href="#community">Community</a> &bull;
   <a href="#about-this-project">About This Project</a>
 </p>
 
@@ -1064,6 +1065,13 @@ npm run verify-db
 
 Please open an issue before starting work on large changes so we can discuss the approach.
 
+
+## Community
+
+- **Reddit:** [r/HelixSequencing](https://reddit.com/r/HelixSequencing) — share templates, findings, and pipeline configs
+- **Twitter/X:** [@HelixSequencing](https://x.com/HelixSequencing)
+- **GitHub:** [Issues](https://github.com/HelixGenomics/Genomic-Agent-Discovery/issues) for bugs and feature requests
+- **Email:** [admin@helixsequencing.com](mailto:admin@helixsequencing.com)
 
 ## About This Project
 
