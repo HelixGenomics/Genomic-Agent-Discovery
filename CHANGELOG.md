@@ -14,6 +14,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - HTML/CSS report template at `src/report-template.html`
 - Strips narrator preamble/thinking text from PDF output
 - Markdown parsed via `marked` library with custom key-takeaways rendering
+- **Database status panel** now shows ACMG SF v3.2 (84 genes), CPIC Drug-Gene (150+ mappings), and Exomiser install status
+- Preset descriptions updated to reference new tools (ACMG, CPIC, Exomiser)
+- Preset prompts now explicitly instruct agents to use `get_acmg_genes`, `get_cpic_drugs`, and `prioritize_variants` tools
 
 ## [1.2.0] - 2026-04-01
 

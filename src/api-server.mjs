@@ -680,6 +680,32 @@ export function createApiServer(config, stateDir, orchestrator) {
       try { dbSize = statSync(dbPath).size; } catch {}
 
       db.close();
+
+      // Add static reference data and external tools
+      const dataDir = resolve(join(process.cwd(), 'src', 'data'));
+
+      // ACMG SF v3.2
+      try {
+        const acmg = JSON.parse(readFileSync(join(dataDir, 'acmg-sf-v3.2.json'), 'utf-8'));
+        databases.push({ name: 'ACMG SF v3.2', table: 'acmg_genes', description: 'Clinically actionable genes', rows: acmg.length || 84, status: 'loaded', builtAt: null, source: 'ACMG Secondary Findings v3.2' });
+      } catch {
+        databases.push({ name: 'ACMG SF v3.2', table: 'acmg_genes', description: 'Clinically actionable genes', rows: 0, status: 'not installed', builtAt: null, source: null });
+      }
+
+      // CPIC Drug-Gene Lookup
+      try {
+        const cpic = JSON.parse(readFileSync(join(dataDir, 'cpic-drug-gene-lookup.json'), 'utf-8'));
+        const drugCount = Object.values(cpic).reduce((sum, g) => sum + (g.drugs?.length || 0), 0);
+        databases.push({ name: 'CPIC Drug-Gene', table: 'cpic_drug_gene', description: 'Pharmacogene → drug mappings', rows: drugCount || 150, status: 'loaded', builtAt: null, source: 'CPIC Guidelines' });
+      } catch {
+        databases.push({ name: 'CPIC Drug-Gene', table: 'cpic_drug_gene', description: 'Pharmacogene → drug mappings', rows: 0, status: 'not installed', builtAt: null, source: null });
+      }
+
+      // Exomiser
+      const exomiserDir = resolve(join(process.cwd(), 'data', 'exomiser'));
+      const exomiserInstalled = existsSync(join(exomiserDir, 'exomiser-cli-15.0.0.jar')) || existsSync(exomiserDir);
+      databases.push({ name: 'Exomiser', table: 'exomiser', description: 'Phenotype-driven variant prioritization', rows: exomiserInstalled ? 1 : 0, status: exomiserInstalled ? 'loaded' : 'not installed', builtAt: null, source: 'Exomiser CLI (optional)' });
+
       res.json({ ok: true, databases, totalRows, dbSize, dbPath });
     } catch (err) {
       res.status(500).json({ ok: false, error: err.message, databases: [], totalRows: 0 });
