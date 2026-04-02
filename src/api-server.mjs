@@ -74,6 +74,12 @@ function readAgentsFromDisk(jobDir) {
       const logSize = logStat.size;
       const lastActivity = logStat.mtime.toISOString();
 
+      // Check for .md output — in logs dir or MD_DOCS/
+      const mdInLogs = join(logsDir, id + '.md');
+      const mdInDocs = join(process.cwd(), 'MD_DOCS', id + '.md');
+      const mdPath = existsSync(mdInLogs) ? mdInLogs : existsSync(mdInDocs) ? mdInDocs : null;
+      const hasMd = mdPath !== null;
+
       // Read log to detect status and model
       let status = 'done';
       let model = 'haiku';
@@ -84,12 +90,18 @@ function readAgentsFromDisk(jobDir) {
         if (exitMatch && exitMatch[1] !== '0') {
           status = 'error';
         } else if (!exitMatch) {
-          // No exit line — agent might still be running or crashed hard
-          const tail = logContent.slice(-500);
-          if (/\[error\]|FATAL|Traceback|panic:/i.test(tail)) {
-            status = 'error';
-          } else if (logSize < 500 && !exitMatch) {
-            status = 'error'; // Very small log with no exit = likely crashed
+          // No exit line — check if agent produced output (.md file exists = completed)
+          if (hasMd) {
+            status = 'done'; // Has output file, completed successfully
+          } else {
+            const tail = logContent.slice(-500);
+            if (/\[error\]|FATAL|Traceback|panic:/i.test(tail)) {
+              status = 'error';
+            } else if (logSize < 500) {
+              // Tiny log, no exit, no output — check if process is still running
+              const age = Date.now() - logStat.mtime.getTime();
+              status = age > 30 * 60 * 1000 ? 'error' : 'running'; // >30min old = probably dead
+            }
           }
         }
         // Parse model from log header: "Model: haiku (claude-haiku-4-5-20251001)"
@@ -97,15 +109,14 @@ function readAgentsFromDisk(jobDir) {
         if (modelMatch) model = modelMatch[1];
       } catch { /* ignore */ }
 
-      const mdPath = join(logsDir, id + '.md');
       agents[id] = {
         label: id.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase()),
         model,
         status,
         logSize,
         lastActivity,
-        hasMd: existsSync(mdPath),
-        mdPath: existsSync(mdPath) ? mdPath : null,
+        hasMd,
+        mdPath,
       };
     }
   } catch { /* ignore */ }
@@ -319,15 +330,26 @@ export function createApiServer(config, stateDir, orchestrator) {
   app.get('/api/health', (req, res) => {
     let activeJobId = null;
     try {
+      // Find the most recent job that actually has agent logs
       const dirs = readdirSync(stateDir)
         .filter(d => d.includes('job-'))
         .sort()
         .reverse();
-      if (dirs.length > 0) {
-        // Extract the short jobId from the directory name (everything after last dash-prefixed date)
-        const dir = dirs[0];
-        const m = dir.match(/(job-\d+)$/);
-        activeJobId = m ? m[1] : dir;
+      for (const dir of dirs) {
+        const logsDir = join(stateDir, dir, 'logs');
+        try {
+          const logs = readdirSync(logsDir).filter(f => f.endsWith('.log'));
+          if (logs.length > 0) {
+            const m = dir.match(/(job-\d+)$/);
+            activeJobId = m ? m[1] : dir;
+            break;
+          }
+        } catch { /* no logs dir */ }
+      }
+      // Fallback to most recent job dir if none have logs
+      if (!activeJobId && dirs.length > 0) {
+        const m = dirs[0].match(/(job-\d+)$/);
+        activeJobId = m ? m[1] : dirs[0];
       }
     } catch { /* ignore */ }
 

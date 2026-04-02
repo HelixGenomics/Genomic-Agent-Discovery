@@ -268,8 +268,10 @@ function SetupPanel({ onStarted }) {
         ? customAgents.filter(a => a.id && a.prompt)
         : (selectedPreset?.agentList || [])
       const dir = mdOutputDir.trim().replace(/\/$/, '')
+      const jobTimestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19)
+      const jobDir = dir ? `${dir}/${jobTimestamp}` : jobTimestamp
       const baseOverrides = saveMd
-        ? Object.fromEntries(agentList.map(a => [a.id, { mdOutputPath: dir ? `${dir}/${a.id}.md` : `${a.id}.md` }]))
+        ? Object.fromEntries(agentList.map(a => [a.id, { mdOutputPath: `${jobDir}/${a.id}.md` }]))
         : {}
       // Merge per-agent setting edits into overrides
       const agentOverrides = { ...baseOverrides }
