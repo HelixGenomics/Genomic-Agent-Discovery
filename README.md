@@ -29,6 +29,8 @@
   <img alt="PRs Welcome" src="https://img.shields.io/badge/PRs-welcome-brightgreen.svg">
 </p>
 
+> **Helix Sequencing Beta is LIVE** — The full platform powered by this framework: 3,550 PRS, 488 traits, 34 pharmacogenes, AI longevity protocol. Upload your existing DNA file, get comprehensive analysis in under 2 minutes. Your file is deleted after with cryptographic proof. **[$5 limited early access →](https://helixsequencing.com)**
+
 Upload your raw DNA file from 23andMe, AncestryDNA, MyHeritage, FamilyTreeDNA, or any VCF -- and watch a team of AI agents fan out across 16+ public genomics databases, share discoveries with each other in real time, and produce a comprehensive health report. Everything runs on your machine. Nothing is uploaded anywhere.
 
 <p align="center">
