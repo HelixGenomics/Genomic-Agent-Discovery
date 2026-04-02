@@ -42,6 +42,29 @@ DOWNLOADS_DIR="$DATA_DIR/downloads"
 DB_PATH="$DATA_DIR/helix-unified.db"
 
 # ---------------------------------------------------------------------------
+# Build profile: basic | standard | full (default: standard)
+# ---------------------------------------------------------------------------
+# Usage:
+#   npm run build-db                    # standard (recommended)
+#   npm run build-db -- --profile basic # fast, ~50MB, API-only sources
+#   npm run build-db -- --profile full  # everything including slow API crawls
+#
+# basic    (~50MB, 2-5 min):    CPIC, CIViC, HPO, Orphanet, PharmGKB
+# standard (~1.2GB, 10-15 min): basic + ClinVar, GWAS Catalog
+# full     (~1.5GB, 1-4 hrs):   standard + SNPedia, AlphaMissense, CADD, gnomAD, DisGeNET
+#
+# Exomiser is separate: npm run setup-exomiser (~3GB, requires Java 21+)
+
+PROFILE="${HELIX_BUILD_PROFILE:-standard}"
+for arg in "$@"; do
+  case "$arg" in
+    --profile) shift; PROFILE="${1:-standard}"; shift ;;
+    --profile=*) PROFILE="${arg#*=}" ;;
+    basic|standard|full) PROFILE="$arg" ;;
+  esac
+done
+
+# ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
 
@@ -67,9 +90,18 @@ START_TIME=$(date +%s)
 # ---------------------------------------------------------------------------
 
 echo ""
+PROFILE_LABEL="standard"
+PROFILE_DESC="Core + ClinVar + GWAS (~1.2GB, 10-15 min)"
+case "$PROFILE" in
+  basic)    PROFILE_LABEL="basic";    PROFILE_DESC="API-only sources (~50MB, 2-5 min)" ;;
+  standard) PROFILE_LABEL="standard"; PROFILE_DESC="Core + ClinVar + GWAS (~1.2GB, 10-15 min)" ;;
+  full)     PROFILE_LABEL="full";     PROFILE_DESC="Everything including slow API crawls (~1.5GB, 1-4 hrs)" ;;
+esac
+
+echo ""
 echo -e "  ${CYAN}=================================================${RESET}"
-echo -e "       ${BOLD}DATABASE BUILD${RESET}"
-echo -e "       ${DIM}Downloading & indexing genomic databases${RESET}"
+echo -e "       ${BOLD}DATABASE BUILD${RESET} — ${PROFILE_LABEL}"
+echo -e "       ${DIM}${PROFILE_DESC}${RESET}"
 echo -e "  ${CYAN}=================================================${RESET}"
 
 # ---------------------------------------------------------------------------
@@ -425,20 +457,43 @@ console.log('  [OK]    Database schema initialized: ${DB_PATH}');
 step "Downloading and importing data sources..."
 echo ""
 
-SOURCES=(
+# ── Basic profile: fast API-only sources (~50MB, 2-5 min) ──
+SOURCES_BASIC=(
+  "download-cpic.sh:CPIC pharmacogenomics guidelines"
+  "download-civic.sh:CIViC cancer variant evidence"
+  "download-hpo.sh:HPO gene-phenotype associations"
+  "download-orphanet.sh:Orphanet rare disease genes"
+  "download-pharmgkb.sh:PharmGKB drug-gene annotations"
+)
+
+# ── Standard profile: basic + large file downloads (~1.2GB, 10-15 min) ──
+SOURCES_STANDARD=(
+  "${SOURCES_BASIC[@]}"
   "download-clinvar.sh:ClinVar clinical variant interpretations"
   "download-gwas.sh:GWAS Catalog trait-variant associations"
-  "download-cpic.sh:CPIC pharmacogenomics guidelines"
+)
+
+# ── Full profile: everything including slow API crawls (~1.5GB, 1-4 hrs) ──
+SOURCES_FULL=(
+  "${SOURCES_STANDARD[@]}"
   "download-alphamissense.sh:AlphaMissense pathogenicity predictions"
   "download-cadd.sh:CADD deleteriousness scores"
   "download-gnomad.sh:gnomAD population frequencies"
-  "download-hpo.sh:HPO gene-phenotype associations"
   "download-disgenet.sh:DisGeNET disease-gene associations"
-  "download-civic.sh:CIViC cancer variant evidence"
-  "download-pharmgkb.sh:PharmGKB drug-gene annotations"
-  "download-orphanet.sh:Orphanet rare disease genes"
   "download-snpedia.sh:SNPedia variant summaries"
 )
+
+# Select sources based on profile
+case "$PROFILE" in
+  basic)    SOURCES=("${SOURCES_BASIC[@]}") ;;
+  standard) SOURCES=("${SOURCES_STANDARD[@]}") ;;
+  full)     SOURCES=("${SOURCES_FULL[@]}") ;;
+  *)
+    echo -e "  ${RED}Unknown profile: $PROFILE${RESET}"
+    echo "  Valid profiles: basic, standard, full"
+    exit 1
+    ;;
+esac
 
 TOTAL=${#SOURCES[@]}
 CURRENT=0

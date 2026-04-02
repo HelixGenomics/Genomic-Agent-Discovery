@@ -18,6 +18,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `GET /api/db-status` endpoint returning table row counts and build metadata
 - **ACMG SF v3.2 gene list** — 73 clinically actionable genes with conditions, available as MCP tool `get_acmg_genes`
 - **CPIC drug-gene lookup** — 23 pharmacogenes mapped to 150+ drugs with guideline levels, available as MCP tool `get_cpic_drugs`
+- **Build profiles** — `npm run build-db:basic` (50MB, 2min), `npm run build-db` (1.2GB, 10min), `npm run build-db:full` (1.5GB, 1-4hrs)
 - **Exomiser integration** — phenotype-driven variant prioritization via `prioritize_variants` MCP tool. Runs Exomiser as external subprocess (AGPL-3.0, license-safe). Setup: `npm run setup-exomiser`
 - Debendox/Trisomy 9 example template in `config/templates/`
 

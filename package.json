@@ -10,6 +10,8 @@
   "scripts": {
     "start": "node src/cli.mjs",
     "build-db": "bash scripts/build-database.sh",
+    "build-db:basic": "bash scripts/build-database.sh basic",
+    "build-db:full": "bash scripts/build-database.sh full",
     "seed-demo": "node scripts/seed-demo-data.mjs",
     "verify-db": "node scripts/verify-database.mjs",
     "test": "node --test tests/*.mjs",

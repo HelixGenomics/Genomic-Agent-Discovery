@@ -240,22 +240,39 @@ npm install
 
 ### Step 2: Build the annotation database
 
-This downloads 12 public genomics databases and compiles them into a single SQLite file. **Run this before your first analysis.**
+This downloads public genomics databases and compiles them into a single SQLite file. **Run this before your first analysis.** Choose a build profile based on your needs:
 
 ```bash
-npm run build-db
+npm run build-db              # Standard (recommended) — ~1.2GB, 10-15 min
+npm run build-db:basic        # Basic — ~50MB, 2-5 min (API-only sources)
+npm run build-db:full         # Full — ~1.5GB, 1-4 hrs (everything)
 ```
 
-**What happens:**
-1. Downloads ClinVar variants from NCBI (~100MB, ~4M rows)
-2. Downloads GWAS Catalog associations from EBI (~50MB, ~400K rows)
-3. Fetches CPIC pharmacogenomics data via REST API (~3.5K entries)
-4. Downloads HPO gene-phenotype links from GitHub (~330K associations)
-5. Downloads Orphanet rare disease genes from orphadata.com (~8K entries)
-6. Downloads CIViC cancer evidence nightly dump (~5K entries)
-7. Crawls SNPedia annotations via MediaWiki API (CC BY-NC-SA 3.0, ~400+ curated SNPs)
-8. Fetches AlphaMissense/CADD/gnomAD scores via MyVariant.info API (batch queries, ~15 min each)
-9. Optimizes and indexes the database
+| Profile | Size | Time | Databases |
+|---------|------|------|-----------|
+| **basic** | ~50MB | 2-5 min | CPIC, CIViC, HPO, Orphanet, PharmGKB |
+| **standard** | ~1.2GB | 10-15 min | Basic + ClinVar (~4M variants), GWAS Catalog (~1M associations) |
+| **full** | ~1.5GB | 1-4 hrs | Standard + AlphaMissense, CADD, gnomAD, SNPedia, DisGeNET |
+
+**Basic** is enough to get started — it covers pharmacogenomics, cancer evidence, rare disease genes, and drug interactions. **Standard** adds the two largest clinical variant databases. **Full** adds pathogenicity scores, population frequencies, and community annotations.
+
+**What each profile downloads:**
+
+Standard (default):
+1. CPIC pharmacogenomics data via REST API (~3.5K entries)
+2. CIViC cancer evidence nightly dump (~5K entries)
+3. HPO gene-phenotype links (~330K associations)
+4. Orphanet rare disease genes (~8K entries)
+5. PharmGKB drug-gene annotations (~5K entries)
+6. ClinVar variants from NCBI (~100MB, ~4M rows)
+7. GWAS Catalog associations from EBI (~50MB, ~1M rows)
+
+Full adds:
+8. AlphaMissense pathogenicity predictions via MyVariant.info API
+9. CADD deleteriousness scores via MyVariant.info API
+10. gnomAD population frequencies via MyVariant.info API
+11. SNPedia annotations via MediaWiki API (CC BY-NC-SA 3.0)
+12. DisGeNET disease-gene associations (requires free registration)
 
 **Expected time:** 30-60 minutes on first run (mostly API rate limits). Re-runs are fast — downloads are cached for 7 days.
 
@@ -278,6 +295,16 @@ HTTPS_PROXY=http://your-proxy:port npm run build-db
 # Verify your database after build
 npm run verify-db
 ```
+
+### Step 2b: Exomiser (optional — advanced)
+
+[Exomiser](https://github.com/exomiser/Exomiser) is the gold standard for rare disease variant prioritization, created by Peter Robinson (HPO creator). It ranks variants by how well they match patient phenotypes. Requires Java 21+ and ~3GB additional disk space.
+
+```bash
+npm run setup-exomiser     # Downloads CLI + annotation data (~3GB)
+```
+
+Once installed, agents can use the `prioritize_variants` tool to find the variants that best explain a patient's symptoms. Exomiser runs as a separate AGPL-3.0 process (not linked into our MIT codebase).
 
 ### Step 3: Connect an LLM
 
