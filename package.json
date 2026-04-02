@@ -15,7 +15,8 @@
     "seed-demo": "node scripts/seed-demo-data.mjs",
     "verify-db": "node scripts/verify-database.mjs",
     "test": "node --test tests/*.mjs",
-    "setup-exomiser": "bash scripts/setup-exomiser.sh"
+    "setup-exomiser": "bash scripts/setup-exomiser.sh",
+    "generate-pdf": "node scripts/generate-report-pdf.mjs"
   },
   "keywords": [
     "genomics",
@@ -45,6 +46,7 @@
     "chalk": "^5.3.0",
     "cors": "^2.8.5",
     "express": "^4.21.0",
+    "marked": "^17.0.5",
     "open": "^10.1.0",
     "yaml": "^2.6.0",
     "zod": "^3.24.0"

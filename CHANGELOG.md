@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.3.0] - 2026-04-02
+
+### Added
+- **PDF report renderer** — converts narrator markdown output to clinical-grade branded PDF matching helixsequencing.com report style. Dark teal header, specimen info box, section banners, styled tables, professional footer with disclaimers and page numbers
+- `npm run generate-pdf -- <narrator.md>` convenience script
+- Auto-generates PDF after narrator completes in the pipeline
+- HTML/CSS report template at `src/report-template.html`
+- Strips narrator preamble/thinking text from PDF output
+- Markdown parsed via `marked` library with custom key-takeaways rendering
+
 ## [1.2.0] - 2026-04-01
 
 ### Added

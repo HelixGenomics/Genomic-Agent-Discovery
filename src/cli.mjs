@@ -23,7 +23,7 @@
 //
 // ============================================================
 
-import { resolve, dirname } from "path";
+import { resolve, dirname, join } from "path";
 import { fileURLToPath } from "url";
 import { existsSync, mkdirSync } from "fs";
 import { execSync } from "child_process";
@@ -546,6 +546,26 @@ async function main() {
       }
     } catch (err) {
       console.warn(chalk.yellow(`  Warning: Report generation failed: ${err.message}`));
+    }
+
+    // Auto-generate PDF from narrator.md if it exists
+    try {
+      const { readdirSync } = await import("fs");
+      const narratorMd = readdirSync(outputDir).find(f => f === 'narrator.md');
+      if (narratorMd) {
+        const narratorPath = join(outputDir, narratorMd);
+        console.log(chalk.bold("\n  Generating PDF report..."));
+        const { execSync } = await import("child_process");
+        execSync(`node scripts/generate-report-pdf.mjs "${narratorPath}"`, {
+          cwd: process.cwd(),
+          stdio: 'inherit',
+          timeout: 60000,
+        });
+        const pdfPath = narratorPath.replace(/\.md$/i, '.pdf');
+        console.log(chalk.green(`  PDF report: ${pdfPath}`));
+      }
+    } catch (err) {
+      console.warn(chalk.yellow(`  Warning: PDF generation failed: ${err.message}`));
     }
 
     // Print summary
