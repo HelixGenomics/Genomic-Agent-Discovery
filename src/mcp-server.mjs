@@ -27,7 +27,7 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { z } from "zod";
-import { readFileSync, appendFileSync, existsSync, mkdirSync } from "fs";
+import { readFileSync, writeFileSync, appendFileSync, existsSync, mkdirSync, readdirSync } from "fs";
 import { join, dirname, resolve } from "path";
 import { fileURLToPath } from "url";
 import Database from "better-sqlite3";
@@ -430,6 +430,202 @@ server.tool(
       };
     } catch (e) {
       return { content: [{ type: "text", text: "CPIC drug lookup not available: " + e.message }] };
+    }
+  }
+);
+
+// --- prioritize_variants (Exomiser integration) ---
+server.tool(
+  "prioritize_variants",
+  "Run Exomiser to prioritize patient variants by phenotype match. " +
+    "Provide HPO terms describing the patient's symptoms/conditions and Exomiser " +
+    "will rank which genetic variants most likely explain those symptoms. " +
+    "This is the gold-standard tool for rare disease variant prioritization. " +
+    "Requires Exomiser to be installed (npm run setup-exomiser). " +
+    "Returns nothing if Exomiser is not available — use other query tools instead.",
+  {
+    hpo_terms: z.array(z.string()).describe("HPO term IDs, e.g. ['HP:0001250', 'HP:0000486']. Get terms from query_hpo."),
+    inheritance: z.enum(["AD", "AR", "XL", "any"]).optional().default("any")
+      .describe("Inheritance mode filter: AD=autosomal dominant, AR=autosomal recessive, XL=X-linked, any=all modes"),
+    max_results: z.number().optional().default(10).describe("Maximum number of top-ranked genes to return"),
+  },
+  async ({ hpo_terms, inheritance, max_results }) => {
+    // Check Exomiser is installed
+    const exomiserDir = join(PROJECT_ROOT, "data", "exomiser");
+    const cliDirs = existsSync(exomiserDir)
+      ? readdirSync(exomiserDir).filter(d => d.startsWith("exomiser-cli-"))
+      : [];
+
+    if (cliDirs.length === 0) {
+      return { content: [{ type: "text", text:
+        "Exomiser is not installed. Run 'npm run setup-exomiser' to enable phenotype-driven variant prioritization. " +
+        "Use other query tools (query_gene, query_clinvar, query_hpo) in the meantime."
+      }] };
+    }
+
+    const cliDir = join(exomiserDir, cliDirs[0]);
+    const jarFiles = readdirSync(cliDir).filter(f => f.endsWith(".jar") && f.startsWith("exomiser-cli"));
+    if (jarFiles.length === 0) {
+      return { content: [{ type: "text", text: "Exomiser jar not found in " + cliDir }] };
+    }
+    const jarPath = join(cliDir, jarFiles[0]);
+
+    // Check genotype DB
+    const db = genotypeDb();
+    if (!db) {
+      return { content: [{ type: "text", text: "Genotype database not available." }] };
+    }
+
+    try {
+      // Step 1: Export patient genotypes to VCF
+      const vcfPath = join(STATE_DIR, "patient-exomiser.vcf");
+      if (!existsSync(vcfPath)) {
+        // Build VCF from genotype DB — need chr, pos, ref, alt
+        const rows = db.prepare(`
+          SELECT g.rsid, g.chromosome, g.position, g.genotype,
+                 c.ref_allele, c.alt_allele
+          FROM genotypes g
+          LEFT JOIN (SELECT rsid, ref_allele, alt_allele FROM clinvar_lookup LIMIT 1) c ON g.rsid = c.rsid
+          WHERE g.chromosome IS NOT NULL AND g.position IS NOT NULL
+          ORDER BY g.chromosome, g.position
+        `).all().catch ? [] : (() => {
+          // Fallback: get genotypes with position data from the unified DB
+          const udb = unifiedDb();
+          if (!udb) return [];
+          const genotypes = db.prepare("SELECT rsid, chromosome, position, genotype FROM genotypes WHERE chromosome IS NOT NULL AND position IS NOT NULL").all();
+          const refAlt = {};
+          for (const g of genotypes) {
+            try {
+              const cv = udb.prepare("SELECT ref_allele, alt_allele FROM clinvar WHERE rsid = ? LIMIT 1").get(g.rsid);
+              if (cv) refAlt[g.rsid] = cv;
+            } catch { /* skip */ }
+          }
+          return genotypes.map(g => ({ ...g, ...refAlt[g.rsid] }));
+        })();
+
+        // Actually build VCF using genotype DB directly
+        const genos = db.prepare("SELECT rsid, chromosome, position, genotype FROM genotypes WHERE chromosome IS NOT NULL AND position IS NOT NULL AND genotype != '--'").all();
+
+        // Get ref/alt from unified DB
+        const udb = unifiedDb();
+        const vcfLines = [
+          "##fileformat=VCFv4.1",
+          "##source=HelixGenomicsAgents",
+          '##FORMAT=<ID=GT,Number=1,Type=String,Description="Genotype">',
+          "#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT\tSAMPLE"
+        ];
+
+        let exported = 0;
+        for (const g of genos) {
+          if (!g.chromosome || !g.position) continue;
+          let ref = null, alt = null;
+          if (udb) {
+            try {
+              const cv = udb.prepare("SELECT ref_allele, alt_allele FROM clinvar WHERE rsid = ? LIMIT 1").get(g.rsid);
+              if (cv) { ref = cv.ref_allele; alt = cv.alt_allele; }
+            } catch { /* skip */ }
+          }
+          if (!ref || !alt) {
+            // Infer from genotype (e.g. "AG" -> ref=A, alt=G)
+            const gt = g.genotype || "";
+            if (gt.length === 2 && gt[0] !== gt[1]) {
+              ref = gt[0]; alt = gt[1];
+            } else if (gt.length === 2) {
+              ref = gt[0]; alt = ".";
+            } else continue;
+          }
+
+          const chrom = g.chromosome.replace(/^chr/i, "");
+          const gtField = (g.genotype && g.genotype.length === 2 && g.genotype[0] !== g.genotype[1]) ? "0/1" : "1/1";
+          vcfLines.push(`${chrom}\t${g.position}\t${g.rsid}\t${ref}\t${alt}\t.\tPASS\t.\tGT\t${gtField}`);
+          exported++;
+        }
+
+        writeFileSync(vcfPath, vcfLines.join("\n") + "\n");
+      }
+
+      // Step 2: Generate Exomiser config YAML
+      const template = readFileSync(join(PROJECT_ROOT, "src", "data", "exomiser-config-template.yml"), "utf8");
+      const outputDir = join(STATE_DIR, "exomiser-output");
+      if (!existsSync(outputDir)) mkdirSync(outputDir, { recursive: true });
+
+      const hpoArray = JSON.stringify(hpo_terms);
+      let config = template
+        .replace("{{VCF_PATH}}", vcfPath)
+        .replace("{{HPO_IDS}}", hpoArray)
+        .replace("{{MAX_GENES}}", String(max_results || 10))
+        .replace("{{OUTPUT_DIR}}", outputDir)
+        .replace("{{OUTPUT_PREFIX}}", "helix-exomiser");
+
+      // Apply inheritance filter
+      if (inheritance && inheritance !== "any") {
+        const modeMap = { AD: "AUTOSOMAL_DOMINANT", AR: "AUTOSOMAL_RECESSIVE", XL: "X_RECESSIVE" };
+        const mode = modeMap[inheritance];
+        if (mode) {
+          // Keep only the selected mode with score 1.0
+          config = config.replace(/inheritanceModes:[\s\S]*?analysisMode/,
+            `inheritanceModes:\n    ${mode}: 1.0\n  analysisMode`);
+        }
+      }
+
+      const configPath = join(STATE_DIR, "exomiser-analysis.yml");
+      writeFileSync(configPath, config);
+
+      // Step 3: Run Exomiser
+      const { execSync } = await import("child_process");
+      const stdout = execSync(
+        `java -Xmx4g -jar "${jarPath}" analyse --analysis "${configPath}"`,
+        { encoding: "utf8", timeout: 300000, cwd: cliDir }
+      );
+
+      // Step 4: Parse results
+      const resultFiles = readdirSync(outputDir).filter(f => f.endsWith(".json"));
+      if (resultFiles.length === 0) {
+        return { content: [{ type: "text", text: "Exomiser completed but no JSON output found. HPO terms may not match any variants." }] };
+      }
+
+      const results = JSON.parse(readFileSync(join(outputDir, resultFiles[0]), "utf8"));
+
+      // Format top results
+      const genes = results.geneScores || results.genes || [];
+      const topGenes = genes.slice(0, max_results);
+
+      if (topGenes.length === 0) {
+        return { content: [{ type: "text", text:
+          `Exomiser found no variants matching HPO terms: ${hpo_terms.join(", ")}. ` +
+          "This is expected for consumer chip data (limited variant coverage). " +
+          "Use query_gene and query_clinvar for manual investigation."
+        }] };
+      }
+
+      const lines = [`=== EXOMISER RESULTS — Top ${topGenes.length} genes for HPO: ${hpo_terms.join(", ")} ===\n`];
+      for (const gene of topGenes) {
+        const g = gene.geneSymbol || gene.geneIdentifier?.geneSymbol || "unknown";
+        const score = (gene.combinedScore || gene.pValue || 0).toFixed(4);
+        const phenoScore = (gene.phenotypeScore || 0).toFixed(4);
+        const variantScore = (gene.variantScore || 0).toFixed(4);
+        const mode = gene.modeOfInheritance || "unknown";
+
+        lines.push(`## ${g} (combined: ${score}, phenotype: ${phenoScore}, variant: ${variantScore})`);
+        lines.push(`  Inheritance: ${mode}`);
+
+        const variants = gene.contributingVariants || [];
+        for (const v of variants.slice(0, 3)) {
+          const vStr = `${v.contigName || ""}:${v.start || ""}${v.ref || ""}>${v.alt || ""}`;
+          const vScore = (v.variantScore || 0).toFixed(3);
+          lines.push(`  Variant: ${vStr} (score: ${vScore}, ${v.variantEffect || ""})`);
+        }
+        lines.push("");
+      }
+
+      return { content: [{ type: "text", text: lines.join("\n") }] };
+
+    } catch (e) {
+      const msg = e.message || String(e);
+      if (msg.includes("ENOENT") || msg.includes("java")) {
+        return { content: [{ type: "text", text: "Exomiser execution failed — Java 21+ may not be installed or Exomiser data not downloaded. Error: " + msg.slice(0, 200) }] };
+      }
+      return { content: [{ type: "text", text: "Exomiser error: " + msg.slice(0, 500) }] };
     }
   }
 );
