@@ -28,8 +28,13 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { z } from "zod";
 import { readFileSync, appendFileSync, existsSync, mkdirSync } from "fs";
-import { join } from "path";
+import { join, dirname, resolve } from "path";
+import { fileURLToPath } from "url";
 import Database from "better-sqlite3";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+const PROJECT_ROOT = resolve(__dirname, "..");
 
 // ---------------------------------------------------------------------------
 // Configuration from environment
@@ -364,6 +369,68 @@ server.tool(
         text: `=== WEB SEARCHES BY ALL AGENTS (${searches.length}) ===\n${formatted}`,
       }],
     };
+  }
+);
+
+// --- get_acmg_genes ---
+server.tool(
+  "get_acmg_genes",
+  "Get the ACMG Secondary Findings v3.2 gene list — 73 genes recommended for clinical " +
+    "reporting. Returns gene name, associated condition, and inheritance pattern. Use this " +
+    "to systematically check all medically actionable genes.",
+  {},
+  async () => {
+    try {
+      const data = JSON.parse(readFileSync(join(PROJECT_ROOT, "src", "data", "acmg-sf-v3.2.json"), "utf8"));
+      const lines = data.genes.map(g => `${g.gene}\t${g.condition}\t${g.inheritance}`);
+      return {
+        content: [{
+          type: "text",
+          text: `=== ACMG SF v3.2 — ${data.genes.length} GENES ===\nGene\tCondition\tInheritance\n${lines.join("\n")}`,
+        }],
+      };
+    } catch (e) {
+      return { content: [{ type: "text", text: "ACMG gene list not available: " + e.message }] };
+    }
+  }
+);
+
+// --- get_cpic_drugs ---
+server.tool(
+  "get_cpic_drugs",
+  "Get the CPIC gene-drug interaction lookup table. Returns pharmacogenes mapped to " +
+    "their affected medications with clinical guideline levels and safety notes. " +
+    "Use this to identify drug interaction risks for a patient's metabolizer profile.",
+  {
+    gene: z.string().optional().describe("Optional: filter to a specific gene (e.g. 'CYP2D6')"),
+  },
+  async ({ gene }) => {
+    try {
+      const data = JSON.parse(readFileSync(join(PROJECT_ROOT, "src", "data", "cpic-drug-gene-lookup.json"), "utf8"));
+      const entries = gene
+        ? { [gene]: data.geneDrugs[gene] }
+        : data.geneDrugs;
+
+      if (gene && !data.geneDrugs[gene]) {
+        return { content: [{ type: "text", text: `Gene "${gene}" not found in CPIC lookup. Available: ${Object.keys(data.geneDrugs).join(", ")}` }] };
+      }
+
+      const lines = [];
+      for (const [g, info] of Object.entries(entries)) {
+        if (!info) continue;
+        lines.push(`\n## ${g} (Level ${info.level})`);
+        lines.push(`Drugs: ${info.drugs.join(", ")}`);
+        lines.push(`Note: ${info.note}`);
+      }
+      return {
+        content: [{
+          type: "text",
+          text: `=== CPIC GENE-DRUG INTERACTIONS ===\n${Object.keys(entries).length} genes${gene ? ` (filtered: ${gene})` : ""}\n${lines.join("\n")}`,
+        }],
+      };
+    } catch (e) {
+      return { content: [{ type: "text", text: "CPIC drug lookup not available: " + e.message }] };
+    }
   }
 );
 

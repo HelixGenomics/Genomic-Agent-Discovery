@@ -1,0 +1,122 @@
+{
+  "version": "CPIC 2024",
+  "description": "CPIC gene-drug pairs with clinical actionability. Maps pharmacogenes to affected medications with dosing guideline levels.",
+  "source": "https://cpicpgx.org/genes-drugs/",
+  "geneDrugs": {
+    "CYP2D6": {
+      "drugs": ["codeine", "tramadol", "hydrocodone", "oxycodone", "tamoxifen", "ondansetron", "tropisetron", "amitriptyline", "clomipramine", "desipramine", "doxepin", "imipramine", "nortriptyline", "trimipramine", "fluvoxamine", "paroxetine", "venlafaxine", "atomoxetine", "vortioxetine", "aripiprazole", "haloperidol", "pimozide", "eliglustat"],
+      "level": "A",
+      "note": "Major metabolizer of 25% of all drugs. Poor metabolizers at risk of toxicity or therapeutic failure depending on whether drug is pro-drug."
+    },
+    "CYP2C19": {
+      "drugs": ["clopidogrel", "voriconazole", "lansoprazole", "omeprazole", "pantoprazole", "dexlansoprazole", "citalopram", "escitalopram", "sertraline", "amitriptyline", "clomipramine", "doxepin", "imipramine", "trimipramine"],
+      "level": "A",
+      "note": "Critical for clopidogrel activation (pro-drug). Poor metabolizers at high risk of stent thrombosis."
+    },
+    "CYP2C9": {
+      "drugs": ["warfarin", "phenytoin", "fosphenytoin", "celecoxib", "flurbiprofen", "ibuprofen", "lornoxicam", "meloxicam", "piroxicam", "tenoxicam", "siponimod"],
+      "level": "A",
+      "note": "Primary warfarin metabolizer. Combined with VKORC1 for warfarin dosing."
+    },
+    "CYP3A5": {
+      "drugs": ["tacrolimus"],
+      "level": "A",
+      "note": "CYP3A5 expressers require higher tacrolimus doses to achieve therapeutic levels."
+    },
+    "CYP2B6": {
+      "drugs": ["efavirenz", "methadone"],
+      "level": "A/B",
+      "note": "Poor metabolizers at risk of efavirenz CNS toxicity."
+    },
+    "CYP1A2": {
+      "drugs": ["caffeine", "clozapine", "theophylline"],
+      "level": "B/C",
+      "note": "Highly inducible by smoking. Relevant for clozapine dosing."
+    },
+    "CYP4F2": {
+      "drugs": ["warfarin"],
+      "level": "B",
+      "note": "Affects vitamin K metabolism; modifies warfarin dose requirement."
+    },
+    "DPYD": {
+      "drugs": ["fluorouracil", "capecitabine", "tegafur"],
+      "level": "A",
+      "note": "LIFE-THREATENING: Poor metabolizers at risk of fatal fluoropyrimidine toxicity. Pre-treatment testing mandatory in many guidelines."
+    },
+    "TPMT": {
+      "drugs": ["azathioprine", "mercaptopurine", "thioguanine"],
+      "level": "A",
+      "note": "LIFE-THREATENING: Poor metabolizers at risk of fatal myelosuppression. Dose reduction or alternative required."
+    },
+    "NUDT15": {
+      "drugs": ["azathioprine", "mercaptopurine", "thioguanine"],
+      "level": "A",
+      "note": "Particularly important in East Asian populations. Compounds with TPMT status."
+    },
+    "UGT1A1": {
+      "drugs": ["atazanavir", "irinotecan"],
+      "level": "A",
+      "note": "UGT1A1*28 (Gilbert syndrome allele) increases irinotecan toxicity risk."
+    },
+    "VKORC1": {
+      "drugs": ["warfarin"],
+      "level": "A",
+      "note": "Combined with CYP2C9 for warfarin dosing algorithm. VKORC1 -1639G>A major dose determinant."
+    },
+    "NAT2": {
+      "drugs": ["hydralazine", "isoniazid", "sulfasalazine", "dapsone", "sulfamethoxazole"],
+      "level": "A/B",
+      "note": "Slow acetylators at increased risk of drug-induced lupus (hydralazine) and hepatotoxicity (isoniazid)."
+    },
+    "SLCO1B1": {
+      "drugs": ["simvastatin", "atorvastatin", "lovastatin", "fluvastatin", "pitavastatin", "pravastatin", "rosuvastatin", "methotrexate"],
+      "level": "A",
+      "note": "Decreased function variants increase statin myopathy risk. Simvastatin >20mg contraindicated in SLCO1B1 poor function."
+    },
+    "ABCG2": {
+      "drugs": ["rosuvastatin", "allopurinol"],
+      "level": "A/B",
+      "note": "Poor function increases rosuvastatin exposure; dose cap recommended."
+    },
+    "G6PD": {
+      "drugs": ["rasburicase", "pegloticase", "primaquine", "tafenoquine", "chloroquine", "hydroxychloroquine", "dapsone", "methylene blue", "nitrofurantoin", "sulfamethoxazole"],
+      "level": "A",
+      "note": "Deficient individuals at risk of hemolytic anemia with oxidative drugs. Screen before prescribing."
+    },
+    "HLA-A": {
+      "drugs": ["carbamazepine", "oxcarbazepine"],
+      "level": "A",
+      "note": "HLA-A*31:01 carriers at increased risk of carbamazepine hypersensitivity (DRESS/SJS)."
+    },
+    "HLA-B": {
+      "drugs": ["abacavir", "carbamazepine", "oxcarbazepine", "phenytoin", "fosphenytoin", "allopurinol"],
+      "level": "A",
+      "note": "HLA-B*57:01: abacavir hypersensitivity (MANDATORY pre-test). HLA-B*15:02: carbamazepine SJS/TEN (Southeast Asian). HLA-B*58:01: allopurinol SJS/TEN."
+    },
+    "RYR1": {
+      "drugs": ["succinylcholine", "desflurane", "enflurane", "halothane", "isoflurane", "methoxyflurane", "sevoflurane"],
+      "level": "A",
+      "note": "Malignant hyperthermia susceptibility. Volatile anesthetics and depolarizing muscle relaxants contraindicated."
+    },
+    "CACNA1S": {
+      "drugs": ["succinylcholine", "desflurane", "enflurane", "halothane", "isoflurane", "methoxyflurane", "sevoflurane"],
+      "level": "A",
+      "note": "Malignant hyperthermia susceptibility (less common than RYR1)."
+    },
+    "MT-RNR1": {
+      "drugs": ["amikacin", "gentamicin", "tobramycin", "kanamycin", "streptomycin", "neomycin", "plazomicin"],
+      "level": "A",
+      "note": "m.1555A>G carriers at risk of irreversible aminoglycoside-induced hearing loss."
+    },
+    "CFTR": {
+      "drugs": ["ivacaftor"],
+      "level": "A",
+      "note": "CFTR genotype determines ivacaftor eligibility for cystic fibrosis treatment."
+    },
+    "IFNL3": {
+      "drugs": ["peginterferon alfa-2a", "peginterferon alfa-2b"],
+      "level": "A",
+      "note": "IL28B genotype predicts hepatitis C treatment response."
+    }
+  }
+}

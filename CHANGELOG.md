@@ -16,6 +16,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Custom agent pipeline from templates** — imported templates auto-build pipeline phases from agent roles
 - **Agent role selector** — custom agents can be assigned as collector, synthesizer, or narrator
 - `GET /api/db-status` endpoint returning table row counts and build metadata
+- **ACMG SF v3.2 gene list** — 73 clinically actionable genes with conditions, available as MCP tool `get_acmg_genes`
+- **CPIC drug-gene lookup** — 23 pharmacogenes mapped to 150+ drugs with guideline levels, available as MCP tool `get_cpic_drugs`
 - Debendox/Trisomy 9 example template in `config/templates/`
 
 ### Fixed
