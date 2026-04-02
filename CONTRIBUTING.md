@@ -53,7 +53,7 @@ config/
   default.yaml         Base configuration
   presets/             Pre-tuned analysis configurations (YAML)
 scripts/
-  build-database.sh    Downloads and indexes all 12 public databases
+  build-database.sh    Downloads and indexes all 16 public databases
   downloaders/         Per-source download scripts
   verify-database.mjs  Database integrity checker
 dashboard-react/       React dashboard source (Vite)

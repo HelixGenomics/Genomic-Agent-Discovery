@@ -1,7 +1,7 @@
 {
   "name": "genomic-agent-discovery",
   "version": "1.0.0",
-  "description": "AI agents that collaborate to analyze your DNA. 18 MCP tools, 12 databases, real-time dashboard. Runs locally.",
+  "description": "AI agents that collaborate to analyze your DNA. 20+ MCP tools, 16 databases, real-time dashboard. Runs locally.",
   "type": "module",
   "main": "src/cli.mjs",
   "bin": {

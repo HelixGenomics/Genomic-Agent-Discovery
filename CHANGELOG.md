@@ -25,7 +25,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Editable agent prompts** — preset prompts are now fully editable in the dashboard (was read-only)
 - **Per-agent settings** — model, max tool calls, temperature, check messages, and web search per agent
 - **Tier grouping** — agents displayed by tier (Collection → Synthesis → Report) showing the pipeline flow
-- **Database status panel** — live view of all 13 annotation databases with row counts, sizes, and status indicators
+- **Database status panel** — live view of all 16 annotation databases with row counts, sizes, and status indicators
 - **Custom agent pipeline from templates** — imported templates auto-build pipeline phases from agent roles
 - **Agent role selector** — custom agents can be assigned as collector, synthesizer, or narrator
 - `GET /api/db-status` endpoint returning table row counts and build metadata
@@ -81,7 +81,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Multi-agent genomic analysis pipeline with 7 parallel domain specialists
 - 18 MCP tools for database queries, cross-referencing, and variant annotation
-- 12 public genomics databases compiled into a unified SQLite annotation database:
+- 16 public genomics databases compiled into a unified SQLite annotation database:
   - ClinVar, GWAS Catalog, CPIC, AlphaMissense, CADD, gnomAD, HPO, DisGeNET, CIViC, PharmGKB, Orphanet, SNPedia
 - Real-time React dashboard with setup panel, agent status, findings feed, and inter-agent chat
 - 6 built-in research presets (cancer, cardiovascular, pharmacogenomics, neurological, metabolic, comprehensive)

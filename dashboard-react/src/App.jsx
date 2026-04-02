@@ -1371,10 +1371,31 @@ function ChatPanel({ messages, jobId }) {
   const endRef = useRef(null)
   const [inputMsg, setInputMsg] = useState('')
   const [sending, setSending] = useState(false)
+  const [ttsEnabled, setTtsEnabled] = useState(false)
+  const spokenCount = useRef(0)
 
   useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages.length])
+
+  // Read new messages aloud
+  useEffect(() => {
+    if (!ttsEnabled || !window.speechSynthesis) return
+    const newMsgs = messages.slice(spokenCount.current)
+    for (const msg of newMsgs) {
+      if (msg.from === 'user') continue
+      const text = msg.message || msg.text || ''
+      if (!text) continue
+      // Keep it concise — truncate long messages
+      const truncated = text.length > 500 ? text.substring(0, 500) + '...' : text
+      const label = msg.from || 'agent'
+      const utterance = new SpeechSynthesisUtterance(`${label} says: ${truncated}`)
+      utterance.rate = 1.1
+      utterance.pitch = 1.0
+      window.speechSynthesis.speak(utterance)
+    }
+    spokenCount.current = messages.length
+  }, [messages.length, ttsEnabled])
 
   async function sendMessage(e) {
     e.preventDefault()
@@ -1399,9 +1420,33 @@ function ChatPanel({ messages, jobId }) {
     <section className="panel-chat">
       <div className="panel-header">
         <span className="panel-title">Agent Communication</span>
-        {messages.length > 0 && (
-          <span className="panel-badge">{messages.length} msgs</span>
-        )}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          {messages.length > 0 && (
+            <span className="panel-badge">{messages.length} msgs</span>
+          )}
+          <button
+            className="tts-toggle"
+            onClick={() => {
+              const next = !ttsEnabled
+              setTtsEnabled(next)
+              if (!next && window.speechSynthesis) window.speechSynthesis.cancel()
+              if (next) spokenCount.current = messages.length // don't read old messages
+            }}
+            title={ttsEnabled ? 'Disable voice readout' : 'Enable voice readout'}
+            style={{
+              background: ttsEnabled ? '#4ecdc4' : 'transparent',
+              border: `1px solid ${ttsEnabled ? '#4ecdc4' : '#555'}`,
+              borderRadius: '4px',
+              padding: '2px 6px',
+              cursor: 'pointer',
+              fontSize: '14px',
+              lineHeight: 1,
+              color: ttsEnabled ? '#1a3a4a' : '#999',
+            }}
+          >
+            {ttsEnabled ? '\u{1F50A}' : '\u{1F507}'}
+          </button>
+        </div>
       </div>
       <div className="panel-body">
         {messages.length === 0 ? (

@@ -120,7 +120,7 @@ The setup panel shows a live view of your annotation databases — which are loa
 <p align="center">
   <img src="docs/screenshots/03-database-status-expanded.png" alt="Database status panel expanded" width="720">
   <br>
-  <em>13 databases loaded — 8.4M total rows across ClinVar, GWAS, CPIC, AlphaMissense, and more</em>
+  <em>16 databases loaded — 8.4M total rows across ClinVar, GWAS, CPIC, AlphaMissense, and more</em>
 </p>
 
 ### Editable Agent Prompts & Tier Grouping
@@ -190,7 +190,7 @@ The pipeline view shows:
 
 ## What You Get
 
-**A clinical-grade PDF report** covering cancer genetics, cardiovascular risk, pharmacogenomics (how you metabolize 150+ drugs via CPIC guidelines), neurological traits, and metabolic health -- all cross-referenced across 13+ public databases, 84 ACMG clinically actionable genes, and optional Exomiser phenotype-driven variant prioritization.
+**A clinical-grade PDF report** covering cancer genetics, cardiovascular risk, pharmacogenomics (how you metabolize 150+ drugs via CPIC guidelines), neurological traits, and metabolic health -- all cross-referenced across 16+ public databases, 84 ACMG clinically actionable genes, and optional Exomiser phenotype-driven variant prioritization.
 
 **A real-time dashboard** where you can watch agents query your DNA, discover findings, send messages to each other, and build on each other's research. It looks like a mission control room for your genome.
 
@@ -327,7 +327,7 @@ claude login
 npm start -- --dna ~/Downloads/my-dna-raw.txt
 ```
 
-The Claude CLI authenticates via OAuth and handles everything automatically. Agents get full MCP tool access to query all 12+ genomics databases. This is the default mode — no config changes needed.
+The Claude CLI authenticates via OAuth and handles everything automatically. Agents get full MCP tool access to query all 16+ genomics databases. This is the default mode — no config changes needed.
 
 #### Option B: Anthropic API key (pay-per-use)
 
@@ -705,7 +705,7 @@ agent_defaults:
 ```
 
 1. **Parse**: Your raw DNA file is parsed into a SQLite database of genotypes (rsid, chromosome, position, alleles)
-2. **Annotate**: The MCP server connects each agent to both your genotype DB and the unified annotation DB (12+ public sources)
+2. **Annotate**: The MCP server connects each agent to both your genotype DB and the unified annotation DB (16+ public sources)
 3. **Collect**: Domain-specialist agents run in parallel, each querying genes in their domain, cross-referencing databases, and publishing findings
 4. **Communicate**: Agents share discoveries through a real-time chatroom and can read each other's published findings. The pharma agent sees what the cancer agent found and vice versa.
 5. **Deduplicate**: Every finding is checked against existing findings using keyword overlap analysis. Duplicate research is blocked before it happens.
@@ -792,7 +792,7 @@ This phase-based design is intentional: cheap fast models do the high-volume dat
 
 ### Included Sources
 
-The unified annotation database combines 12 public genomics databases into a single optimized SQLite file:
+The unified annotation database combines 16 public genomics databases into a single optimized SQLite file:
 
 | Source | Description | Approx. Size | What It Provides |
 |--------|-------------|--------------|-----------------|
