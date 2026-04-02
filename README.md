@@ -24,11 +24,11 @@
   <img alt="License: MIT" src="https://img.shields.io/badge/license-MIT-blue.svg">
   <img alt="Node 18+" src="https://img.shields.io/badge/node-%3E%3D18-brightgreen.svg">
   <img alt="MCP Compatible" src="https://img.shields.io/badge/MCP-compatible-blueviolet.svg">
-  <img alt="Databases" src="https://img.shields.io/badge/databases-12%2B-orange.svg">
+  <img alt="Databases" src="https://img.shields.io/badge/databases-16%2B-orange.svg">
   <img alt="PRs Welcome" src="https://img.shields.io/badge/PRs-welcome-brightgreen.svg">
 </p>
 
-Upload your raw DNA file from 23andMe, AncestryDNA, MyHeritage, FamilyTreeDNA, or any VCF -- and watch a team of AI agents fan out across 12+ public genomics databases, share discoveries with each other in real time, and produce a comprehensive health report. Everything runs on your machine. Nothing is uploaded anywhere.
+Upload your raw DNA file from 23andMe, AncestryDNA, MyHeritage, FamilyTreeDNA, or any VCF -- and watch a team of AI agents fan out across 16+ public genomics databases, share discoveries with each other in real time, and produce a comprehensive health report. Everything runs on your machine. Nothing is uploaded anywhere.
 
 <p align="center">
   <img src="docs/screenshots/gif-pipeline-running.gif" alt="Pipeline running — agents analyzing, findings arriving, inter-agent chat" width="720">
@@ -190,7 +190,7 @@ The pipeline view shows:
 
 ## What You Get
 
-**A structured genomic health report** covering cancer genetics, cardiovascular risk, pharmacogenomics (how you metabolize 100+ drugs), neurological traits, and metabolic health -- all cross-referenced across 12 public databases and prioritized by clinical significance.
+**A clinical-grade PDF report** covering cancer genetics, cardiovascular risk, pharmacogenomics (how you metabolize 150+ drugs via CPIC guidelines), neurological traits, and metabolic health -- all cross-referenced across 13+ public databases, 84 ACMG clinically actionable genes, and optional Exomiser phenotype-driven variant prioritization.
 
 **A real-time dashboard** where you can watch agents query your DNA, discover findings, send messages to each other, and build on each other's research. It looks like a mission control room for your genome.
 
@@ -757,6 +757,14 @@ Every agent connects to the MCP server and has access to these tools:
 |------|-------------|
 | `get_pharmacogenomics` | Detailed pharmacogenomic analysis for a single gene (alleles, diplotypes, drug recommendations) |
 | `get_all_pharmacogenomics` | Complete panel across all 34 CPIC pharmacogenes |
+| `get_cpic_drugs` | CPIC drug-gene lookup — 23 pharmacogenes mapped to 150+ drugs with guideline levels and safety notes. Filter by gene. |
+
+#### Clinical Reference Data
+
+| Tool | Description |
+|------|-------------|
+| `get_acmg_genes` | ACMG Secondary Findings v3.2 — 84 clinically actionable genes that medical guidelines say must be reported if variants are found. Includes conditions and inheritance patterns. |
+| `prioritize_variants` | **Exomiser integration** (optional) — phenotype-driven variant prioritization. Provide HPO terms describing symptoms and Exomiser ranks which variants most likely explain them. Gold standard for rare disease. Requires `npm run setup-exomiser`. |
 
 ### Agent Communication
 
@@ -968,9 +976,16 @@ Finding types: `risk`, `protective`, `convergence`, `pharmacogenomic`, `notable`
 
 | Format | File | Description |
 |--------|------|-------------|
-| Markdown | `output/report.md` | Human-readable report with full formatting |
+| **PDF** | `MD_DOCS/narrator.pdf` | **Clinical-grade branded PDF** — auto-generated after narrator completes. Dark teal header, specimen info, section banners, styled tables, footer with disclaimers. |
+| Markdown | `MD_DOCS/narrator.md` | Human-readable report with full formatting |
 | JSON | `output/findings.json` | Structured findings for programmatic use |
-| HTML | `output/report.html` | Styled report for viewing in a browser |
+| HTML | `MD_DOCS/narrator.html` | Intermediate HTML used for PDF rendering |
+
+Generate a PDF manually from any narrator markdown:
+
+```bash
+npm run generate-pdf -- MD_DOCS/narrator.md
+```
 
 ### Markdown Agent Output
 
