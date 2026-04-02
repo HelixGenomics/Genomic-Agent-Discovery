@@ -27,6 +27,8 @@
   <img alt="MCP Compatible" src="https://img.shields.io/badge/MCP-compatible-blueviolet.svg">
   <img alt="Databases" src="https://img.shields.io/badge/databases-16%2B-orange.svg">
   <img alt="PRs Welcome" src="https://img.shields.io/badge/PRs-welcome-brightgreen.svg">
+  <a href="https://www.reddit.com/r/HelixSequencing/"><img alt="Reddit" src="https://img.shields.io/badge/Reddit-r%2FHelixSequencing-FF4500.svg"></a>
+  <a href="https://github.com/HelixGenomics/Genomic-Agent-Discovery/discussions"><img alt="Discussions" src="https://img.shields.io/badge/GitHub-Discussions-181717.svg"></a>
 </p>
 
 > **Helix Sequencing Beta is LIVE** — The full platform powered by this framework: 3,550 PRS, 488 traits, 34 pharmacogenes, AI longevity protocol. Upload your existing DNA file, get comprehensive analysis in under 2 minutes. Your file is deleted after with cryptographic proof. **[$5 limited early access →](https://helixsequencing.com)**
