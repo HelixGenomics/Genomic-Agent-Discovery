@@ -156,7 +156,7 @@ Agree immediately. "You're right, and the report says exactly that. This establi
 - [ ] Ensure GitHub repo README looks clean (it does — already has screenshots, badges, quick start)
 - [ ] Have the HN post text ready to paste into the first comment (copy from above)
 - [ ] Be online and responsive for the first 2 hours after posting
-- [ ] Have the Discord invite (https://discord.gg/6Agw8yEA) ready to share
+- [ ] Have the Discord invite (https://helixsequencing.com/discord) ready to share
 - [ ] Optional: have 3-5 friends/colleagues ready to upvote in the first 30 minutes (genuine interest, not vote manipulation — HN detects and penalizes artificial voting)
 - [ ] Have the full narrator report accessible to link if someone asks for the complete analysis
 - [ ] Test that `git clone && npm install && npm run build-db` still works cleanly

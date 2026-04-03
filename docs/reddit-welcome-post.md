@@ -2,7 +2,7 @@
 
 Welcome! Join our Discord for [Genomic Agent Discovery](https://github.com/HelixGenomics/Genomic-Agent-Discovery) — the open source tool where AI agents collaborate to analyze your raw DNA data across 16 genomics databases.
 
-**Discord:** https://discord.gg/6Agw8yEA
+**Discord:** https://helixsequencing.com/discord
 
 ## What to share:
 

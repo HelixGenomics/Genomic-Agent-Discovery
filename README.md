@@ -30,7 +30,7 @@
   <img alt="MCP Compatible" src="https://img.shields.io/badge/MCP-compatible-blueviolet.svg">
   <img alt="Databases" src="https://img.shields.io/badge/databases-16%2B-orange.svg">
   <img alt="PRs Welcome" src="https://img.shields.io/badge/PRs-welcome-brightgreen.svg">
-  <a href="https://discord.gg/6Agw8yEA"><img alt="Discord" src="https://img.shields.io/badge/Discord-HelixSequencing-5865F2.svg?logo=discord&logoColor=white"></a>
+  <a href="https://helixsequencing.com/discord"><img alt="Discord" src="https://img.shields.io/badge/Discord-HelixSequencing-5865F2.svg?logo=discord&logoColor=white"></a>
   <a href="https://github.com/HelixGenomics/Genomic-Agent-Discovery/discussions"><img alt="Discussions" src="https://img.shields.io/badge/GitHub-Discussions-181717.svg"></a>
 </p>
 
@@ -39,7 +39,7 @@
 Upload your raw DNA file from 23andMe, AncestryDNA, MyHeritage, FamilyTreeDNA, or any VCF -- and watch a team of AI agents fan out across 16+ public genomics databases, share discoveries with each other in real time, and produce a comprehensive health report. Everything runs on your machine. Nothing is uploaded anywhere.
 
 <p align="center">
-  <a href="https://discord.gg/6Agw8yEA"><img src="https://img.shields.io/badge/Join_our_Discord-Share_ideas,_get_help,_discuss_research-5865F2?style=for-the-badge&logo=discord&logoColor=white" alt="Join our Discord"></a>
+  <a href="https://helixsequencing.com/discord"><img src="https://img.shields.io/badge/Join_our_Discord-Share_ideas,_get_help,_discuss_research-5865F2?style=for-the-badge&logo=discord&logoColor=white" alt="Join our Discord"></a>
 </p>
 
 <p align="center">
@@ -90,7 +90,7 @@ npm start -- --dna ~/Downloads/my-dna-raw.txt --provider anthropic-api
 
 Typical cost: $1–5 per analysis run depending on preset. See [Provider options](#step-2-connect-an-llm) for OpenAI, Gemini, Ollama, and others.
 
-> **💬 Join our Discord** — Got questions? Want to share your results, discuss research, or help improve the agent prompts? [Join the community →](https://discord.gg/6Agw8yEA)
+> **💬 Join our Discord** — Got questions? Want to share your results, discuss research, or help improve the agent prompts? [Join the community →](https://helixsequencing.com/discord)
 
 ## Dashboard
 
@@ -1081,7 +1081,7 @@ Please open an issue before starting work on large changes so we can discuss the
 
 ## Community
 
-- **Discord:** [Join the server](https://discord.gg/6Agw8yEA) — chat, share results, get help, discuss research
+- **Discord:** [Join the server](https://helixsequencing.com/discord) — chat, share results, get help, discuss research
 - **TikTok:** [@helix_sequencing](https://tiktok.com/@helix_sequencing)
 - **Twitter/X:** [@HelixSequencing](https://x.com/HelixSequencing)
 - **GitHub:** [Issues](https://github.com/HelixGenomics/Genomic-Agent-Discovery/issues) for bugs and feature requests

@@ -38,7 +38,7 @@ Maximum visibility playbook for launching an open-source genomic analysis tool.
 
 ### Discord Community
 - **Why:** Own your community. No risk of bans. Direct engagement with interested users.
-- **Server:** https://discord.gg/6Agw8yEA
+- **Server:** https://helixsequencing.com/discord
 - **Promote the Discord link** in all other platform posts as the central community hub.
 
 ### Dev.to
@@ -136,4 +136,4 @@ Maximum visibility playbook for launching an open-source genomic analysis tool.
 5. **Works with Ollama** — fully free, fully local, no API calls
 6. **Transparent prompts** — every agent's instructions visible before analysis
 7. **MIT licensed** — truly open source, not open-core
-8. **Join the community** — Discord: https://discord.gg/6Agw8yEA
+8. **Join the community** — Discord: https://helixsequencing.com/discord

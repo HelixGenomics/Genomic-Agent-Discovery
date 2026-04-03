@@ -242,7 +242,7 @@ Hi all — released an open-source tool that queries 12 genomics databases (Clin
 Everything runs locally. Looking for feedback from bioinformaticians on the database queries and agent prompts.
 
 GitHub: https://github.com/HelixGenomics/Genomic-Agent-Discovery
-Discord: https://discord.gg/6Agw8yEA
+Discord: https://helixsequencing.com/discord
 
 ### General Data Science / ML Communities
 
