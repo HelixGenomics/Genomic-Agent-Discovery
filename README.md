@@ -22,6 +22,7 @@
 </p>
 
 <p align="center">
+  <a href="https://glama.ai/mcp/servers/HelixGenomics/Genomic-Agent-Discovery"><img alt="Glama MCP Score" src="https://glama.ai/mcp/servers/HelixGenomics/Genomic-Agent-Discovery/badges/score.svg"></a>
   <img alt="License: MIT" src="https://img.shields.io/badge/license-MIT-blue.svg">
   <img alt="Node 18+" src="https://img.shields.io/badge/node-%3E%3D18-brightgreen.svg">
   <img alt="MCP Compatible" src="https://img.shields.io/badge/MCP-compatible-blueviolet.svg">
