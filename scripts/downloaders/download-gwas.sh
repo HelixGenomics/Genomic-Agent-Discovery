@@ -8,11 +8,16 @@ URL="https://ftp.ebi.ac.uk/pub/databases/gwas/releases/latest/gwas-catalog-assoc
 ZIP_FILE="$DOWNLOADS_DIR/gwas-catalog-associations.zip"
 FILE="$DOWNLOADS_DIR/gwas-catalog-associations.tsv"
 
-if [ -f "$FILE" ]; then
+CACHE_TTL="${HELIX_CACHE_TTL:-7776000}"
+FORCE="${HELIX_FORCE_DOWNLOAD:-false}"
+
+if [ "$FORCE" = true ]; then
+  rm -f "$FILE" "$ZIP_FILE"
+elif [ -f "$FILE" ]; then
   FSIZE=$(wc -c < "$FILE" | tr -d ' ')
   AGE=$(( ($(date +%s) - $(stat -f %m "$FILE" 2>/dev/null || stat -c %Y "$FILE" 2>/dev/null)) ))
-  if [ "$AGE" -lt 604800 ] && [ "$FSIZE" -gt 1000000 ]; then
-    echo "    GWAS: cached ($(( AGE / 3600 ))h old, $(( FSIZE / 1048576 ))MB)"
+  if [ "$AGE" -lt "$CACHE_TTL" ] && [ "$FSIZE" -gt 1000000 ]; then
+    echo "    GWAS: cached ($(( AGE / 86400 ))d old, $(( FSIZE / 1048576 ))MB)"
   else
     rm -f "$FILE" "$ZIP_FILE"
   fi

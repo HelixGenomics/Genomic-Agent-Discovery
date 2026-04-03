@@ -7,8 +7,13 @@ DOWNLOADS_DIR="${2:?Usage: download-disgenet.sh <db_path> <downloads_dir>}"
 URL="https://www.disgenet.org/static/disgenet_ap1/files/downloads/curated_gene_disease_associations.tsv.gz"
 FILE="$DOWNLOADS_DIR/disgenet-curated.tsv.gz"
 
+CACHE_TTL="${HELIX_CACHE_TTL:-7776000}"
+FORCE="${HELIX_FORCE_DOWNLOAD:-false}"
+
 NEED_DOWNLOAD=true
-if [ -f "$FILE" ]; then
+if [ "$FORCE" = true ]; then
+  rm -f "$FILE"
+elif [ -f "$FILE" ]; then
   FSIZE=$(wc -c < "$FILE" | tr -d ' ')
   AGE=$(( ($(date +%s) - $(stat -f %m "$FILE" 2>/dev/null || stat -c %Y "$FILE" 2>/dev/null)) ))
   # Validate it's actually gzip, not an HTML login page
@@ -16,11 +21,10 @@ if [ -f "$FILE" ]; then
   if file "$FILE" 2>/dev/null | grep -qi "gzip"; then
     IS_GZIP=true
   fi
-  if [ "$AGE" -lt 2592000 ] && [ "$FSIZE" -gt 100000 ] && [ "$IS_GZIP" = true ]; then
+  if [ "$AGE" -lt "$CACHE_TTL" ] && [ "$FSIZE" -gt 100000 ] && [ "$IS_GZIP" = true ]; then
     echo "    DisGeNET: cached ($(( AGE / 86400 ))d old, $(( FSIZE / 1024 ))KB)"
     NEED_DOWNLOAD=false
   else
-    # Remove invalid cached file (e.g. HTML login page saved as .tsv.gz)
     rm -f "$FILE"
   fi
 fi

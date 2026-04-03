@@ -6,7 +6,13 @@ DOWNLOADS_DIR="${2:?Usage: download-snpedia.sh <db_path> <downloads_dir>}"
 
 CACHE_FILE="$DOWNLOADS_DIR/snpedia-dump.json"
 
-if [ -f "$CACHE_FILE" ]; then
+CACHE_TTL="${HELIX_CACHE_TTL:-7776000}"
+FORCE="${HELIX_FORCE_DOWNLOAD:-false}"
+
+if [ "$FORCE" = true ]; then
+  echo "    SNPedia: force re-crawl requested"
+  rm -f "$CACHE_FILE"
+elif [ -f "$CACHE_FILE" ]; then
   FSIZE=$(wc -c < "$CACHE_FILE" | tr -d ' ')
   AGE=$(( ($(date +%s) - $(stat -f %m "$CACHE_FILE" 2>/dev/null || stat -c %Y "$CACHE_FILE" 2>/dev/null)) ))
   IS_VALID=false
@@ -16,10 +22,10 @@ if [ -f "$CACHE_FILE" ]; then
     fi
   fi
   if [ "$IS_VALID" = true ]; then
-    if [ "$AGE" -lt 2592000 ]; then
+    if [ "$AGE" -lt "$CACHE_TTL" ]; then
       echo "    SNPedia: cached ($(( AGE / 86400 ))d old, $(( FSIZE / 1024 ))KB)"
     else
-      echo "    SNPedia: cache is stale ($(( AGE / 86400 ))d old) — will re-crawl"
+      echo "    SNPedia: cache stale ($(( AGE / 86400 ))d old) — will re-crawl"
       rm -f "$CACHE_FILE"
     fi
   else

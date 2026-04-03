@@ -7,11 +7,18 @@ DOWNLOADS_DIR="${2:?Usage: download-civic.sh <db_path> <downloads_dir>}"
 URL="https://civicdb.org/downloads/nightly/nightly-ClinicalEvidenceSummaries.tsv"
 FILE="$DOWNLOADS_DIR/civic-evidence.tsv"
 
-if [ -f "$FILE" ]; then
+CACHE_TTL="${HELIX_CACHE_TTL:-7776000}"
+FORCE="${HELIX_FORCE_DOWNLOAD:-false}"
+
+if [ "$FORCE" = true ]; then
+  echo "    CIViC: force downloading nightly evidence summaries..."
+  curl -L --retry 3 --progress-bar -o "$FILE" "$URL"
+elif [ -f "$FILE" ]; then
   AGE=$(( ($(date +%s) - $(stat -f %m "$FILE" 2>/dev/null || stat -c %Y "$FILE" 2>/dev/null)) ))
-  if [ "$AGE" -lt 86400 ]; then
-    echo "    CIViC: cached ($(( AGE / 3600 ))h old)"
+  if [ "$AGE" -lt "$CACHE_TTL" ]; then
+    echo "    CIViC: cached ($(( AGE / 86400 ))d old)"
   else
+    echo "    CIViC: cache stale ($(( AGE / 86400 ))d old), re-downloading..."
     curl -L --retry 3 --progress-bar -o "$FILE" "$URL"
   fi
 else

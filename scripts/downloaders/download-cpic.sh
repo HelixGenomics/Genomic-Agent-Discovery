@@ -8,11 +8,15 @@ ALLELE_FILE="$DOWNLOADS_DIR/cpic-alleles.json"
 REC_FILE="$DOWNLOADS_DIR/cpic-recommendations.json"
 DRUG_FILE="$DOWNLOADS_DIR/cpic-drugs.json"
 
+CACHE_TTL="${HELIX_CACHE_TTL:-7776000}"
+FORCE="${HELIX_FORCE_DOWNLOAD:-false}"
+
 needs_download() {
   local f="$1"
+  if [ "$FORCE" = true ]; then return 0; fi
   if [ ! -f "$f" ]; then return 0; fi
   local age=$(( $(date +%s) - $(stat -f %m "$f" 2>/dev/null || stat -c %Y "$f" 2>/dev/null) ))
-  [ "$age" -gt 604800 ]
+  [ "$age" -gt "$CACHE_TTL" ]
 }
 
 if needs_download "$ALLELE_FILE"; then

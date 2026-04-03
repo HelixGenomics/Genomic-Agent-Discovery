@@ -39,11 +39,16 @@ extract_pharmgkb_zip() {
   fi
 }
 
+CACHE_TTL="${HELIX_CACHE_TTL:-7776000}"
+FORCE="${HELIX_FORCE_DOWNLOAD:-false}"
+
 # Check for cached TSV
-if [ -f "$TSV_FILE" ]; then
+if [ "$FORCE" = true ]; then
+  rm -f "$TSV_FILE" "$FILE"
+elif [ -f "$TSV_FILE" ]; then
   FSIZE=$(wc -c < "$TSV_FILE" | tr -d ' ')
   AGE=$(( ($(date +%s) - $(stat -f %m "$TSV_FILE" 2>/dev/null || stat -c %Y "$TSV_FILE" 2>/dev/null)) ))
-  if [ "$AGE" -lt 2592000 ] && [ "$FSIZE" -gt 10000 ]; then
+  if [ "$AGE" -lt "$CACHE_TTL" ] && [ "$FSIZE" -gt 10000 ]; then
     echo "    PharmGKB: cached ($(( AGE / 86400 ))d old, $(( FSIZE / 1024 ))KB)"
   else
     rm -f "$TSV_FILE"

@@ -56,13 +56,21 @@ DB_PATH="$DATA_DIR/helix-unified.db"
 # Exomiser is separate: npm run setup-exomiser (~3GB, requires Java 21+)
 
 PROFILE="${HELIX_BUILD_PROFILE:-standard}"
+FORCE_DOWNLOAD=false
+CACHE_TTL="${HELIX_CACHE_TTL:-7776000}"  # Default 90 days (in seconds)
+
 for arg in "$@"; do
   case "$arg" in
     --profile) shift; PROFILE="${1:-standard}"; shift ;;
     --profile=*) PROFILE="${arg#*=}" ;;
+    --force-download|--force) FORCE_DOWNLOAD=true ;;
+    --cache-ttl=*) CACHE_TTL="${arg#*=}" ;;
     basic|standard|full) PROFILE="$arg" ;;
   esac
 done
+
+export HELIX_CACHE_TTL="$CACHE_TTL"
+export HELIX_FORCE_DOWNLOAD="$FORCE_DOWNLOAD"
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -102,6 +110,11 @@ echo ""
 echo -e "  ${CYAN}=================================================${RESET}"
 echo -e "       ${BOLD}DATABASE BUILD${RESET} — ${PROFILE_LABEL}"
 echo -e "       ${DIM}${PROFILE_DESC}${RESET}"
+if [ "$FORCE_DOWNLOAD" = true ]; then
+echo -e "       ${YELLOW}Force download: ON (ignoring cache)${RESET}"
+else
+echo -e "       ${DIM}Cache TTL: $(( CACHE_TTL / 86400 )) days${RESET}"
+fi
 echo -e "  ${CYAN}=================================================${RESET}"
 
 # ---------------------------------------------------------------------------
@@ -499,19 +512,74 @@ TOTAL=${#SOURCES[@]}
 CURRENT=0
 SUCCEEDED=0
 FAILED=0
+PROGRESS_FILE="$DATA_DIR/build-progress.json"
+
+# Write initial progress file
+write_progress() {
+  local status="$1"
+  local source_name="$2"
+  local eta_display="$3"
+  cat > "$PROGRESS_FILE" <<PEOF
+{
+  "status": "$status",
+  "current": $CURRENT,
+  "total": $TOTAL,
+  "percent": $(( CURRENT * 100 / TOTAL )),
+  "current_source": "$source_name",
+  "succeeded": $SUCCEEDED,
+  "failed": $FAILED,
+  "elapsed_seconds": $(( $(date +%s) - START_TIME )),
+  "eta": "$eta_display",
+  "updated_at": "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+}
+PEOF
+}
+
+write_progress "starting" "" "calculating..."
 
 for entry in "${SOURCES[@]}"; do
   SCRIPT_NAME="${entry%%:*}"
   DESCRIPTION="${entry#*:}"
   CURRENT=$((CURRENT + 1))
+  SOURCE_START=$(date +%s)
 
-  echo -e "  ${DIM}[${CURRENT}/${TOTAL}]${RESET} ${DESCRIPTION}..."
+  # Calculate ETA based on average time per completed source
+  ELAPSED_SO_FAR=$(( $(date +%s) - START_TIME ))
+  if [ "$CURRENT" -gt 1 ]; then
+    AVG_PER_SOURCE=$(( ELAPSED_SO_FAR / (CURRENT - 1) ))
+    REMAINING_SOURCES=$(( TOTAL - CURRENT + 1 ))
+    ETA_SECONDS=$(( AVG_PER_SOURCE * REMAINING_SOURCES ))
+    if [ "$ETA_SECONDS" -gt 3600 ]; then
+      ETA_DISPLAY="~$(( ETA_SECONDS / 3600 ))h $(( (ETA_SECONDS % 3600) / 60 ))m remaining"
+    elif [ "$ETA_SECONDS" -gt 60 ]; then
+      ETA_DISPLAY="~$(( ETA_SECONDS / 60 ))m remaining"
+    else
+      ETA_DISPLAY="<1m remaining"
+    fi
+  else
+    ETA_DISPLAY="calculating..."
+  fi
+
+  PROGRESS_BAR=""
+  FILLED=$(( CURRENT * 20 / TOTAL ))
+  EMPTY=$(( 20 - FILLED ))
+  for ((i=0; i<FILLED; i++)); do PROGRESS_BAR="${PROGRESS_BAR}#"; done
+  for ((i=0; i<EMPTY; i++)); do PROGRESS_BAR="${PROGRESS_BAR}-"; done
+
+  echo -e "\n  ${CYAN}[${PROGRESS_BAR}]${RESET} ${BOLD}[${CURRENT}/${TOTAL}]${RESET} ${DESCRIPTION}  ${DIM}(${ETA_DISPLAY})${RESET}"
+
+  write_progress "downloading" "$DESCRIPTION" "$ETA_DISPLAY"
 
   DOWNLOAD_SCRIPT="$SCRIPT_DIR/downloaders/$SCRIPT_NAME"
   if [ -f "$DOWNLOAD_SCRIPT" ]; then
     if bash "$DOWNLOAD_SCRIPT" "$DB_PATH" "$DOWNLOADS_DIR" 2>&1; then
+      SOURCE_ELAPSED=$(( $(date +%s) - SOURCE_START ))
       SUCCEEDED=$((SUCCEEDED + 1))
-      info "  $DESCRIPTION"
+      if [ "$SOURCE_ELAPSED" -gt 60 ]; then
+        info "  $DESCRIPTION ($(( SOURCE_ELAPSED / 60 ))m $(( SOURCE_ELAPSED % 60 ))s)"
+      else
+        info "  $DESCRIPTION (${SOURCE_ELAPSED}s)"
+      fi
     else
       FAILED=$((FAILED + 1))
       warn "  $DESCRIPTION (failed — see errors above)"
@@ -521,6 +589,8 @@ for entry in "${SOURCES[@]}"; do
     FAILED=$((FAILED + 1))
   fi
 done
+
+write_progress "complete" "" ""
 
 # ---------------------------------------------------------------------------
 # Step 4: Optimize database

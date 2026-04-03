@@ -140,6 +140,13 @@ database:
   # the project root.
   path: ./data/helix-unified.db
 
+  # Cache settings for downloaded source files.
+  # Downloads are cached in data/downloads/ and only re-fetched
+  # when older than the TTL. Override with --cache-ttl=SECONDS
+  # or set HELIX_CACHE_TTL env var. Use --force-download to
+  # bypass cache entirely.
+  cache_ttl_days: 90
+
   # Toggle individual data sources on/off during database build.
   # Disabling sources you don't need speeds up the build and
   # reduces disk usage. All are enabled by default.

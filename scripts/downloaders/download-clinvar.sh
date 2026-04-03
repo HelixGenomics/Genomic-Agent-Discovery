@@ -7,13 +7,18 @@ DOWNLOADS_DIR="${2:?Usage: download-clinvar.sh <db_path> <downloads_dir>}"
 URL="https://ftp.ncbi.nlm.nih.gov/pub/clinvar/tab_delimited/variant_summary.txt.gz"
 FILE="$DOWNLOADS_DIR/variant_summary.txt.gz"
 
-# Download with cache (7 days)
-if [ -f "$FILE" ]; then
+CACHE_TTL="${HELIX_CACHE_TTL:-7776000}"
+FORCE="${HELIX_FORCE_DOWNLOAD:-false}"
+
+if [ "$FORCE" = true ]; then
+  echo "    ClinVar: force downloading variant_summary.txt.gz..."
+  curl -L --retry 3 --progress-bar -o "$FILE" "$URL"
+elif [ -f "$FILE" ]; then
   AGE=$(( ($(date +%s) - $(stat -f %m "$FILE" 2>/dev/null || stat -c %Y "$FILE" 2>/dev/null)) ))
-  if [ "$AGE" -lt 604800 ]; then
-    echo "    ClinVar: cached ($(( AGE / 3600 ))h old)"
+  if [ "$AGE" -lt "$CACHE_TTL" ]; then
+    echo "    ClinVar: cached ($(( AGE / 86400 ))d old)"
   else
-    echo "    ClinVar: cache stale, re-downloading..."
+    echo "    ClinVar: cache stale ($(( AGE / 86400 ))d old), re-downloading..."
     curl -L --retry 3 --progress-bar -o "$FILE" "$URL"
   fi
 else

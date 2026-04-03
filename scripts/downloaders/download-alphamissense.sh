@@ -37,6 +37,7 @@ const insert = db.prepare(\`INSERT OR IGNORE INTO alphamissense
 const BATCH = 900;
 const rsidList = [...rsids];
 let inserted = 0, batches = 0;
+const startTime = Date.now();
 const idRegex = /chr(\w+):g\.(\d+)([A-Z])>([A-Z])/;
 
 for (let i = 0; i < rsidList.length; i += BATCH) {
@@ -89,9 +90,16 @@ for (let i = 0; i < rsidList.length; i += BATCH) {
     if (rows.length) { tx(rows); inserted += rows.length; }
   } catch(e) {}
   
-  if (batches % 50 === 0) process.stdout.write('    AlphaMissense: ' + inserted.toLocaleString() + ' rows (' + Math.round(i/rsidList.length*100) + '%)...\\r');
+  if (batches % 10 === 0) {
+    const pct = Math.round(i/rsidList.length*100);
+    const elapsed = (Date.now() - startTime) / 1000;
+    const rate = i > 0 ? elapsed / i : 0;
+    const remaining = Math.round(rate * (rsidList.length - i));
+    const eta = remaining > 60 ? Math.round(remaining/60) + 'm' : remaining + 's';
+    process.stdout.write('    AlphaMissense: ' + inserted.toLocaleString() + ' rows (' + pct + '%) — ~' + eta + ' remaining\\r');
+  }
   await new Promise(r => setTimeout(r, 350));
 }
 db.close();
-console.log('    AlphaMissense: ' + inserted.toLocaleString() + ' rows imported');
+console.log('    AlphaMissense: ' + inserted.toLocaleString() + ' rows imported                    ');
 " "$DB_PATH"

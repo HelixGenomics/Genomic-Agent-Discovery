@@ -7,11 +7,18 @@ DOWNLOADS_DIR="${2:?Usage: download-hpo.sh <db_path> <downloads_dir>}"
 URL="https://github.com/obophenotype/human-phenotype-ontology/releases/latest/download/genes_to_phenotype.txt"
 FILE="$DOWNLOADS_DIR/genes_to_phenotype.txt"
 
-if [ -f "$FILE" ]; then
+CACHE_TTL="${HELIX_CACHE_TTL:-7776000}"
+FORCE="${HELIX_FORCE_DOWNLOAD:-false}"
+
+if [ "$FORCE" = true ]; then
+  echo "    HPO: force downloading genes_to_phenotype.txt..."
+  curl -L --retry 3 --progress-bar -o "$FILE" "$URL"
+elif [ -f "$FILE" ]; then
   AGE=$(( ($(date +%s) - $(stat -f %m "$FILE" 2>/dev/null || stat -c %Y "$FILE" 2>/dev/null)) ))
-  if [ "$AGE" -lt 604800 ]; then
-    echo "    HPO: cached ($(( AGE / 3600 ))h old)"
+  if [ "$AGE" -lt "$CACHE_TTL" ]; then
+    echo "    HPO: cached ($(( AGE / 86400 ))d old)"
   else
+    echo "    HPO: cache stale ($(( AGE / 86400 ))d old), re-downloading..."
     curl -L --retry 3 --progress-bar -o "$FILE" "$URL"
   fi
 else
