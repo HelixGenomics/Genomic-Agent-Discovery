@@ -1,35 +1,4 @@
 {
-  "name": "Genomic-Agent-Discovery",
-  "description": "Multi-agent MCP server for genomic analysis — 20 tools querying 16 public databases (ClinVar, GWAS, gnomAD, CPIC, AlphaMissense, and more). AI agents collaborate to analyze raw DNA data locally.",
-  "version": "1.3.0",
-  "author": "HelixGenomics",
-  "license": "MIT",
-  "repository": "https://github.com/HelixGenomics/Genomic-Agent-Discovery",
-  "homepage": "https://helixsequencing.com",
-  "transport": "stdio",
-  "runtime": "node",
-  "tools": [
-    "get_patient_summary",
-    "query_clinvar",
-    "query_gwas",
-    "query_gnomad",
-    "query_alphamissense",
-    "query_cadd",
-    "query_snpedia",
-    "query_pharmgkb",
-    "query_cpic",
-    "query_civic",
-    "query_hpo",
-    "query_disgenet",
-    "query_orphanet",
-    "get_all_pharmacogenomics",
-    "publish_finding",
-    "get_acmg_genes",
-    "get_cpic_drugs",
-    "web_search",
-    "send_message",
-    "read_messages"
-  ],
-  "categories": ["Biology & Medicine", "Research & Data", "Autonomous Agents"],
-  "tags": ["genomics", "dna", "mcp", "ai-agents", "clinvar", "pharmacogenomics", "bioinformatics"]
+  "$schema": "https://glama.ai/mcp/schemas/server.json",
+  "maintainers": ["HelixGenomics"]
 }
