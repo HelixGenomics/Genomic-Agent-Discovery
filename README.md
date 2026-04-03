@@ -31,6 +31,7 @@
   <img alt="Databases" src="https://img.shields.io/badge/databases-16%2B-orange.svg">
   <img alt="PRs Welcome" src="https://img.shields.io/badge/PRs-welcome-brightgreen.svg">
   <a href="https://www.reddit.com/r/HelixSequencing/"><img alt="Reddit" src="https://img.shields.io/badge/Reddit-r%2FHelixSequencing-FF4500.svg"></a>
+  <a href="https://discord.gg/mRyyERmQAm"><img alt="Discord" src="https://img.shields.io/badge/Discord-HelixSequencing-5865F2.svg?logo=discord&logoColor=white"></a>
   <a href="https://github.com/HelixGenomics/Genomic-Agent-Discovery/discussions"><img alt="Discussions" src="https://img.shields.io/badge/GitHub-Discussions-181717.svg"></a>
 </p>
 
@@ -1075,6 +1076,7 @@ Please open an issue before starting work on large changes so we can discuss the
 
 ## Community
 
+- **Discord:** [Join the server](https://discord.gg/mRyyERmQAm) — chat, share results, get help, discuss research
 - **Reddit:** [r/HelixSequencing](https://reddit.com/r/HelixSequencing) — share templates, findings, and pipeline configs
 - **TikTok:** [@helix_sequencing](https://tiktok.com/@helix_sequencing)
 - **Twitter/X:** [@HelixSequencing](https://x.com/HelixSequencing)
