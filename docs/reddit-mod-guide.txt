@@ -1,0 +1,76 @@
+SUBREDDIT MOD GUIDE — r/HelixSequencing
+========================================
+
+RULES (Mod Tools → Rules)
+-------------------------
+
+Rule 1: No sharing raw DNA files
+Description: Do not post or share raw DNA files (23andMe, AncestryDNA, VCF, etc) — yours or anyone else's. Genomic data is uniquely identifying and cannot be changed. Share findings, screenshots, and templates instead.
+Report reason: Sharing raw DNA data
+
+Rule 2: No medical advice
+Description: This is a research and education tool, not a diagnostic service. Do not give or request medical diagnoses. Always recommend consulting a healthcare professional. Sharing findings for discussion is fine — telling someone what to do about them is not.
+Report reason: Giving or requesting medical advice
+
+Rule 3: Include config when asking for help
+Description: If you're asking for help with a bug or setup issue, include your preset name, model settings, OS, Node version, and any error messages. Export your template JSON if relevant. This helps others actually help you.
+Report reason: Missing context for support request
+
+Rule 4: Be respectful
+Description: Treat everyone with respect. Many people here are analyzing their own health data or a family member's — topics can be personal and sensitive. No harassment, trolling, or dismissing someone's health concerns.
+Report reason: Disrespectful or harassing behaviour
+
+Rule 5: Credit templates you share
+Description: If you built on someone else's template or adapted a preset, credit the original. If your template uses specific research or references a paper, link it. Open source works because people share generously — acknowledge that.
+Report reason: Uncredited template
+
+
+POST FLAIRS (Mod Tools → Post Flair → Add Flair)
+-------------------------------------------------
+
+Template    — Teal/green   — For sharing pipeline configs
+Finding     — Orange       — Interesting analysis results
+Help        — Yellow       — Setup/config questions
+Feature Request — Purple   — Ideas for the tool
+Bug         — Red          — Bug reports
+Discussion  — Blue         — General genomics chat
+Showcase    — Pink         — Screenshots/demos of runs
+
+
+SIDEBAR WIDGETS (Mod Tools → Sidebar Widgets)
+----------------------------------------------
+
+1. Quick Links (Button Widget):
+   - GitHub Repo      → https://github.com/HelixGenomics/Genomic-Agent-Discovery
+   - Website          → https://helixsequencing.com
+   - Getting Started  → https://github.com/HelixGenomics/Genomic-Agent-Discovery#quick-start
+   - Changelog        → https://github.com/HelixGenomics/Genomic-Agent-Discovery/blob/main/CHANGELOG.md
+   - Report a Bug     → https://github.com/HelixGenomics/Genomic-Agent-Discovery/issues/new
+
+2. Community Guide (Textarea Widget):
+   — see reddit-community-guide.txt
+
+
+COMMUNITY SETTINGS (Mod Tools → Community Settings)
+----------------------------------------------------
+
+Community topic: Science & Technology
+Description: Open source genomic analysis using AI agents. Share templates, findings, and pipeline configs. Built on github.com/HelixGenomics/Genomic-Agent-Discovery — 16 databases, multi-agent collaboration, runs locally on your machine. Your DNA never leaves your computer.
+
+
+PINNED POST
+-----------
+
+Pin the welcome post from reddit-welcome-post.md
+Add it to Community Highlights (Mod Shield icon → Add to Highlights)
+
+
+SOCIAL LINKS
+------------
+
+Reddit:  reddit.com/r/HelixSequencing
+TikTok:  tiktok.com/@helix_sequencing
+Twitter: x.com/HelixSequencing
+GitHub:  github.com/HelixGenomics/Genomic-Agent-Discovery
+Website: helixsequencing.com
+Email:   admin@helixsequencing.com

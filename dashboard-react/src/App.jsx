@@ -1093,7 +1093,11 @@ function NetworkCanvas({ agents, selectedId, chat, findings }) {
       const minDim = Math.min(cW, cH)
 
       // Adaptive node size — shrink as count grows
-      const nodeR = Math.max(8, Math.min(16, 20 - n * 0.35))
+      // Scale nodes bigger on small screens (phone emulation for TikTok recording)
+      const isMobile = window.innerWidth < 768
+      const nodeR = isMobile
+        ? Math.max(22, Math.min(40, 50 - n * 1.2))
+        : Math.max(8, Math.min(16, 20 - n * 0.35))
 
       // Multi-ring layout: distribute agents across concentric rings
       // Ring capacities: [8, 14, 20, 26, ...] — each ring fits ~6 more
@@ -1122,8 +1126,8 @@ function NetworkCanvas({ agents, selectedId, chat, findings }) {
 
       const ringCounts = buildRings(n)
       const numRings = ringCounts.length
-      // Outer ring radius fills ~80% of minDim/2, inner rings spaced evenly
-      const outerR = minDim * 0.36
+      // Outer ring radius fills canvas — bigger on mobile
+      const outerR = isMobile ? minDim * 0.38 : minDim * 0.36
       const nodePositions = []
       let agentIdx = 0
       for (let ri = 0; ri < numRings; ri++) {
@@ -1149,7 +1153,7 @@ function NetworkCanvas({ agents, selectedId, chat, findings }) {
           g.addColorStop(0.5, 'rgba(52,211,153,0.08)')
           g.addColorStop(1, 'rgba(52,211,153,0.04)')
           ctx.strokeStyle = g
-          ctx.lineWidth = 0.5
+          ctx.lineWidth = isMobile ? 1 : 0.5
           ctx.beginPath()
           ctx.moveTo(a.x, a.y)
           ctx.lineTo(b.x, b.y)
@@ -1166,7 +1170,7 @@ function NetworkCanvas({ agents, selectedId, chat, findings }) {
         ctx.save()
         ctx.globalAlpha = cl.life * 0.7
         ctx.strokeStyle = cl.color
-        ctx.lineWidth = 2 * cl.life
+        ctx.lineWidth = (isMobile ? 4 : 2) * cl.life
         ctx.shadowColor = cl.color
         ctx.shadowBlur = 12 * cl.life
         ctx.beginPath()
@@ -1277,7 +1281,7 @@ function NetworkCanvas({ agents, selectedId, chat, findings }) {
         // Label — hide for very large counts
         if (n <= 20) {
           ctx.save()
-          const fontSize = Math.max(7, 10 - n * 0.15)
+          const fontSize = isMobile ? Math.max(11, 14 - n * 0.15) : Math.max(7, 10 - n * 0.15)
           ctx.font = `500 ${fontSize}px "IBM Plex Mono", monospace`
           ctx.fillStyle = nodeColor
           ctx.textAlign = 'center'; ctx.globalAlpha = n > 14 ? 0.6 : 0.85
@@ -1642,7 +1646,17 @@ export default function App() {
 
         {noActivity ? (
           <main className="panel-viz">
-            <SetupPanel onStarted={() => { setIsRunning(true); setTimeout(resolveJobId, 2000) }} />
+            <SetupPanel onStarted={() => {
+              setIsRunning(true)
+              // Retry resolving job ID every 2s until found (job may take a moment to register)
+              let attempts = 0
+              const tryResolve = () => {
+                attempts++
+                resolveJobId()
+                if (attempts < 10 && !jobId) setTimeout(tryResolve, 2000)
+              }
+              setTimeout(tryResolve, 1500)
+            }} />
           </main>
         ) : (
           <>

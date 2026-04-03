@@ -550,10 +550,16 @@ async function main() {
 
     // Auto-generate PDF from narrator.md if it exists
     try {
-      const { readdirSync } = await import("fs");
-      const narratorMd = readdirSync(outputDir).find(f => f === 'narrator.md');
-      if (narratorMd) {
-        const narratorPath = join(outputDir, narratorMd);
+      const { readdirSync, existsSync } = await import("fs");
+      // Check both output dir and job logs dir for narrator.md
+      const logsDir = join(jobStateDir, 'logs');
+      let narratorPath = null;
+      if (existsSync(join(logsDir, 'narrator.md'))) {
+        narratorPath = join(logsDir, 'narrator.md');
+      } else if (existsSync(join(outputDir, 'narrator.md'))) {
+        narratorPath = join(outputDir, 'narrator.md');
+      }
+      if (narratorPath) {
         console.log(chalk.bold("\n  Generating PDF report..."));
         const { execSync } = await import("child_process");
         execSync(`node scripts/generate-report-pdf.mjs "${narratorPath}"`, {

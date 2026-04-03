@@ -1,0 +1,17 @@
+## Getting Started
+
+1. Clone the repo: `git clone https://github.com/HelixGenomics/Genomic-Agent-Discovery.git`
+2. Install: `npm install && npm run build-db`
+3. Run: `npm start -- --dna your-file.txt`
+
+## Share Your Work
+
+- Export your agent template (JSON) and post it with the **Template** flair
+- Post screenshots of interesting findings with the **Finding** flair
+- Ask setup questions with the **Help** flair
+
+## Links
+
+- [GitHub](https://github.com/HelixGenomics/Genomic-Agent-Discovery)
+- [Website](https://helixsequencing.com)
+- [Changelog](https://github.com/HelixGenomics/Genomic-Agent-Discovery/blob/main/CHANGELOG.md)

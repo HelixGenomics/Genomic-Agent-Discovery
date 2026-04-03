@@ -1328,6 +1328,7 @@
   }
   .panel-agents,
   .panel-viz,
+  .panel-viz-active,
   .panel-findings,
   .panel-chat {
     border: none;
@@ -1335,13 +1336,75 @@
     max-height: none;
     overflow: visible;
     grid-column: auto;
+    grid-row: auto;
   }
-  .panel-agents  { min-height: 200px; }
-  .panel-viz     { min-height: 260px; }
-  .panel-chat    { min-height: 300px; }
-  .panel-findings{ min-height: 300px; }
-  .panel-body    { overflow: visible; max-height: none; }
+  /* Canvas gets prime real estate on mobile */
+  .panel-viz-active {
+    min-height: 65vh;
+    height: 65vh;
+    border-right: none;
+    order: 1;
+  }
+  .panel-viz {
+    min-height: 100vh;
+    order: 1;
+  }
+  /* Agent list compact — just a thin strip */
+  .panel-agents {
+    min-height: auto;
+    max-height: 100px;
+    border-right: none;
+    overflow-y: auto;
+    order: 0;
+  }
+  .panel-agents .panel-body {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    overflow-y: hidden;
+    gap: 6px;
+    padding: 6px;
+  }
+  .panel-agents .agent-card {
+    min-width: 120px;
+    flex-shrink: 0;
+  }
+  /* Chat and findings below canvas */
+  .panel-chat {
+    min-height: 40vh;
+    border-right: none;
+    border-top: 1px solid var(--border-dim);
+    order: 2;
+  }
+  .panel-findings {
+    min-height: 40vh;
+    order: 3;
+  }
+  .panel-body { overflow: visible; max-height: none; }
   .nav-job { display: none; }
+
+  /* Bigger panel headers on mobile */
+  .panel-header { padding: 10px 12px; }
+  .panel-header h2 { font-size: 13px; }
+
+  /* Status bar compact */
+  .status-bar { flex-wrap: wrap; height: auto; padding: 6px 10px; gap: 6px; }
+  .status-bar-brand { font-size: 9px; letter-spacing: 1.5px; }
+  .status-bar-sep { display: none; }
+  .status-bar-label, .status-bar-val, .status-bar-cost { font-size: 9px; }
+
+  /* Agent cards in list — bigger touch targets */
+  .agent-card { padding: 10px 12px; }
+  .agent-card-name { font-size: 12px; }
+
+  /* Chat messages bigger for readability */
+  .chat-msg { font-size: 12px; padding: 8px 10px; }
+
+  /* Findings cards bigger */
+  .finding-card { padding: 10px 12px; }
+  .finding-gene { font-size: 14px; }
+  .finding-sig { font-size: 11px; }
 }
 
 @media (min-width: 769px) and (max-width: 1100px) {
