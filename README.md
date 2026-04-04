@@ -215,10 +215,11 @@ The pipeline view shows:
 
 1. **Parse** your raw DNA file (600K-5M+ variants depending on source)
 2. **Query** each variant against ClinVar, GWAS Catalog, AlphaMissense, CADD, PharmGKB, CIViC, and more
-3. **Talk to each other** -- the cancer agent might tell the pharma agent "this patient has a DPYD variant, check fluorouracil metabolism"
-4. **Deduplicate** automatically so you don't get the same finding five times
-5. **Synthesize** cross-domain patterns a single agent would miss
-6. **Write** a clear, readable report with appropriate medical disclaimers
+3. **Analyze protein pathways** -- if protein PRS data is available, agents discover *which proteins* are driving disease risk (e.g. elevated prothrombin + low clot-clearing enzyme = clotting-dominant cardiovascular pathway)
+4. **Talk to each other** -- the cancer agent might tell the pharma agent "this patient has a DPYD variant, check fluorouracil metabolism"
+5. **Deduplicate** automatically so you don't get the same finding five times
+6. **Synthesize** cross-domain patterns a single agent would miss
+7. **Write** a clear, readable report explaining not just *what* risks exist but *why* at the molecular level
 
 ## Supported DNA Files
 
@@ -772,6 +773,24 @@ Every agent connects to the MCP server and has access to these tools:
 | `get_pharmacogenomics` | Detailed pharmacogenomic analysis for a single gene (alleles, diplotypes, drug recommendations) |
 | `get_all_pharmacogenomics` | Complete panel across all 34 CPIC pharmacogenes |
 | `get_cpic_drugs` | CPIC drug-gene lookup — 23 pharmacogenes mapped to 150+ drugs with guideline levels and safety notes. Filter by gene. |
+
+#### Protein PRS (Protein-Level Polygenic Risk Scores)
+
+| Tool | Description |
+|------|-------------|
+| `get_protein_prs_summary` | All protein scores sorted by deviation. Shows clinically significant (R²>0.60) proteins first, then top 20 most deviant. |
+| `get_protein_prs_for_panel` | Proteins for a disease panel (cardiovascular, cancer, neurological, metabolic, immune). Reveals which proteins may be driving disease risk. |
+| `explain_disease_risk_proteins` | Decompose a disease risk into protein pathways — shows elevated proteins (potential risk drivers) and low proteins (protective or deficient). |
+
+Protein PRS predicts genetically-driven serum protein levels using [SNPBoost](https://doi.org/10.3389/fgene.2022.1076440) models trained on Olink proteomics from ~50,000 UK Biobank participants. Instead of just "you have high cardiovascular risk," agents can now explain *which proteins* are driving it — e.g., elevated F2 (prothrombin) + low ADAMTS13 = clotting-dominant pathway.
+
+**R² confidence tiers:**
+- **Clinical** (R² > 0.60) — genetics dominates, almost like a blood test from DNA (48 proteins)
+- **High** (R² 0.20–0.60) — reliable genetic prediction, worth clinical attention
+- **Moderate** (R² 0.10–0.20) — real signal but noisy, confirm with blood tests
+- **Low** (R² < 0.10) — environment dominates over genetics
+
+To use: place a `protein-prs.json` file in your state directory. If not present, the tools gracefully return "no data available." See [proteinprs.com](https://www.proteinprs.com) for model details.
 
 #### Clinical Reference Data
 

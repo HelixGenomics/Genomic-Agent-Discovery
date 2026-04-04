@@ -5,6 +5,22 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.4.0] - 2026-04-04
+
+### Added
+- **Protein PRS integration** — predict genetically-driven serum protein levels from DNA using SNPBoost models (2,791 Olink proteins)
+- 3 new MCP tools: `get_protein_prs_summary`, `get_protein_prs_for_panel`, `explain_disease_risk_proteins`
+- All 6 collector roles now include protein-level analysis steps with domain-specific panel queries
+- Cross-domain synthesizer integrates protein signals across domains
+- Final narrator weaves protein pathway explanations into health narratives ("driven by genetically elevated X and low Y")
+- Protein PRS data loaded from `protein-prs.json` in state directory (optional — tools gracefully skip if not present)
+- R² confidence tiers: Clinical (>0.60), High (0.20–0.60), Moderate (0.10–0.20), Low (<0.10)
+- Disease panel mapping: cardiovascular, cancer, neurological, metabolic, immune
+
+### Changed
+- Collector prompts now instruct agents to report both risk factors AND protective genetic advantages
+- Pharma collector uses `get_protein_prs_summary()` for drug-metabolizing enzyme protein levels
+
 ## [1.3.0] - 2026-04-02
 
 ### Added
