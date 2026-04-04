@@ -134,12 +134,6 @@ When you launch the dashboard, you'll see the setup panel where you configure yo
   <em>Setup panel — select a preset, configure settings, and start your analysis</em>
 </p>
 
-<em> ## Agent Icons </em>
-
-<p align="center">
-  <img src="assets/AgentIcons.png" width="720"> 
-</p>
-
 ### Preset Selection
 
 Choose from 6 built-in research presets, each tuned for a specific domain. Selecting a preset instantly configures the agent pipeline, prompts, models, and focus areas.
