@@ -1100,11 +1100,21 @@ Please open an issue before starting work on large changes so we can discuss the
 
 ## Community
 
-- **Discord:** [Join the server](https://helixsequencing.com/discord) — chat, share results, get help, discuss research
-- **TikTok:** [@helix_sequencing](https://tiktok.com/@helix_sequencing)
-- **Twitter/X:** [@HelixSequencing](https://x.com/HelixSequencing)
-- **GitHub:** [Issues](https://github.com/HelixGenomics/Genomic-Agent-Discovery/issues) for bugs and feature requests
-- **Email:** [admin@helixsequencing.com](mailto:admin@helixsequencing.com)
+<p align="center">
+  <a href="https://helixsequencing.com/discord"><img src="https://img.shields.io/badge/Discord-Join_Server-5865F2?style=for-the-badge&logo=discord&logoColor=white" alt="Discord"></a>
+  <a href="https://tiktok.com/@helix_sequencing"><img src="https://img.shields.io/badge/TikTok-@helix__sequencing-000000?style=for-the-badge&logo=tiktok&logoColor=white" alt="TikTok"></a>
+  <a href="https://x.com/HelixSequencing"><img src="https://img.shields.io/badge/Twitter-@HelixSequencing-1DA1F2?style=for-the-badge&logo=x&logoColor=white" alt="Twitter/X"></a>
+  <a href="https://github.com/HelixGenomics/Genomic-Agent-Discovery/issues"><img src="https://img.shields.io/badge/GitHub-Issues-181717?style=for-the-badge&logo=github&logoColor=white" alt="GitHub Issues"></a>
+  <a href="mailto:admin@helixsequencing.com"><img src="https://img.shields.io/badge/Email-admin@helixsequencing.com-D14836?style=for-the-badge&logo=gmail&logoColor=white" alt="Email"></a>
+</p>
+
+<p align="center">
+  <img src="assets/stickers/sticker_welcome.png" width="120" alt="Welcome">
+  <img src="assets/stickers/sticker_nice_find.png" width="120" alt="Nice Find">
+  <img src="assets/stickers/sticker_rare_discovery.png" width="120" alt="Rare Discovery">
+  <img src="assets/stickers/sticker_pipeline_running.png" width="120" alt="Pipeline Running">
+  <img src="assets/stickers/sticker_bug_found.png" width="120" alt="Bug Found">
+</p>
 
 ## About This Project
 
