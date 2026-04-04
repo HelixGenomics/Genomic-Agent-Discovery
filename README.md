@@ -42,6 +42,31 @@
   <a href="mailto:admin@helixsequencing.com"><img src="https://img.shields.io/badge/Email-Contact_Us-D14836?style=for-the-badge&logo=gmail&logoColor=white" alt="Email"></a>
 </p>
 
+## Agent Icons
+
+<p align="center">
+  <img src="assets/discord-emojis-256/agent_cardio.png" width="48" alt="Cardio">
+  <img src="assets/discord-emojis-256/agent_cancer.png" width="48" alt="Cancer">
+  <img src="assets/discord-emojis-256/agent_neuro.png" width="48" alt="Neuro">
+  <img src="assets/discord-emojis-256/agent_metabolic.png" width="48" alt="Metabolic">
+  <img src="assets/discord-emojis-256/agent_pharma.png" width="48" alt="Pharma">
+  <img src="assets/discord-emojis-256/agent_immune.png" width="48" alt="Immune">
+  <img src="assets/discord-emojis-256/agent_collector.png" width="48" alt="Collector">
+  <img src="assets/discord-emojis-256/agent_synthesizer.png" width="48" alt="Synthesizer">
+  <img src="assets/discord-emojis-256/agent_reporter.png" width="48" alt="Reporter">
+  <img src="assets/discord-emojis-256/agent_coordinator.png" width="48" alt="Coordinator">
+  <img src="assets/discord-emojis-256/agent_scanner.png" width="48" alt="Scanner">
+  <img src="assets/discord-emojis-256/agent_rare.png" width="48" alt="Rare Disease">
+  <img src="assets/discord-emojis-256/agent_dna_repair.png" width="48" alt="DNA Repair">
+  <img src="assets/discord-emojis-256/agent_chemo.png" width="48" alt="Chemo">
+  <img src="assets/discord-emojis-256/agent_immuno_therapy.png" width="48" alt="Immunotherapy">
+  <img src="assets/discord-emojis-256/agent_targeted.png" width="48" alt="Targeted">
+  <img src="assets/discord-emojis-256/agent_dpyd.png" width="48" alt="DPYD">
+  <img src="assets/discord-emojis-256/agent_folate.png" width="48" alt="Folate">
+  <img src="assets/discord-emojis-256/agent_meiotic.png" width="48" alt="Meiotic">
+  <img src="assets/discord-emojis-256/agent_chromosome.png" width="48" alt="Chromosome">
+</p>
+
 <p align="center">
   <img src="assets/stickers/sticker_welcome.png" width="100" alt="Welcome">
   <img src="assets/stickers/sticker_nice_find.png" width="100" alt="Nice Find">
