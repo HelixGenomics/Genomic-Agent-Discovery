@@ -109,6 +109,40 @@ function readAgentsFromDisk(jobDir) {
         if (modelMatch) model = modelMatch[1];
       } catch { /* ignore */ }
 
+      // Extract recent chain of thought from log (last 8KB)
+      let thoughts = [];
+      if (status === 'running' || status === 'done') {
+        try {
+          const fd = require('fs').openSync(logPath, 'r');
+          const readSize = Math.min(8192, logSize);
+          const buf = Buffer.alloc(readSize);
+          require('fs').readSync(fd, buf, 0, readSize, Math.max(0, logSize - readSize));
+          require('fs').closeSync(fd);
+          const tail = buf.toString('utf8');
+          const lines = tail.split('\n').filter(l => l.trim());
+          for (const line of lines) {
+            try {
+              const evt = JSON.parse(line);
+              if (evt.type === 'assistant' && evt.message?.content) {
+                for (const c of evt.message.content) {
+                  if (c.type === 'thinking' && c.thinking?.length > 10) {
+                    thoughts.push({ type: 'thinking', text: c.thinking.slice(-200).replace(/\n/g, ' ').trim() });
+                  }
+                  if (c.type === 'tool_use') {
+                    const detail = c.input?.file_path ? basename(c.input.file_path) : c.input?.command ? c.input.command.substring(0, 60) : '';
+                    thoughts.push({ type: 'tool', text: `${c.name}${detail ? ': ' + detail : ''}` });
+                  }
+                  if (c.type === 'text' && c.text?.length > 10) {
+                    thoughts.push({ type: 'text', text: c.text.substring(0, 200) });
+                  }
+                }
+              }
+            } catch { /* skip unparseable lines */ }
+          }
+          thoughts = thoughts.slice(-5);
+        } catch { /* ignore */ }
+      }
+
       agents[id] = {
         label: id.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase()),
         model,
@@ -117,6 +151,7 @@ function readAgentsFromDisk(jobDir) {
         lastActivity,
         hasMd,
         mdPath,
+        thoughts,
       };
     }
   } catch { /* ignore */ }

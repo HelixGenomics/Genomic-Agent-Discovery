@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback, useMemo, useId } from 'react'
 import yaml from 'js-yaml'
+import HelixLogoCanvas from './HelixLogo'
 import './App.css'
 // ── Inline Setup Panel ────────────────────────────────────────────────────────
 
@@ -315,8 +316,8 @@ function SetupPanel({ onStarted }) {
   return (
     <div className="setup-panel">
       <div className="setup-logo">
-        <HelixLogo />
-        <span>Helix Genomics</span>
+        <HelixLogo size={48} />
+        <span>Helix <em className="nav-logo-gradient" style={{ fontStyle: 'normal' }}>Sequencing</em></span>
       </div>
       <p className="setup-sub">Configure your analysis below, then hit Start.</p>
 
@@ -420,7 +421,7 @@ function SetupPanel({ onStarted }) {
                   {(dbStatus.dbSize / 1024 / 1024 / 1024).toFixed(1)}GB
                 </>
               ) : (
-                <><span className="setup-db-dot empty" /> Not built — run <code>npm run build-db</code></>
+                <><img src="/agents/urgent.png" width="18" height="18" style={{verticalAlign:'middle',marginRight:6}} alt="" /> Not built — run <code>npm run build-db</code></>
               )}
             </span>
             <span className="setup-prompt-chevron">{dbExpanded ? '▲' : '▼'}</span>
@@ -720,7 +721,7 @@ function SetupPanel({ onStarted }) {
 
       {err && <div className="setup-error">{err}</div>}
 
-      <button className="setup-start" onClick={startAnalysis} disabled={loading}>
+      <button className="setup-start nav-cta" onClick={startAnalysis} disabled={loading}>
         {loading ? 'Starting…' : '▶  Start Analysis'}
       </button>
     </div>
@@ -778,7 +779,11 @@ function sigLabel(cat) {
 // ── Sub-components ────────────────────────────────────────────────────────────
 
 function HelixLogo({ size = 32 }) {
-  return <img src="/helix-logo.png" alt="Helix" width={size} height={size} style={{ objectFit: 'contain' }} />
+  // Canvas looks bad below ~40px — use static PNG for small sizes
+  if (size < 40) {
+    return <img src="/helix-logo.png" alt="Helix" width={size} height={size} style={{ objectFit: 'contain', borderRadius: 3 }} />
+  }
+  return <HelixLogoCanvas size={size} animated={true} />
 }
 
 function StatusDot({ status }) {
@@ -819,7 +824,7 @@ const TIER_COLORS = { collection: '#06b6d4', synthesis: '#8b5cf6', report: '#f59
 const STATUS_COLORS = { running: '#06b6d4', spawning: '#06b6d4', done: '#22c55e', error: '#ef4444', waiting: '#6b7280' }
 
 function AgentCard({ agent, selected, onClick, onViewMd }) {
-  const { id, label, model, status, lastActivity, logSize, hasMd, mdPath } = agent
+  const { id, label, model, status, lastActivity, logSize, hasMd, mdPath, thoughts } = agent
   const tier = getAgentTier(id)
   const tierColor = TIER_COLORS[tier]
   const statusColor = STATUS_COLORS[status] || STATUS_COLORS.waiting
@@ -838,9 +843,15 @@ function AgentCard({ agent, selected, onClick, onViewMd }) {
     <div className={cardCls} onClick={() => onClick(id)} style={{ borderLeftColor: tierColor }}>
       <div className="agent-row">
         <StatusDot status={status || 'waiting'} />
-        <span className="agent-icon" style={{ color: statusColor }}>
-          {status === 'done' ? '✓' : status === 'error' ? '✗' : status === 'running' || status === 'spawning' ? '⟳' : '○'}
-        </span>
+        <img
+          src={agentIconSrc(id)}
+          alt=""
+          className="agent-icon"
+          style={{
+            filter: status === 'waiting' ? 'grayscale(1) opacity(0.4)' : 'none',
+            border: `2px solid ${statusColor}33`,
+          }}
+        />
         <span className="agent-label">{label || id}</span>
         <span className="agent-model" style={{ color: tierColor }}>{modelShort}</span>
       </div>
@@ -861,6 +872,15 @@ function AgentCard({ agent, selected, onClick, onViewMd }) {
       </div>
       {hasMd && mdPath && (
         <div className="agent-md-path" title={mdPath}>{mdPath.split('/').slice(-3).join('/')}</div>
+      )}
+      {thoughts && thoughts.length > 0 && (status === 'running' || status === 'spawning') && (
+        <div className="agent-thoughts">
+          {thoughts.map((t, i) => (
+            <div key={i} className={`agent-thought ${t.type}`} style={{ opacity: 0.3 + (i / thoughts.length) * 0.7 }}>
+              {t.type === 'tool' ? `🔧 ${t.text}` : t.type === 'thinking' ? `💭 ${t.text}` : t.text}
+            </div>
+          ))}
+        </div>
       )}
     </div>
   )
@@ -929,6 +949,34 @@ function AgentsPanel({ agents, selectedId, onSelect, jobId }) {
   )
 }
 
+// Map agent IDs to PNG icons
+function agentIconSrc(id) {
+  const s = (id || '').toLowerCase()
+  if (/tumor|genetic|cancer/i.test(s)) return '/agents/agent_cancer.png'
+  if (/dpyd|safety/i.test(s)) return '/agents/agent_dpyd.png'
+  if (/platinum|chemo/i.test(s)) return '/agents/agent_chemo.png'
+  if (/immunotherap/i.test(s)) return '/agents/agent_immuno_therapy.png'
+  if (/target/i.test(s)) return '/agents/agent_targeted.png'
+  if (/drug|pharma/i.test(s)) return '/agents/agent_pharma.png'
+  if (/metaboli/i.test(s)) return '/agents/agent_metabolic.png'
+  if (/supplement|folate/i.test(s)) return '/agents/agent_folate.png'
+  if (/inflammat/i.test(s)) return '/agents/agent_cardio.png'
+  if (/immune/i.test(s)) return '/agents/agent_immune.png'
+  if (/dna|repair/i.test(s)) return '/agents/agent_dna_repair.png'
+  if (/neuropath|neuro/i.test(s)) return '/agents/agent_neuro.png'
+  if (/trial|clinical/i.test(s)) return '/agents/agent_coordinator.png'
+  if (/synth/i.test(s)) return '/agents/agent_synthesizer.png'
+  if (/narrator|report|writer/i.test(s)) return '/agents/agent_reporter.png'
+  if (/novel|rare/i.test(s)) return '/agents/agent_rare.png'
+  if (/scanner|general/i.test(s)) return '/agents/agent_scanner.png'
+  if (/cardio|lipid|arrhythm|coagul/i.test(s)) return '/agents/agent_cardio.png'
+  if (/cyp|transport/i.test(s)) return '/agents/agent_pharma.png'
+  if (/meiotic|chromosome/i.test(s)) return '/agents/agent_meiotic.png'
+  if (/collect/i.test(s)) return '/agents/agent_collector.png'
+  return '/agents/agent_scanner.png'
+}
+
+// Legacy emoji fallback (for contexts that can't render images)
 function agentIcon(id) {
   const s = (id || '').toLowerCase()
   if (/tumor|genetic/i.test(s)) return '🧬'
@@ -960,6 +1008,19 @@ function shortLabel(id) {
 function NetworkCanvas({ agents, selectedId, chat, findings }) {
   const canvasRef = useRef(null)
   const stateRef = useRef({ particles: [], commLines: [], animFrame: 0, prevChatLen: 0, prevFindingsLen: 0 })
+  const imgCacheRef = useRef({})
+
+  // Preload agent PNG images
+  useEffect(() => {
+    for (const id of Object.keys(agents)) {
+      const src = agentIconSrc(id)
+      if (!imgCacheRef.current[src]) {
+        const img = new Image()
+        img.src = src
+        imgCacheRef.current[src] = img
+      }
+    }
+  }, [agents])
 
   // Spawn comm-line particles when new chat messages arrive
   useEffect(() => {
@@ -1076,7 +1137,7 @@ function NetworkCanvas({ agents, selectedId, chat, findings }) {
 
       if (n === 0) {
         ctx.save()
-        ctx.font = '500 14px Inter, sans-serif'
+        ctx.font = '500 14px "Outfit", "DM Sans", sans-serif'
         ctx.fillStyle = 'rgba(52,211,153,0.2)'
         ctx.textAlign = 'center'
         ctx.textBaseline = 'middle'
@@ -1092,12 +1153,11 @@ function NetworkCanvas({ agents, selectedId, chat, findings }) {
       const cx = cW / 2, cy = cH / 2
       const minDim = Math.min(cW, cH)
 
-      // Adaptive node size — shrink as count grows
-      // Scale nodes bigger on small screens (phone emulation for TikTok recording)
+      // Adaptive node size — shrink as count grows, but keep readable
       const isMobile = window.innerWidth < 768
       const nodeR = isMobile
-        ? Math.max(22, Math.min(40, 50 - n * 1.2))
-        : Math.max(8, Math.min(16, 20 - n * 0.35))
+        ? Math.max(26, Math.min(44, 55 - n * 1.2))
+        : Math.max(16, Math.min(28, 34 - n * 0.5))
 
       // Multi-ring layout: distribute agents across concentric rings
       // Ring capacities: [8, 14, 20, 26, ...] — each ring fits ~6 more
@@ -1269,20 +1329,22 @@ function NetworkCanvas({ agents, selectedId, chat, findings }) {
         ctx.beginPath(); ctx.arc(np.x, np.y, nodeR, 0, Math.PI * 2)
         ctx.fill(); ctx.stroke(); ctx.restore()
 
-        // Emoji icon — scale with node
-        if (nodeR >= 10) {
+        // Agent PNG icon — clipped to circle
+        const imgSrc = agentIconSrc(np.id)
+        const cachedImg = imgCacheRef.current[imgSrc]
+        if (cachedImg && cachedImg.complete && cachedImg.naturalWidth > 0) {
           ctx.save()
-          ctx.font = `${Math.round(nodeR * 0.85)}px sans-serif`
-          ctx.textAlign = 'center'; ctx.textBaseline = 'middle'
-          ctx.fillText(agentIcon(np.id), np.x, np.y)
+          ctx.beginPath(); ctx.arc(np.x, np.y, nodeR * 0.82, 0, Math.PI * 2); ctx.clip()
+          const imgSize = nodeR * 1.7
+          ctx.drawImage(cachedImg, np.x - imgSize / 2, np.y - imgSize / 2, imgSize, imgSize)
           ctx.restore()
         }
 
         // Label — hide for very large counts
         if (n <= 20) {
           ctx.save()
-          const fontSize = isMobile ? Math.max(11, 14 - n * 0.15) : Math.max(7, 10 - n * 0.15)
-          ctx.font = `500 ${fontSize}px "IBM Plex Mono", monospace`
+          const fontSize = isMobile ? Math.max(11, 14 - n * 0.15) : Math.max(8, 11 - n * 0.15)
+          ctx.font = `600 ${fontSize}px "JetBrains Mono", monospace`
           ctx.fillStyle = nodeColor
           ctx.textAlign = 'center'; ctx.globalAlpha = n > 14 ? 0.6 : 0.85
           ctx.fillText(shortLabel(np.id), np.x, np.y + labelOffset)
@@ -1332,7 +1394,10 @@ function FindingCard({ finding }) {
         </div>
       )}
       {finding.agent && (
-        <div className="finding-agent">via {finding.agent}</div>
+        <div className="finding-agent">
+          <img src={agentIconSrc(finding.agent)} alt="" style={{ width: 14, height: 14, borderRadius: '50%', verticalAlign: 'middle', marginRight: 4 }} />
+          via {finding.agent}
+        </div>
       )}
     </div>
   )
@@ -1461,8 +1526,9 @@ function ChatPanel({ messages, jobId }) {
           messages.map((msg, i) => (
             <div key={i} className={`chat-message ${msg.from === 'user' ? 'chat-message-user' : ''}`}>
               <span className={`chat-from ${msg.to ? 'chat-to' : ''}`}>
+                <img src={agentIconSrc(msg.from)} alt="" style={{ width: 14, height: 14, borderRadius: '50%', verticalAlign: 'middle', marginRight: 3 }} />
                 {msg.from || 'agent'}
-                {msg.to ? ` → ${msg.to}` : ''}
+                {msg.to ? <>{' → '}<img src={agentIconSrc(msg.to)} alt="" style={{ width: 14, height: 14, borderRadius: '50%', verticalAlign: 'middle', marginRight: 3 }} />{msg.to}</> : ''}
               </span>
               <span className="chat-text">{msg.message || msg.text || ''}</span>
               <span className="chat-time">{fmtTime(msg.timestamp)}</span>
@@ -1635,6 +1701,33 @@ export default function App() {
 
   return (
     <div className="app">
+      {/* ── Nav Bar ── */}
+      <header className="nav">
+        <div className="nav-logo">
+          <HelixLogo size={24} />
+          <span>Helix <em className="nav-logo-gradient">Sequencing</em></span>
+        </div>
+        <div className="nav-social">
+          <a href="https://github.com/HelixGenomics/helix-open-research" target="_blank" rel="noopener" title="GitHub">
+            <svg viewBox="0 0 16 16" width="16" height="16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
+          </a>
+          <a href="https://www.tiktok.com/@helixsequencing" target="_blank" rel="noopener" title="TikTok">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-2.88 2.5 2.89 2.89 0 0 1-2.89-2.89 2.89 2.89 0 0 1 2.89-2.89c.28 0 .54.04.79.1v-3.5a6.37 6.37 0 0 0-.79-.05A6.34 6.34 0 0 0 3.15 15a6.34 6.34 0 0 0 6.34 6.34 6.34 6.34 0 0 0 6.34-6.34V8.89a8.28 8.28 0 0 0 4.76 1.5V6.84a4.84 4.84 0 0 1-1-.15Z"/></svg>
+          </a>
+          <a href="https://helixsequencing.com/discord" target="_blank" rel="noopener" title="Discord">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028c.462-.63.874-1.295 1.226-1.994a.076.076 0 0 0-.041-.106 13.107 13.107 0 0 1-1.872-.892.077.077 0 0 1-.008-.128 10.2 10.2 0 0 0 .372-.292.074.074 0 0 1 .077-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127 12.299 12.299 0 0 1-1.873.892.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.839 19.839 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.03zM8.02 15.33c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.956-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.956 2.418-2.157 2.418zm7.975 0c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.955-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.946 2.418-2.157 2.418z"/></svg>
+          </a>
+          <a href="https://x.com/HelixSequencing" target="_blank" rel="noopener" title="X / Twitter">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+          </a>
+          <a href="https://www.reddit.com/u/HelixSequencing" target="_blank" rel="noopener" title="Reddit">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0zm5.01 4.744c.688 0 1.25.561 1.25 1.249a1.25 1.25 0 0 1-2.498.056l-2.597-.547-.8 3.747c1.824.07 3.48.632 4.674 1.488.308-.309.73-.491 1.207-.491.968 0 1.754.786 1.754 1.754 0 .716-.435 1.333-1.01 1.614a3.111 3.111 0 0 1 .042.52c0 2.694-3.13 4.87-7.004 4.87-3.874 0-7.004-2.176-7.004-4.87 0-.183.015-.366.043-.534A1.748 1.748 0 0 1 4.028 12c0-.968.786-1.754 1.754-1.754.463 0 .898.196 1.207.49 1.207-.883 2.878-1.43 4.744-1.487l.885-4.182a.342.342 0 0 1 .14-.197.35.35 0 0 1 .238-.042l2.906.617a1.214 1.214 0 0 1 1.108-.701zM9.25 12C8.561 12 8 12.562 8 13.25c0 .687.561 1.248 1.25 1.248.687 0 1.248-.561 1.248-1.249 0-.688-.561-1.249-1.249-1.249zm5.5 0c-.687 0-1.248.561-1.248 1.25 0 .687.561 1.248 1.249 1.248.688 0 1.249-.561 1.249-1.249 0-.687-.562-1.249-1.25-1.249zm-5.466 3.99a.327.327 0 0 0-.231.094.33.33 0 0 0 0 .463c.842.842 2.484.913 2.961.913.477 0 2.105-.056 2.961-.913a.361.361 0 0 0 0-.463.33.33 0 0 0-.464 0c-.547.533-1.684.73-2.512.73-.828 0-1.979-.196-2.512-.73a.326.326 0 0 0-.232-.095z"/></svg>
+          </a>
+        </div>
+        <span className="nav-spacer" />
+        <StatusPill status={jobStatus} />
+      </header>
+
       {/* ── Body ── */}
       <div className="body">
         <AgentsPanel
