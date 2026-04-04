@@ -1,5 +1,9 @@
 # Security Policy
 
+<p align="center">
+  <img src="assets/stickers/sticker_bug_found.png" width="180" alt="Bug Found">
+</p>
+
 ## Supported Versions
 
 | Version | Supported          |
