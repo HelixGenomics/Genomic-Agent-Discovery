@@ -28,3 +28,6 @@ Traditional PRS only looks at statistical associations. Protein PRS uses AI to p
 ---
 
 *Status: DRAFT — do not post until pipeline testing is complete*
+# Discord Integration
+
+GitHub webhook sends push, release, issue, PR, and star notifications to #announcements.
