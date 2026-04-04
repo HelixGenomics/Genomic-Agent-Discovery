@@ -66,14 +66,6 @@
   <img src="assets/discord-emojis-256/agent_chromosome.png" width="48" alt="Chromosome">
 </p>
 
-<p align="center">
-  <img src="assets/stickers/sticker_welcome.png" width="100" alt="Welcome">
-  <img src="assets/stickers/sticker_nice_find.png" width="100" alt="Nice Find">
-  <img src="assets/stickers/sticker_rare_discovery.png" width="100" alt="Rare Discovery">
-  <img src="assets/stickers/sticker_pipeline_running.png" width="100" alt="Pipeline Running">
-  <img src="assets/stickers/sticker_bug_found.png" width="100" alt="Bug Found">
-</p>
-
 > **Hosted version available** — A hosted version of this framework is available at [helixsequencing.com](https://helixsequencing.com) if you'd prefer not to self-host.
 
 Upload your raw DNA file from 23andMe, AncestryDNA, MyHeritage, FamilyTreeDNA, or any VCF -- and watch a team of AI agents fan out across 16+ public genomics databases, share discoveries with each other in real time, and produce a comprehensive health report. Everything runs on your machine. Nothing is uploaded anywhere.
