@@ -1,0 +1,14 @@
+{
+  "mcpServers": {
+    "headlessx": {
+      "command": "node",
+      "args": ["tools/headlessx-oauth/mcp-server.js"],
+      "cwd": "/Users/zaksmith/Documents/Claude/Projects/AgenticGenomicDiscovery"
+    },
+    "chrome-console": {
+      "command": "node",
+      "args": ["tools/chrome-console-mcp/index.js"],
+      "cwd": "/Users/zaksmith/Documents/Claude/Projects/AgenticGenomicDiscovery"
+    }
+  }
+}
