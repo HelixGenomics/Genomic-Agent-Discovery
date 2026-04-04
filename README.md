@@ -121,8 +121,7 @@ When you launch the dashboard, you'll see the setup panel where you configure yo
 ### Agent Icons
 
 <p align="center">
-  <img src="assets/AgentIcons.png" width="1080"> 
-<img src="docs/screenshots/-preset-switching.gif" alt="Switching between presets" width="720">
+  <img src="assets/AgentIcons.png" width="720"> 
   <br>
   <em>Switch between presets — each configures a different agent team with specialized prompts</em>
 </p>
