@@ -479,6 +479,8 @@ Deep investigation with 7 agents:
 ### Rare Disease 🧬
 
 <p align="center">
+  <img src="assets/stickers/sticker_rare_discovery.png" width="100" alt="Rare Discovery">
+  <br>
   <img src="docs/screenshots/11-rare-disease.png" alt="Rare Disease preset" width="720">
   <br>
   <em>Rare Disease preset — 7 agents covering metabolic, neurological, connective tissue, immunodeficiency, and rare cancer syndromes</em>
@@ -1130,6 +1132,9 @@ This does not prove direct causation — no retrospective genomic analysis can �
 
 ### First here is a full sped up version of the pipeline running with full agent communcition.
 
+<p align="center">
+  <img src="assets/stickers/sticker_pipeline_running.png" width="100" alt="Pipeline Running">
+</p>
 
 <p align="center">
   <img src="docs/screenshots/DebendoxT9.gif" alt="Pipeline running — agents analyzing, findings arriving, inter-agent chat" width="720">
