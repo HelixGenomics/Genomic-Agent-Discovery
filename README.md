@@ -60,7 +60,6 @@
   <img src="assets/discord-emojis-256/agent_dna_repair.png" width="48" alt="DNA Repair">
   <img src="assets/discord-emojis-256/agent_chemo.png" width="48" alt="Chemo">
   <img src="assets/discord-emojis-256/agent_immuno_therapy.png" width="48" alt="Immunotherapy">
-  <img src="assets/discord-emojis-256/agent_targeted.png" width="48" alt="Targeted">
   <img src="assets/discord-emojis-256/agent_dpyd.png" width="48" alt="DPYD">
   <img src="assets/discord-emojis-256/agent_folate.png" width="48" alt="Folate">
   <img src="assets/discord-emojis-256/agent_meiotic.png" width="48" alt="Meiotic">
