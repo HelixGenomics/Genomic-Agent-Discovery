@@ -118,7 +118,7 @@ When you launch the dashboard, you'll see the setup panel where you configure yo
   <em>Setup panel — select a preset, configure settings, and start your analysis</em>
 </p>
 
-### Agent Icons
+<em> ## Agent Icons </em>
 
 <p align="center">
   <img src="assets/AgentIcons.png" width="720"> 
