@@ -123,7 +123,8 @@ When you launch the dashboard, you'll see the setup panel where you configure yo
 Choose from 6 built-in research presets, each tuned for a specific domain. Selecting a preset instantly configures the agent pipeline, prompts, models, and focus areas.
 
 <p align="center">
-  <img src="docs/screenshots/-preset-switching.gif" alt="Switching between presets" width="720">
+  <img src="assets/AgentIcons.png" width="720"> 
+<img src="docs/screenshots/-preset-switching.gif" alt="Switching between presets" width="720">
   <br>
   <em>Switch between presets — each configures a different agent team with specialized prompts</em>
 </p>
