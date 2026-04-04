@@ -1,5 +1,9 @@
 # Contributing to Genomic Agent Discovery
 
+<p align="center">
+  <img src="assets/stickers/sticker_nice_find.png" width="180" alt="Nice Find!">
+</p>
+
 Thank you for your interest in contributing. This project is MIT-licensed and welcomes contributions of all kinds.
 
 ## Before You Start
