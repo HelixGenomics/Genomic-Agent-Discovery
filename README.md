@@ -151,6 +151,8 @@ The setup panel shows a live view of your annotation databases — which are loa
 
 ### Editable Agent Prompts & Tier Grouping
 
+ <img src="docs/screenshots/05-editable-agent-prompts.png" alt="Editable agent prompts with tier grouping" width="720">
+
 Every preset shows its agents grouped by tier: **Collection** (cheap models, high tool calls), **Synthesis** (smarter models combining findings), and **Report** (final output). Click any agent to expand and edit its prompt, change its model, or adjust settings.
 
 <p align="center">
