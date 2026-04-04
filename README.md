@@ -34,13 +34,25 @@
   <a href="https://github.com/HelixGenomics/Genomic-Agent-Discovery/discussions"><img alt="Discussions" src="https://img.shields.io/badge/GitHub-Discussions-181717.svg"></a>
 </p>
 
+<p align="center">
+  <a href="https://helixsequencing.com/discord"><img src="https://img.shields.io/badge/Discord-Join_Server-5865F2?style=for-the-badge&logo=discord&logoColor=white" alt="Discord"></a>
+  <a href="https://tiktok.com/@helix_sequencing"><img src="https://img.shields.io/badge/TikTok-@helix__sequencing-000000?style=for-the-badge&logo=tiktok&logoColor=white" alt="TikTok"></a>
+  <a href="https://x.com/HelixSequencing"><img src="https://img.shields.io/badge/Twitter-@HelixSequencing-1DA1F2?style=for-the-badge&logo=x&logoColor=white" alt="Twitter/X"></a>
+  <a href="https://github.com/HelixGenomics/Genomic-Agent-Discovery/issues"><img src="https://img.shields.io/badge/GitHub-Issues-181717?style=for-the-badge&logo=github&logoColor=white" alt="GitHub Issues"></a>
+  <a href="mailto:admin@helixsequencing.com"><img src="https://img.shields.io/badge/Email-Contact_Us-D14836?style=for-the-badge&logo=gmail&logoColor=white" alt="Email"></a>
+</p>
+
+<p align="center">
+  <img src="assets/stickers/sticker_welcome.png" width="100" alt="Welcome">
+  <img src="assets/stickers/sticker_nice_find.png" width="100" alt="Nice Find">
+  <img src="assets/stickers/sticker_rare_discovery.png" width="100" alt="Rare Discovery">
+  <img src="assets/stickers/sticker_pipeline_running.png" width="100" alt="Pipeline Running">
+  <img src="assets/stickers/sticker_bug_found.png" width="100" alt="Bug Found">
+</p>
+
 > **Hosted version available** — A hosted version of this framework is available at [helixsequencing.com](https://helixsequencing.com) if you'd prefer not to self-host.
 
 Upload your raw DNA file from 23andMe, AncestryDNA, MyHeritage, FamilyTreeDNA, or any VCF -- and watch a team of AI agents fan out across 16+ public genomics databases, share discoveries with each other in real time, and produce a comprehensive health report. Everything runs on your machine. Nothing is uploaded anywhere.
-
-<p align="center">
-  <a href="https://helixsequencing.com/discord"><img src="https://img.shields.io/badge/Join_our_Discord-Share_ideas,_get_help,_discuss_research-5865F2?style=for-the-badge&logo=discord&logoColor=white" alt="Join our Discord"></a>
-</p>
 
 <p align="center">
   <img src="docs/screenshots/gif-pipeline-running.gif" alt="Pipeline running — agents analyzing, findings arriving, inter-agent chat" width="720">
@@ -120,11 +132,11 @@ Available presets:
 
 | Preset | Agents | Est. Cost | Focus |
 |--------|--------|-----------|-------|
-| **Quick Scan** ⚡ | 2 | $0.05–0.10 | Fast overview across all domains |
-| **Cancer Research** 🔬 | 7 | $0.50–2.00 | Deep cancer & tumor genetics with DPYD safety, platinum chemo, immunotherapy, and targeted therapy agents |
-| **Cardiovascular** ❤️ | 6 | $0.30–1.00 | Lipid genetics, arrhythmia risk, coagulation, and structural heart |
-| **Pharmacogenomics** 💊 | 4 | $0.20–0.80 | CYP enzyme panel, drug transporters, and full CPIC pharmacogene coverage |
-| **Rare Disease** 🧬 | 7 | $0.40–1.50 | Metabolic disorders, neurological conditions, connective tissue, immunodeficiency, and rare cancer syndromes |
+| **Quick Scan** <img src="assets/discord-emojis-256/agent_scanner.png" width="20" align="absmiddle"> | 2 | $0.05–0.10 | Fast overview across all domains |
+| **Cancer Research** <img src="assets/discord-emojis-256/cancer.png" width="20" align="absmiddle"> | 7 | $0.50–2.00 | Deep cancer & tumor genetics with DPYD safety, platinum chemo, immunotherapy, and targeted therapy agents |
+| **Cardiovascular** <img src="assets/discord-emojis-256/cardiovascular.png" width="20" align="absmiddle"> | 6 | $0.30–1.00 | Lipid genetics, arrhythmia risk, coagulation, and structural heart |
+| **Pharmacogenomics** <img src="assets/discord-emojis-256/pharma.png" width="20" align="absmiddle"> | 4 | $0.20–0.80 | CYP enzyme panel, drug transporters, and full CPIC pharmacogene coverage |
+| **Rare Disease** <img src="assets/discord-emojis-256/agent_rare.png" width="20" align="absmiddle"> | 7 | $0.40–1.50 | Metabolic disorders, neurological conditions, connective tissue, immunodeficiency, and rare cancer syndromes |
 | **Custom** ⚙️ | You decide | Varies | Build your own agent pipeline from scratch |
 
 ### Database Status
@@ -425,11 +437,11 @@ You can also place these in a `.env` file (copy `.env.example` to get started).
 
 ## Presets
 
-### Quick Scan ⚡
+### Quick Scan <img src="assets/discord-emojis-256/agent_scanner.png" width="24" align="absmiddle">
 
 Fast 2-agent overview. A general health scanner checks the top genes across all domains (cancer, cardio, neuro, metabolic, coagulation) plus the full pharmacogenomics panel. A narrator produces a concise summary.
 
-### Cancer Research 🔬
+### Cancer Research <img src="assets/discord-emojis-256/cancer.png" width="24" align="absmiddle">
 
 <p align="center">
   <img src="docs/screenshots/04-cancer-preset.png" alt="Cancer Research preset" width="720">
@@ -446,7 +458,7 @@ Deep investigation with 7 agents:
 - **Cancer Synthesizer** (Sonnet) — Cross-references all findings for compound risk patterns
 - **Report Writer** — Structured cancer genetics report with hereditary syndrome assessment
 
-### Cardiovascular ❤️
+### Cardiovascular <img src="assets/discord-emojis-256/cardiovascular.png" width="24" align="absmiddle">
 
 <p align="center">
   <img src="docs/screenshots/12-cardio-preset.png" alt="Cardiovascular preset" width="720">
@@ -462,7 +474,7 @@ Deep investigation with 7 agents:
 - **Cardio Synthesizer** (Sonnet) — Integrated cardiovascular risk stratification
 - **Report Writer** — Full cardiovascular genetics report
 
-### Pharmacogenomics 💊
+### Pharmacogenomics <img src="assets/discord-emojis-256/pharma.png" width="24" align="absmiddle">
 
 <p align="center">
   <img src="docs/screenshots/10-pharma-preset.png" alt="Pharmacogenomics preset" width="720">
@@ -476,7 +488,7 @@ Deep investigation with 7 agents:
 - **Pharmacogenomics Panel** — Full 34 CPIC pharmacogene analysis
 - **PGx Synthesizer** (Sonnet) — Cross-gene drug interactions and polypharmacy risk
 
-### Rare Disease 🧬
+### Rare Disease <img src="assets/discord-emojis-256/agent_rare.png" width="24" align="absmiddle">
 
 <p align="center">
   <img src="assets/stickers/sticker_rare_discovery.png" width="100" alt="Rare Discovery">
@@ -1102,21 +1114,7 @@ Please open an issue before starting work on large changes so we can discuss the
 
 ## Community
 
-<p align="center">
-  <a href="https://helixsequencing.com/discord"><img src="https://img.shields.io/badge/Discord-Join_Server-5865F2?style=for-the-badge&logo=discord&logoColor=white" alt="Discord"></a>
-  <a href="https://tiktok.com/@helix_sequencing"><img src="https://img.shields.io/badge/TikTok-@helix__sequencing-000000?style=for-the-badge&logo=tiktok&logoColor=white" alt="TikTok"></a>
-  <a href="https://x.com/HelixSequencing"><img src="https://img.shields.io/badge/Twitter-@HelixSequencing-1DA1F2?style=for-the-badge&logo=x&logoColor=white" alt="Twitter/X"></a>
-  <a href="https://github.com/HelixGenomics/Genomic-Agent-Discovery/issues"><img src="https://img.shields.io/badge/GitHub-Issues-181717?style=for-the-badge&logo=github&logoColor=white" alt="GitHub Issues"></a>
-  <a href="mailto:admin@helixsequencing.com"><img src="https://img.shields.io/badge/Email-admin@helixsequencing.com-D14836?style=for-the-badge&logo=gmail&logoColor=white" alt="Email"></a>
-</p>
-
-<p align="center">
-  <img src="assets/stickers/sticker_welcome.png" width="120" alt="Welcome">
-  <img src="assets/stickers/sticker_nice_find.png" width="120" alt="Nice Find">
-  <img src="assets/stickers/sticker_rare_discovery.png" width="120" alt="Rare Discovery">
-  <img src="assets/stickers/sticker_pipeline_running.png" width="120" alt="Pipeline Running">
-  <img src="assets/stickers/sticker_bug_found.png" width="120" alt="Bug Found">
-</p>
+Join us — share results, discuss research, report bugs, or just say hi. All the links are at the top of this page.
 
 ## About This Project
 
