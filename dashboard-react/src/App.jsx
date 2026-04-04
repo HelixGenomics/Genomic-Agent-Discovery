@@ -1754,6 +1754,16 @@ export default function App() {
         ) : (
           <>
             <main className="panel-viz-active">
+              {jobStatus === 'complete' && (
+                <div className="completion-banner">
+                  <img src="/agents/agent_reporter.png" width="48" height="48" alt="" style={{borderRadius:'50%'}} />
+                  <div className="completion-text">
+                    <h2>Analysis Complete</h2>
+                    <p>{Object.keys(agents).length} agents finished &middot; {findings.length} findings published &middot; ${costEstimate.toFixed(2)} estimated cost</p>
+                    <p className="completion-hint">Check the agent output files in <code>MD_DOCS/</code> for your full report</p>
+                  </div>
+                </div>
+              )}
               <ActivityCanvas agents={agents} selectedId={selectedAgent} chat={chat} findings={findings} />
             </main>
             <ChatPanel messages={chat} jobId={jobId} />

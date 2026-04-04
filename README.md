@@ -35,37 +35,33 @@
 </p>
 
 <p align="center">
-  <a href="https://helixsequencing.com/discord"><img src="https://img.shields.io/badge/Discord-Join_Server-5865F2?style=for-the-badge&logo=discord&logoColor=white" alt="Discord"></a>
-  <a href="https://tiktok.com/@helix_sequencing"><img src="https://img.shields.io/badge/TikTok-@helix__sequencing-000000?style=for-the-badge&logo=tiktok&logoColor=white" alt="TikTok"></a>
-  <a href="https://x.com/HelixSequencing"><img src="https://img.shields.io/badge/Twitter-@HelixSequencing-1DA1F2?style=for-the-badge&logo=x&logoColor=white" alt="Twitter/X"></a>
-  <a href="https://github.com/HelixGenomics/Genomic-Agent-Discovery/issues"><img src="https://img.shields.io/badge/GitHub-Issues-181717?style=for-the-badge&logo=github&logoColor=white" alt="GitHub Issues"></a>
-  <a href="mailto:admin@helixsequencing.com"><img src="https://img.shields.io/badge/Email-Contact_Us-D14836?style=for-the-badge&logo=gmail&logoColor=white" alt="Email"></a>
+  <a href="https://helixsequencing.com/discord"><img src="https://img.shields.io/badge/Discord-Join-5865F2?style=flat-square&logo=discord&logoColor=white" alt="Discord"></a>
+  <a href="https://tiktok.com/@helix_sequencing"><img src="https://img.shields.io/badge/TikTok-Follow-000000?style=flat-square&logo=tiktok&logoColor=white" alt="TikTok"></a>
+  <a href="https://x.com/HelixSequencing"><img src="https://img.shields.io/badge/Twitter-Follow-1DA1F2?style=flat-square&logo=x&logoColor=white" alt="Twitter/X"></a>
 </p>
-
-## Agent Icons
 
 <p align="center">
-  <img src="assets/discord-emojis-256/agent_cardio.png" width="48" alt="Cardio">
-  <img src="assets/discord-emojis-256/agent_cancer.png" width="48" alt="Cancer">
-  <img src="assets/discord-emojis-256/agent_neuro.png" width="48" alt="Neuro">
-  <img src="assets/discord-emojis-256/agent_metabolic.png" width="48" alt="Metabolic">
-  <img src="assets/discord-emojis-256/agent_pharma.png" width="48" alt="Pharma">
-  <img src="assets/discord-emojis-256/agent_immune.png" width="48" alt="Immune">
-  <img src="assets/discord-emojis-256/agent_collector.png" width="48" alt="Collector">
-  <img src="assets/discord-emojis-256/agent_synthesizer.png" width="48" alt="Synthesizer">
-  <img src="assets/discord-emojis-256/agent_reporter.png" width="48" alt="Reporter">
-  <img src="assets/discord-emojis-256/agent_coordinator.png" width="48" alt="Coordinator">
-  <img src="assets/discord-emojis-256/agent_scanner.png" width="48" alt="Scanner">
-  <img src="assets/discord-emojis-256/agent_rare.png" width="48" alt="Rare Disease">
-  <img src="assets/discord-emojis-256/agent_dna_repair.png" width="48" alt="DNA Repair">
-  <img src="assets/discord-emojis-256/agent_chemo.png" width="48" alt="Chemo">
-  <img src="assets/discord-emojis-256/agent_immuno_therapy.png" width="48" alt="Immunotherapy">
-  <img src="assets/discord-emojis-256/agent_dpyd.png" width="48" alt="DPYD">
-  <img src="assets/discord-emojis-256/agent_folate.png" width="48" alt="Folate">
-  <img src="assets/discord-emojis-256/agent_meiotic.png" width="48" alt="Meiotic">
-  <img src="assets/discord-emojis-256/agent_chromosome.png" width="48" alt="Chromosome">
+  <img src="assets/discord-emojis-256/agent_cardio.png" width="36" alt="Cardio">
+  <img src="assets/discord-emojis-256/agent_cancer.png" width="36" alt="Cancer">
+  <img src="assets/discord-emojis-256/agent_neuro.png" width="36" alt="Neuro">
+  <img src="assets/discord-emojis-256/agent_metabolic.png" width="36" alt="Metabolic">
+  <img src="assets/discord-emojis-256/agent_pharma.png" width="36" alt="Pharma">
+  <img src="assets/discord-emojis-256/agent_immune.png" width="36" alt="Immune">
+  <img src="assets/discord-emojis-256/agent_collector.png" width="36" alt="Collector">
+  <img src="assets/discord-emojis-256/agent_synthesizer.png" width="36" alt="Synthesizer">
+  <img src="assets/discord-emojis-256/agent_reporter.png" width="36" alt="Reporter">
+  <img src="assets/discord-emojis-256/agent_coordinator.png" width="36" alt="Coordinator">
+  <img src="assets/discord-emojis-256/agent_scanner.png" width="36" alt="Scanner">
+  <img src="assets/discord-emojis-256/agent_rare.png" width="36" alt="Rare Disease">
+  <img src="assets/discord-emojis-256/agent_dna_repair.png" width="36" alt="DNA Repair">
+  <img src="assets/discord-emojis-256/agent_chemo.png" width="36" alt="Chemo">
+  <img src="assets/discord-emojis-256/agent_immuno_therapy.png" width="36" alt="Immunotherapy">
+  <img src="assets/discord-emojis-256/agent_targeted.png" width="36" alt="Targeted">
+  <img src="assets/discord-emojis-256/agent_dpyd.png" width="36" alt="DPYD">
+  <img src="assets/discord-emojis-256/agent_folate.png" width="36" alt="Folate">
+  <img src="assets/discord-emojis-256/agent_meiotic.png" width="36" alt="Meiotic">
+  <img src="assets/discord-emojis-256/agent_chromosome.png" width="36" alt="Chromosome">
 </p>
-
 > **Hosted version available** — A hosted version of this framework is available at [helixsequencing.com](https://helixsequencing.com) if you'd prefer not to self-host.
 
 Upload your raw DNA file from 23andMe, AncestryDNA, MyHeritage, FamilyTreeDNA, or any VCF -- and watch a team of AI agents fan out across 16+ public genomics databases, share discoveries with each other in real time, and produce a comprehensive health report. Everything runs on your machine. Nothing is uploaded anywhere.
