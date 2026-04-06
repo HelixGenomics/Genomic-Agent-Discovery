@@ -37,7 +37,7 @@
 <p align="center">
   <a href="https://helixsequencing.com/discord"><img src="https://img.shields.io/badge/Discord-Join-5865F2?style=flat-square&logo=discord&logoColor=white" alt="Discord"></a>
   <a href="https://tiktok.com/@helix_sequencing"><img src="https://img.shields.io/badge/TikTok-Follow-000000?style=flat-square&logo=tiktok&logoColor=white" alt="TikTok"></a>
-  <a href="https://x.com/HelixSequencing"><img src="https://img.shields.io/badge/Twitter-Follow-1DA1F2?style=flat-square&logo=x&logoColor=white" alt="Twitter/X"></a>
+  <a href="https://x.com/HelixS96106"><img src="https://img.shields.io/badge/Twitter-Follow-1DA1F2?style=flat-square&logo=x&logoColor=white" alt="Twitter/X"></a>
 </p>
 
 <p align="center">
