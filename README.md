@@ -62,7 +62,7 @@
   <img src="assets/discord-emojis-256/agent_meiotic.png" width="36" alt="Meiotic">
   <img src="assets/discord-emojis-256/agent_chromosome.png" width="36" alt="Chromosome">
 </p>
-> **Hosted version available** — A hosted version of this framework is available at [helixsequencing.com](https://helixsequencing.com) if you'd prefer not to self-host.
+**Hosted version available** — A hosted version of this framework is available at [helixsequencing.com](https://helixsequencing.com) if you'd prefer not to self-host.
 
 Upload your raw DNA file from 23andMe, AncestryDNA, MyHeritage, FamilyTreeDNA, or any VCF -- and watch a team of AI agents fan out across 16+ public genomics databases, share discoveries with each other in real time, and produce a comprehensive health report. Everything runs on your machine. Nothing is uploaded anywhere.
 
