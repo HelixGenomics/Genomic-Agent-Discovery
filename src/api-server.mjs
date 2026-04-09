@@ -612,7 +612,7 @@ export function createApiServer(config, stateDir, orchestrator) {
         chipVersion = 'Illumina chip';
       } else if (parsed.format === 'VCF') {
         provider = 'VCF file';
-        chipVersion = count > 1000000 ? 'Whole Genome / Imputed' : 'Genotyping chip';
+        chipVersion = count > 1000000 ? 'Whole Genome' : 'Genotyping chip';
       }
 
       // Detect sex from chrY/chrX genotype patterns

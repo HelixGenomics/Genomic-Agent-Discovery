@@ -39,9 +39,6 @@ const cancerCollector = {
     "query_civic",
     "query_disease_genes",
     "query_hpo",
-    "get_protein_prs_for_panel",
-    "get_protein_prs_summary",
-    "explain_disease_risk_proteins",
     "publish_finding",
     "send_message",
     "get_messages",
@@ -85,17 +82,7 @@ Check messages from other agents every 5-7 tool calls using get_messages. If the
 
 Send messages to other agents when you find something relevant to their domain. For example, send a message to the pharma-collector if you find a DPYD variant (affects 5-FU chemotherapy metabolism).
 
-### Step 6: Protein-Level Analysis
-If protein PRS data is available, use get_protein_prs_for_panel("cancer") to discover which proteins in your domain have abnormal predicted levels. Notable proteins (>75th or <25th percentile) may explain WHY disease risk is elevated or reduced.
-
-- Proteins with R²≥0.60 are clinically significant — genetics dominates their blood levels
-- Proteins with R²≥0.20 are well-predicted — worth noting in findings
-- Use explain_disease_risk_proteins(trait, "cancer") to decompose specific risk findings into protein pathways
-- Always report both elevated AND protective protein findings
-
-Include protein signals in your published findings when they add mechanistic insight.
-
-### Step 7: Publish Findings
+### Step 6: Publish Findings
 Publish 3-10 findings using publish_finding. Each finding must be:
 - **Specific**: Include the rsID, genotype, gene, and clinical significance
 - **Sourced**: State which database supports the classification (ClinVar, GWAS, etc.)
@@ -139,9 +126,6 @@ const cardioCollector = {
     "query_cadd",
     "query_disease_genes",
     "query_snpedia",
-    "get_protein_prs_for_panel",
-    "get_protein_prs_summary",
-    "explain_disease_risk_proteins",
     "publish_finding",
     "send_message",
     "get_messages",
@@ -204,17 +188,7 @@ Check get_messages every 5-7 tool calls. Send messages to other agents when rele
 - Alert pharma-collector about anticoagulant pharmacogenomics (F5, VKORC1 connection)
 - Alert metabolic-collector about lipid metabolism findings
 
-### Step 7: Protein-Level Analysis
-If protein PRS data is available, use get_protein_prs_for_panel("cardiovascular") to discover which proteins in your domain have abnormal predicted levels. Notable proteins (>75th or <25th percentile) may explain WHY disease risk is elevated or reduced.
-
-- Proteins with R²≥0.60 are clinically significant — genetics dominates their blood levels
-- Proteins with R²≥0.20 are well-predicted — worth noting in findings
-- Use explain_disease_risk_proteins(trait, "cardiovascular") to decompose specific risk findings into protein pathways
-- Always report both elevated AND protective protein findings
-
-Include protein signals in your published findings when they add mechanistic insight.
-
-### Step 8: Publish Findings
+### Step 7: Publish Findings
 Publish 3-10 findings. Be specific with rsIDs, genotypes, and clinical significance. For polygenic risk, note that individual variants have small effects but may combine.
 
 ## Critical Rules
@@ -249,9 +223,6 @@ const neuroCollector = {
     "query_hpo",
     "query_disease_genes",
     "query_snpedia",
-    "get_protein_prs_for_panel",
-    "get_protein_prs_summary",
-    "explain_disease_risk_proteins",
     "publish_finding",
     "send_message",
     "get_messages",
@@ -323,17 +294,7 @@ Check get_messages every 5-7 tool calls. Key cross-domain connections:
 - MTHFR (from cardio) affects homocysteine which affects neurodegeneration — watch for this
 - GBA variants affect both Parkinson's AND Gaucher disease — message metabolic-collector if found
 
-### Step 9: Protein-Level Analysis
-If protein PRS data is available, use get_protein_prs_for_panel("neurological") to discover which proteins in your domain have abnormal predicted levels. Notable proteins (>75th or <25th percentile) may explain WHY disease risk is elevated or reduced.
-
-- Proteins with R²≥0.60 are clinically significant — genetics dominates their blood levels
-- Proteins with R²≥0.20 are well-predicted — worth noting in findings
-- Use explain_disease_risk_proteins(trait, "neurological") to decompose specific risk findings into protein pathways
-- Always report both elevated AND protective protein findings
-
-Include protein signals in your published findings when they add mechanistic insight.
-
-### Step 10: Publish Findings
+### Step 9: Publish Findings
 Publish 3-10 findings. Always include the APOE result as your first finding (even if E3/E3 — that is reassuring and clinically relevant information).
 
 ## Critical Rules
@@ -369,9 +330,6 @@ const metabolicCollector = {
     "query_hpo",
     "query_disease_genes",
     "query_snpedia",
-    "get_protein_prs_for_panel",
-    "get_protein_prs_summary",
-    "explain_disease_risk_proteins",
     "publish_finding",
     "send_message",
     "get_messages",
@@ -444,17 +402,7 @@ Check get_messages every 5-7 tool calls. Key connections:
 - Diabetes medications interact with pharmacogenes — coordinate with pharma-collector
 - Lipid findings overlap with cardiovascular domain — coordinate with cardio-collector
 
-### Step 9: Protein-Level Analysis
-If protein PRS data is available, use get_protein_prs_for_panel("metabolic") to discover which proteins in your domain have abnormal predicted levels. Notable proteins (>75th or <25th percentile) may explain WHY disease risk is elevated or reduced.
-
-- Proteins with R²≥0.60 are clinically significant — genetics dominates their blood levels
-- Proteins with R²≥0.20 are well-predicted — worth noting in findings
-- Use explain_disease_risk_proteins(trait, "metabolic") to decompose specific risk findings into protein pathways
-- Always report both elevated AND protective protein findings
-
-Include protein signals in your published findings when they add mechanistic insight.
-
-### Step 10: Publish Findings
+### Step 9: Publish Findings
 Publish 3-10 findings. HFE status should be your first finding if any risk variants are present (highly actionable). Include carrier status findings — they're important for family planning.
 
 ## Critical Rules
@@ -491,9 +439,6 @@ const pharmaCollector = {
     "query_snpedia",
     "get_pharmacogenomics",
     "get_all_pharmacogenomics",
-    "get_protein_prs_for_panel",
-    "get_protein_prs_summary",
-    "explain_disease_risk_proteins",
     "publish_finding",
     "send_message",
     "get_messages",
@@ -571,17 +516,7 @@ Check get_messages every 5-7 tool calls. Key connections:
 - Alert cardio-collector about CYP2C19 status (clopidogrel) and VKORC1/CYP2C9 (warfarin)
 - Alert neuro-collector about CYP2D6 (antidepressants, antipsychotics) and COMT (dopamine metabolism)
 
-### Step 6: Protein-Level Analysis
-If protein PRS data is available, use get_protein_prs_summary() to review all protein scores. Proteins involved in drug metabolism or transport pathways may affect drug response beyond traditional pharmacogene variants.
-
-- Proteins with R²≥0.60 are clinically significant — genetics dominates their blood levels
-- Proteins with R²≥0.20 are well-predicted — worth noting in findings
-- Look for proteins related to drug targets, transporters, or metabolic enzymes
-- Always report both elevated AND protective protein findings
-
-Include protein signals in your published findings when they add mechanistic insight.
-
-### Step 7: Publish Findings
+### Step 6: Publish Findings
 Publish 3-10 findings. Structure each finding as:
 1. Gene and metabolizer status
 2. Key affected medications
@@ -622,9 +557,6 @@ const immuneCollector = {
     "query_hpo",
     "query_disease_genes",
     "query_snpedia",
-    "get_protein_prs_for_panel",
-    "get_protein_prs_summary",
-    "explain_disease_risk_proteins",
     "publish_finding",
     "send_message",
     "get_messages",
@@ -696,17 +628,7 @@ Check get_messages every 5-7 tool calls. Key connections:
 - Autoimmune conditions can mimic or interact with other diseases
 - JAK2 variants also relevant to myeloproliferative disorders — cancer-collector
 
-### Step 9: Protein-Level Analysis
-If protein PRS data is available, use get_protein_prs_for_panel("immune") to discover which proteins in your domain have abnormal predicted levels. Notable proteins (>75th or <25th percentile) may explain WHY disease risk is elevated or reduced.
-
-- Proteins with R²≥0.60 are clinically significant — genetics dominates their blood levels
-- Proteins with R²≥0.20 are well-predicted — worth noting in findings
-- Use explain_disease_risk_proteins(trait, "immune") to decompose specific risk findings into protein pathways
-- Always report both elevated AND protective protein findings
-
-Include protein signals in your published findings when they add mechanistic insight.
-
-### Step 10: Publish Findings
+### Step 9: Publish Findings
 Publish 3-10 findings. For autoimmune variants, specify which conditions are affected and the magnitude of risk increase.
 
 ## Critical Rules
@@ -736,9 +658,6 @@ const crossDomainSynthesizer = {
     "query_disease_genes",
     "query_hpo",
     "query_snpedia",
-    "get_protein_prs_for_panel",
-    "get_protein_prs_summary",
-    "explain_disease_risk_proteins",
     "publish_finding",
     "send_message",
     "log_web_search",
@@ -778,24 +697,14 @@ For each cross-domain pattern you identify, verify the connection:
 - Use query_disease_genes to check for documented gene-disease connections
 - Use query_hpo to check for overlapping phenotype associations
 
-### Step 5: Protein-Level Cross-Domain Synthesis
-Integrate protein PRS findings from collectors into your cross-domain analysis. Use get_protein_prs_summary() to see the full protein landscape, then correlate with collector findings:
-
-- When multiple collectors flag the same protein as abnormal from different angles, this is strong convergent evidence
-- Use explain_disease_risk_proteins(trait, panel) to decompose disease risks into their protein drivers
-- Look for proteins that appear abnormal across multiple disease panels — these may represent shared mechanistic pathways
-- Proteins with R²≥0.60 are the most reliable and should be emphasized in synthesis findings
-- When a disease risk finding from a collector aligns with an elevated/reduced protein in the same pathway, this strengthens the finding
-- Recommend blood test confirmation for clinically significant proteins (R²≥0.60) that show extreme deviations
-
-### Step 6: Pharmacogenomic Integration
+### Step 5: Pharmacogenomic Integration
 Create a "medication watchlist" by cross-referencing:
 - All abnormal metabolizer findings from pharma-collector
 - All disease risk findings from other collectors
 - Medications commonly prescribed for those conditions
 Flag any medication that would need dose adjustment or should be avoided given this patient's pharmacogenomic profile.
 
-### Step 7: Publish Synthesized Findings
+### Step 6: Publish Synthesized Findings
 Publish 5-10 synthesis findings. Each should:
 - Reference findings from multiple collectors
 - Explain the cross-domain connection clearly
@@ -826,9 +735,6 @@ const finalNarrator = {
     "get_messages",
     "query_genotype",
     "query_snpedia",
-    "get_protein_prs_for_panel",
-    "get_protein_prs_summary",
-    "explain_disease_risk_proteins",
     "publish_finding",
   ],
   defaultPrompt: `You are a genomics report writer. Your job is to read ALL findings and synthesis results, then write a comprehensive, clear, human-readable genomic health report suitable for the patient to share with their healthcare provider.
@@ -918,11 +824,6 @@ Before finalizing:
 - "Your APOE genotype is E3/E4" not "The patient harbors the epsilon 4 allele."
 - When discussing risk, use absolute numbers where possible: "roughly 3 in 100" not just "3x increased risk."
 - Always balance risk findings with context and agency: what can the patient DO about this?
-
-### Protein Pathway Explanations
-When discussing disease risk, explain which proteins may be driving it using findings from collectors.
-Use format: "driven by genetically elevated [PROTEIN] and low [PROTEIN]" when protein data shows notable levels.
-For clinically significant proteins (R²≥0.60), recommend blood test confirmation.
 
 ## Critical Rules
 - NEVER omit the disclaimers. This is not optional.
