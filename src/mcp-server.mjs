@@ -21,7 +21,6 @@
 //   GENOTYPE_DB      Path to patient genotype database
 //   HELIX_STATE_DIR  Directory for shared state files (findings, chat, etc.)
 //   HELIX_AGENT_ID   This agent's identifier (e.g. "cancer-collector")
-//   PROTEIN_PRS_FILE Path to protein PRS scores JSON (optional, from score-protein-prs.cjs)
 //
 // ============================================================
 
@@ -45,7 +44,6 @@ const UNIFIED_DB_PATH  = process.env.UNIFIED_DB      || "";
 const GENOTYPE_DB_PATH = process.env.GENOTYPE_DB      || "";
 const STATE_DIR        = process.env.HELIX_STATE_DIR  || "./state";
 const AGENT_ID         = process.env.HELIX_AGENT_ID   || "unknown";
-const PROTEIN_PRS_FILE = join(STATE_DIR, "protein-prs.json");
 
 // Ensure state directory exists
 if (!existsSync(STATE_DIR)) {
@@ -88,16 +86,6 @@ function unifiedDb() {
   return _unifiedDb;
 }
 
-// ---------------------------------------------------------------------------
-// Protein PRS data (lazy-loaded from JSON)
-// ---------------------------------------------------------------------------
-
-let _proteinData = null;
-function loadProteinPrs() {
-  if (_proteinData) return _proteinData;
-  try { _proteinData = JSON.parse(readFileSync(PROTEIN_PRS_FILE, "utf-8")); } catch { return null; }
-  return _proteinData;
-}
 
 // ---------------------------------------------------------------------------
 // Utility: read JSONL state files
@@ -1218,179 +1206,6 @@ server.tool(
   }
 );
 
-// ============================================================
-// Section 5: Protein PRS (Protein-Level Polygenic Risk Scores)
-// ============================================================
-
-// --- get_protein_prs_summary ---
-server.tool(
-  "get_protein_prs_summary",
-  "Get a summary of all protein-level polygenic risk scores. Shows clinically significant " +
-    "proteins (R²≥0.60, where genetics dominates blood levels) first, then the top 20 most " +
-    "deviant proteins by Z-score. Protein PRS predict genetically-determined blood protein " +
-    "levels from DNA alone — elevated or reduced proteins may explain WHY disease risk exists.",
-  {},
-  async () => {
-    const data = loadProteinPrs();
-    if (!data) return { content: [{ type: "text", text: "Protein PRS data not available. No protein-prs.json file found in state directory." }] };
-
-    const proteins = Array.isArray(data) ? data : (data.proteins || []);
-    if (!proteins.length) return { content: [{ type: "text", text: "Protein PRS file loaded but contains no protein scores." }] };
-
-    const sorted = [...proteins].sort((a, b) => Math.abs(b.z || 0) - Math.abs(a.z || 0));
-
-    const clinical = sorted.filter(p => (p.r2 || 0) >= 0.60);
-    const top20 = sorted.slice(0, 20);
-
-    let text = `=== PROTEIN PRS SUMMARY: ${proteins.length} proteins scored ===\n\n`;
-
-    if (clinical.length > 0) {
-      text += `## Clinically Significant Proteins (R²≥0.60 — genetics dominates blood levels)\n`;
-      text += `protein_id | percentile | 95% CI | Z | R² | Level | Panels\n`;
-      text += `-----------|-----------|--------|---|----| ------|-------\n`;
-      for (const p of clinical) {
-        const ci = p.ci95 ? `${p.ci95[0]}-${p.ci95[1]}` : "N/A";
-        const pct = p.percentile != null ? `${p.percentile.toFixed(1)}th` : "N/A";
-        const level = p.percentile >= 75 ? "ELEVATED" : p.percentile <= 25 ? "LOW" : "normal";
-        const panels = (p.panels || []).join(", ") || "—";
-        text += `${p.protein_id || p.id} | ${pct} | ${ci} | ${(p.z || 0).toFixed(2)} | ${(p.r2 || 0).toFixed(2)} | ${level} | ${panels}\n`;
-      }
-      text += `\n`;
-    }
-
-    text += `## Top 20 Most Deviant Proteins (by absolute Z-score)\n`;
-    text += `protein_id | percentile | 95% CI | Z | R² | Level | Panels\n`;
-    text += `-----------|-----------|--------|---|----| ------|-------\n`;
-    for (const p of top20) {
-      const ci = p.ci95 ? `${p.ci95[0]}-${p.ci95[1]}` : "N/A";
-      const pct = p.percentile != null ? `${p.percentile.toFixed(1)}th` : "N/A";
-      const level = p.percentile >= 75 ? "ELEVATED" : p.percentile <= 25 ? "LOW" : "normal";
-      const panels = (p.panels || []).join(", ") || "—";
-      text += `${p.protein_id || p.id} | ${pct} | ${ci} | ${(p.z || 0).toFixed(2)} | ${(p.r2 || 0).toFixed(2)} | ${level} | ${panels}\n`;
-    }
-
-    return { content: [{ type: "text", text }] };
-  }
-);
-
-// --- get_protein_prs_for_panel ---
-server.tool(
-  "get_protein_prs_for_panel",
-  "Get protein PRS scores filtered by disease panel. Returns all proteins mapped to the " +
-    "specified panel sorted by deviation. Panels: cardiovascular, cancer, neurological, " +
-    "metabolic, immune. Proteins with abnormal predicted levels (>75th or <25th percentile) " +
-    "may explain mechanistic pathways driving disease risk.",
-  { panel: z.string().describe("Panel name: cardiovascular, cancer, neurological, metabolic, or immune") },
-  async ({ panel }) => {
-    const data = loadProteinPrs();
-    if (!data) return { content: [{ type: "text", text: "Protein PRS data not available." }] };
-
-    const proteins = Array.isArray(data) ? data : (data.proteins || []);
-    const panelLower = panel.toLowerCase();
-    const filtered = proteins.filter(p =>
-      (p.panels || []).some(pan => pan.toLowerCase().includes(panelLower))
-    );
-
-    if (!filtered.length) {
-      return { content: [{ type: "text", text: `No proteins found for panel "${panel}". Available panels: cardiovascular, cancer, neurological, metabolic, immune.` }] };
-    }
-
-    const sorted = [...filtered].sort((a, b) => Math.abs(b.z || 0) - Math.abs(a.z || 0));
-
-    let text = `=== PROTEIN PRS: ${panel.toUpperCase()} PANEL (${sorted.length} proteins) ===\n\n`;
-    text += `protein_id | percentile | 95% CI | Z | R² | Level | Description\n`;
-    text += `-----------|-----------|--------|---|----| ------|------------\n`;
-    for (const p of sorted) {
-      const ci = p.ci95 ? `${p.ci95[0]}-${p.ci95[1]}` : "N/A";
-      const pct = p.percentile != null ? `${p.percentile.toFixed(1)}th` : "N/A";
-      const level = p.percentile >= 75 ? "ELEVATED" : p.percentile <= 25 ? "LOW" : "normal";
-      const desc = p.description || p.protein_id || p.id || "";
-      text += `${p.protein_id || p.id} | ${pct} | ${ci} | ${(p.z || 0).toFixed(2)} | ${(p.r2 || 0).toFixed(2)} | ${level} | ${desc}\n`;
-    }
-
-    const elevated = sorted.filter(p => (p.percentile || 50) >= 75).length;
-    const low = sorted.filter(p => (p.percentile || 50) <= 25).length;
-    text += `\nSummary: ${elevated} elevated (≥75th), ${low} low (≤25th), ${sorted.length - elevated - low} normal range`;
-
-    return { content: [{ type: "text", text }] };
-  }
-);
-
-// --- explain_disease_risk_proteins ---
-server.tool(
-  "explain_disease_risk_proteins",
-  "Decompose disease risk into protein-level explanations. For a given trait and panel, " +
-    "shows which proteins are elevated (potential risk drivers), which are low (potential " +
-    "protective or risk if normally needed), and which are in normal range. Helps explain " +
-    "WHY a genetic risk score is elevated or reduced at the molecular level.",
-  {
-    trait: z.string().describe("Disease or trait name, e.g. 'coronary artery disease', 'breast cancer'"),
-    panel: z.string().describe("Panel name: cardiovascular, cancer, neurological, metabolic, or immune"),
-  },
-  async ({ trait, panel }) => {
-    const data = loadProteinPrs();
-    if (!data) return { content: [{ type: "text", text: "Protein PRS data not available." }] };
-
-    const proteins = Array.isArray(data) ? data : (data.proteins || []);
-    const panelLower = panel.toLowerCase();
-    const filtered = proteins.filter(p =>
-      (p.panels || []).some(pan => pan.toLowerCase().includes(panelLower))
-    );
-
-    if (!filtered.length) {
-      return { content: [{ type: "text", text: `No proteins found for panel "${panel}".` }] };
-    }
-
-    const elevated = filtered.filter(p => (p.percentile || 50) >= 75)
-      .sort((a, b) => (b.percentile || 50) - (a.percentile || 50));
-    const low = filtered.filter(p => (p.percentile || 50) <= 25)
-      .sort((a, b) => (a.percentile || 50) - (b.percentile || 50));
-    const normal = filtered.filter(p => (p.percentile || 50) > 25 && (p.percentile || 50) < 75)
-      .sort((a, b) => Math.abs(b.z || 0) - Math.abs(a.z || 0));
-
-    let text = `=== PROTEIN RISK DECOMPOSITION: "${trait}" (${panel} panel) ===\n\n`;
-
-    text += `## Elevated Proteins (≥75th percentile) — Potential Risk Drivers\n`;
-    if (elevated.length) {
-      for (const p of elevated) {
-        const ci = p.ci95 ? ` [CI: ${p.ci95[0]}-${p.ci95[1]}]` : "";
-        const r2note = (p.r2 || 0) >= 0.60 ? " ★ CLINICALLY SIGNIFICANT" : (p.r2 || 0) >= 0.20 ? " ● well-predicted" : "";
-        text += `  ${p.protein_id || p.id}: ${(p.percentile || 0).toFixed(1)}th percentile, Z=${(p.z || 0).toFixed(2)}, R²=${(p.r2 || 0).toFixed(2)}${r2note}${ci}\n`;
-      }
-    } else {
-      text += `  (none in this panel)\n`;
-    }
-
-    text += `\n## Low Proteins (≤25th percentile) — Potential Protective or Risk If Normally Needed\n`;
-    if (low.length) {
-      for (const p of low) {
-        const ci = p.ci95 ? ` [CI: ${p.ci95[0]}-${p.ci95[1]}]` : "";
-        const r2note = (p.r2 || 0) >= 0.60 ? " ★ CLINICALLY SIGNIFICANT" : (p.r2 || 0) >= 0.20 ? " ● well-predicted" : "";
-        text += `  ${p.protein_id || p.id}: ${(p.percentile || 0).toFixed(1)}th percentile, Z=${(p.z || 0).toFixed(2)}, R²=${(p.r2 || 0).toFixed(2)}${r2note}${ci}\n`;
-      }
-    } else {
-      text += `  (none in this panel)\n`;
-    }
-
-    text += `\n## Normal Range Proteins (25th-75th percentile)\n`;
-    if (normal.length) {
-      const shown = normal.slice(0, 10);
-      for (const p of shown) {
-        text += `  ${p.protein_id || p.id}: ${(p.percentile || 0).toFixed(1)}th percentile, Z=${(p.z || 0).toFixed(2)}, R²=${(p.r2 || 0).toFixed(2)}\n`;
-      }
-      if (normal.length > 10) text += `  ... and ${normal.length - 10} more in normal range\n`;
-    } else {
-      text += `  (none in this panel)\n`;
-    }
-
-    text += `\n---\nNote: These are GENETICALLY PREDICTED protein levels based on DNA variants (protein PRS), not measured blood levels. `;
-    text += `Proteins with R²≥0.60 are strongly genetically determined — a blood test can confirm the predicted level. `;
-    text += `Proteins with lower R² are influenced by genetics but also by diet, lifestyle, and health status. `;
-    text += `Elevated or reduced predicted levels establish a genetic BASELINE that persists regardless of lifestyle changes.`;
-
-    return { content: [{ type: "text", text }] };
-  }
-);
 
 // ============================================================
 // Start server

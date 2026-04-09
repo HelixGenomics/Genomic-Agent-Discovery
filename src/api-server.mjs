@@ -631,8 +631,6 @@ export function createApiServer(config, stateDir, orchestrator) {
       if (chrYCount > 100) sex = 'Male (XY)';
       else if (chrYCount < 10 && chrXCount > 100 && (chrXHetCount / chrXCount) > 0.1) sex = 'Female (XX)';
 
-      // Coverage stats (without reference DB, provide estimates)
-      const estimatedImputed = Math.round(count * 46);
 
       res.json({
         provider,
@@ -642,13 +640,12 @@ export function createApiServer(config, stateDir, orchestrator) {
         sex,
         snpCount: count,
         noCallRate: parsed.noCallRate,
-        estimatedImputedSnps: estimatedImputed,
         build: parsed.metadata?.build || null,
         recommendation: count < 500000
-          ? 'Your chip has limited coverage. Imputation is strongly recommended.'
+          ? 'Your chip has limited coverage.'
           : count > 900000
-          ? 'Excellent chip coverage! Imputation will still improve rare variant analysis.'
-          : 'Good chip coverage. Imputation recommended for best results.',
+          ? 'Excellent chip coverage!'
+          : 'Good chip coverage.',
       });
     } catch (err) {
       console.error('[api-server] Check-chip error:', err.message);
@@ -740,21 +737,6 @@ export function createApiServer(config, stateDir, orchestrator) {
       const exomiserDir = resolve(join(process.cwd(), 'data', 'exomiser'));
       const exomiserInstalled = existsSync(join(exomiserDir, 'exomiser-cli-15.0.0.jar')) || existsSync(exomiserDir);
       databases.push({ name: 'Exomiser', table: 'exomiser', description: 'Phenotype-driven variant prioritization', rows: exomiserInstalled ? 1 : 0, status: exomiserInstalled ? 'loaded' : 'not installed', builtAt: null, source: 'Exomiser CLI (optional)' });
-
-      // Protein PRS
-      const stateDir = process.env.HELIX_STATE_DIR || resolve(join(process.cwd(), 'state'));
-      const proteinPrsFile = join(stateDir, 'protein-prs.json');
-      try {
-        if (existsSync(proteinPrsFile)) {
-          const proteins = JSON.parse(readFileSync(proteinPrsFile, 'utf-8'));
-          const clinical = proteins.filter(p => p.r2 >= 0.60).length;
-          databases.push({ name: 'Protein PRS', table: 'protein_prs', description: `SNPBoost protein scores (${clinical} clinical R²≥0.60)`, rows: proteins.length, status: 'loaded', builtAt: null, source: 'proteinprs.com / SNPBoost' });
-        } else {
-          databases.push({ name: 'Protein PRS', table: 'protein_prs', description: 'Protein-level polygenic risk scores (optional)', rows: 0, status: 'not installed', builtAt: null, source: 'proteinprs.com' });
-        }
-      } catch {
-        databases.push({ name: 'Protein PRS', table: 'protein_prs', description: 'Protein-level polygenic risk scores', rows: 0, status: 'error', builtAt: null, source: null });
-      }
 
       res.json({ ok: true, databases, totalRows, dbSize, dbPath });
     } catch (err) {
