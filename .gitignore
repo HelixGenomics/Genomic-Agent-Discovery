@@ -4,7 +4,7 @@ node_modules/
 # Database and data files
 data/
 state/
-output/
+/output/
 *.db
 *.db-journal
 *.db-wal
